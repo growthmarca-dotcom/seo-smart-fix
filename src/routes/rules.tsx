@@ -5,7 +5,7 @@ import { CategoryBadge, SeverityBadge } from "@/components/seo-ui";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import { CATEGORY_LABELS, KIND_HINTS, KIND_LABELS, RULES } from "@/seo/rules";
-import { PAGE_CONTEXT_LABELS } from "@/seo/page-profiles";
+import { PAGE_CONTEXT_LABELS } from "@/seo/page-context";
 import { actions, useAppState } from "@/store/app-store";
 
 export const Route = createFileRoute("/rules")({

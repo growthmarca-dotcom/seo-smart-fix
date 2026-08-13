@@ -4,7 +4,7 @@
  * qué reglas se aplican a una página y cuáles se omiten por su contexto.
  */
 import { RULES, rulesForPlatform, type SeoRule } from "./rules";
-import { PAGE_PROFILES, resolvePageContext, ruleMatchesPageType } from "./page-profiles";
+import { PAGE_PROFILES, ruleMatchesPageType } from "./page-profiles";
 import type { PageSnapshot, PageType } from "./types";
 
 export * from "./page-profiles";
