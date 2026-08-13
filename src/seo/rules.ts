@@ -211,25 +211,32 @@ export const RULES: SeoRule[] = [
   {
     id: "thin-content",
     kind: "content",
-    name: "Contenido posiblemente insuficiente",
+    name: "Contenido posiblemente insuficiente para el tipo de página",
     category: "content",
     severity: "important",
     impact: 6,
     field: "content",
     tags: ["universal"],
+    // FASE 3: el umbral depende del tipo de página. Contacto, institucionales y
+    // páginas sin clasificar no se penalizan por cantidad de texto.
+    excludedPageTypes: ["contact", "institutional", "other"],
+    requiresEvidence: "Cantidad de palabras del contenido principal (HTTP 200).",
     explanation:
-      "Oportunidad de contenido: no existe un mínimo oficial de palabras, pero páginas con muy poco texto suelen resolver peor la intención de búsqueda frente a resultados más completos.",
-    check: (p) =>
-      p.statusCode === 200 && p.wordCount < 150
-        ? {
-            severity: p.wordCount < 60 ? "important" : "improvement",
-            current: `${p.wordCount} palabras`,
-            problem:
-              "Contenido posiblemente insuficiente para cubrir adecuadamente la intención de búsqueda.",
-            suggestion:
-              "Ampliar con información útil y específica: características, usos, materiales, preguntas frecuentes.",
-          }
-        : null,
+      "Oportunidad de contenido: no existe un mínimo oficial de palabras, pero páginas con muy poco texto para su tipo (producto, categoría, artículo, landing, home) suelen resolver peor la intención de búsqueda frente a resultados más completos.",
+    check: (p) => {
+      if (p.statusCode !== 200) return null;
+      const min = minWordsFor(p);
+      if (min === null || p.wordCount >= min) return null;
+      const ctx = resolvePageContext(p);
+      return {
+        severity: p.wordCount < min * 0.4 ? "important" : "improvement",
+        current: `${p.wordCount} palabras (referencia para ${ctx.profile.label}: ${min})`,
+        evidence: [`Tipo de página: ${ctx.profile.label}`, `Umbral contextual: ${min} palabras`],
+        problem: `Contenido posiblemente insuficiente para una página de tipo ${ctx.profile.label}.`,
+        suggestion:
+          "Ampliar con información útil y específica del tipo de página: características, usos, materiales, preguntas frecuentes.",
+      };
+    },
   },
   {
     id: "duplicate-content",
