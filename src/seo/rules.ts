@@ -356,6 +356,9 @@ export const RULES: SeoRule[] = [
     impact: 4,
     field: "internalLinks",
     tags: ["universal"],
+    // FASE 3: contacto e institucionales son breves por naturaleza y no se
+    // penalizan por enlazar poco; los tipos comerciales tienen reglas propias.
+    excludedPageTypes: ["contact", "institutional"],
     explanation:
       "Los enlaces internos reparten autoridad y ayudan al rastreo. Páginas huérfanas o casi sin enlaces salientes se rastrean peor.",
     check: (p) =>
@@ -1238,7 +1241,7 @@ export const RULES: SeoRule[] = [
       "En páginas de contacto o institucionales no se espera contenido extenso, pero sí que title y H1 identifiquen sin ambigüedad de qué página se trata.",
     check: (p) => {
       if (p.statusCode !== 200) return null;
-      const weakTitle = !has(p.title) || p.title!.trim().length < 10;
+      const weakTitle = !has(p.title);
       const weakH1 = p.h1.length === 0;
       if (!weakTitle && !weakH1) return null;
       return {
