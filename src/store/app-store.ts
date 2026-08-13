@@ -197,14 +197,29 @@ export const actions = {
       const change = prev.changes.find((c) => c.id === changeId);
       return {
         ...prev,
+  setChangeStatus(changeId: string, status: ChangeStatus, note?: string) {
+    set((prev) => {
+      const change = prev.changes.find((c) => c.id === changeId);
+      const at = now();
+      return {
+        ...prev,
         changes: prev.changes.map((c) =>
-          c.id === changeId ? { ...c, status, note, updatedAt: now() } : c,
+          c.id === changeId
+            ? {
+                ...c,
+                status,
+                note,
+                updatedAt: at,
+                history: [...(c.history ?? []), { at, status, detail: note }],
+              }
+            : c,
         ),
         history: change
           ? [
               log({
                 auditId: change.auditId,
                 action:
+
                   status === "approved"
                     ? "Cambio aprobado"
                     : status === "rejected"
