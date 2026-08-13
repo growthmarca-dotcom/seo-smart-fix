@@ -8,6 +8,8 @@ import { CATEGORY_LABELS, KIND_HINTS, KIND_LABELS, RULES } from "@/seo/rules";
 import { actions, useAppState } from "@/store/app-store";
 
 export const Route = createFileRoute("/rules")({
+  validateSearch: (search: Record<string, unknown>): { rule?: string | undefined } =>
+    typeof search["rule"] === "string" ? { rule: search["rule"] } : {},
   head: () => ({
     meta: [
       { title: "Reglas SEO — SEO Fixer" },
@@ -24,8 +26,9 @@ export const Route = createFileRoute("/rules")({
 });
 
 function Rules() {
+  const { rule } = Route.useSearch();
   const disabled = useAppState((s) => s.settings.disabledRules);
-  const [query, setQuery] = useState("");
+  const [query, setQuery] = useState(rule ?? "");
 
   const rows = RULES.filter((r) =>
     query.trim()
