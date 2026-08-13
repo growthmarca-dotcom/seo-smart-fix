@@ -16,6 +16,17 @@ export type Category =
   | "content"
   | "authority";
 
+/**
+ * Naturaleza del hallazgo. Permite separar hechos verificables de
+ * recomendaciones basadas en buenas prácticas del sector.
+ * - technical: fallo técnico comprobable (HTTP, redirecciones, enlaces rotos).
+ * - indexation: afecta directamente rastreo o indexación (noindex, robots, canonical).
+ * - onpage: elemento on-page ausente o mal formado (hecho, no opinión).
+ * - opportunity: oportunidad de contenido o enlazado interno.
+ * - heuristic: recomendación basada en buenas prácticas, no una regla de Google.
+ */
+export type FindingKind = "technical" | "indexation" | "onpage" | "opportunity" | "heuristic";
+
 export type PlatformId = "generic-web" | "tiendanube" | "mercadolibre";
 
 export type PageType =
@@ -26,6 +37,10 @@ export type PageType =
   | "landing"
   | "contact"
   | "other";
+
+/** Cómo se descubrió una URL durante el rastreo. */
+export type DiscoverySource = "seed" | "sitemap" | "internal-link" | "both";
+
 
 /** Representación normalizada de una página / publicación / producto. */
 export interface PageSnapshot {
