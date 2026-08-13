@@ -325,6 +325,7 @@ function AuditResults() {
 function ScoreExplanation({ audit }: { audit: Audit }) {
   const score = audit.score;
   if (!score) return null;
+  const drivers = score.drivers ?? [];
   return (
     <section className="panel p-5">
       <h2 className="font-display text-base font-semibold">
@@ -347,13 +348,13 @@ function ScoreExplanation({ audit }: { audit: Audit }) {
       <h3 className="mt-4 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
         Prioridades de optimización
       </h3>
-      {score.drivers.length === 0 ? (
+      {drivers.length === 0 ? (
         <p className="mt-4 text-sm text-muted-foreground">
           No hay hallazgos que estén restando puntos en las páginas analizadas.
         </p>
       ) : (
         <ul className="mt-4 space-y-2">
-          {score.drivers.map((d) => (
+          {drivers.map((d) => (
             <li
               key={d.ruleId}
               className="flex flex-wrap items-center gap-2 rounded-lg border border-border bg-muted/40 px-3 py-2 text-sm"
@@ -387,7 +388,7 @@ function CoveragePanel({ audit }: { audit: Audit }) {
       </section>
     );
   }
-  const notAnalyzed = c.excluded;
+  const notAnalyzed = c.excluded ?? [];
   return (
     <section className="panel p-5">
       <h2 className="font-display text-base font-semibold">Cobertura del rastreo</h2>
@@ -395,8 +396,8 @@ function CoveragePanel({ audit }: { audit: Audit }) {
         <Metric label="Descubiertas" value={c.discovered} />
         <Metric label="Analizadas" value={c.analyzed} />
         <Metric label="Bloqueadas por robots" value={c.blocked ?? 0} />
-        <Metric label="Excluidas" value={c.excluded.length} />
-        <Metric label="Con error" value={c.errors.length} />
+        <Metric label="Excluidas" value={notAnalyzed.length} />
+        <Metric label="Con error" value={(c.errors ?? []).length} />
         <Metric label="Pendientes" value={c.pending ?? 0} />
         <Metric label="Redirecciones" value={c.redirects.length} />
         <Metric label="Límite" value={`${c.limit}${c.limitReached ? " (alcanzado)" : ""}`} />
