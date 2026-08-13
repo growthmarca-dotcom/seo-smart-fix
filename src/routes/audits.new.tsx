@@ -74,7 +74,7 @@ function NewAudit() {
     });
     actions.addAudit(audit);
     setProgress({
-      discovered: site.pages.length,
+      discovered: site.coverage?.discovered ?? site.pages.length,
       analyzed: site.pages.length,
       issues: audit.findings.length,
     });
@@ -110,7 +110,10 @@ function NewAudit() {
         robotsTxt: { found: r.robotsFound, disallowsAll: r.robotsDisallowAll, sitemapDeclared: r.sitemapFound },
         sitemap: { found: r.sitemapFound, urlCount: r.sitemapUrlCount },
         pages: r.pages,
+        brokenLinks: r.brokenLinks,
+        coverage: r.coverage,
       };
+
       finish(site, `${new URL(r.pages[0]!.url).host} — ${new Date().toLocaleDateString("es-AR")}`, false);
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Error inesperado durante el rastreo.");
