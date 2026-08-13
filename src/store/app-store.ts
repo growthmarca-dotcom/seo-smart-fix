@@ -135,7 +135,7 @@ export function createAuditFromSite(
   },
 ): Audit {
   const tags = getConnector(meta.platform)?.ruleTags ?? [];
-  const { findings, score } = runAudit(site, tags);
+  const { findings, score } = runAudit(site, tags, state.settings.disabledRules);
   const issues = findings.filter((f) => f.severity !== "ok").length;
   return {
     id: id(),

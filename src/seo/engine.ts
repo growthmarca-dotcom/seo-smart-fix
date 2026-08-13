@@ -49,8 +49,12 @@ const SATURATION = 14;
 export const SCORE_METHOD =
   "Score ponderado por categoría, severidad, impacto estimado y naturaleza del hallazgo, normalizado por cantidad de páginas analizadas. Es una guía de priorización interna: no predice ni garantiza posiciones en Google.";
 
-export function runAudit(site: SiteContext, platformTags: string[] = []) {
-  const rules = rulesForPlatform(platformTags);
+export function runAudit(
+  site: SiteContext,
+  platformTags: string[] = [],
+  disabledRules: string[] = [],
+) {
+  const rules = rulesForPlatform(platformTags).filter((r) => !disabledRules.includes(r.id));
   const findings: Finding[] = [];
 
   for (const page of site.pages) {
@@ -85,7 +89,7 @@ export function runAudit(site: SiteContext, platformTags: string[] = []) {
 
   return {
     findings: prioritize(findings),
-    score: computeScore(site, findings, platformTags),
+    score: computeScore(site, findings, platformTags, disabledRules),
   };
 }
 
@@ -114,9 +118,10 @@ export function computeScore(
   site: SiteContext,
   findings: Finding[],
   platformTags: string[] = [],
+  disabledRules: string[] = [],
 ): SeoScore {
   const pages = Math.max(site.pages.length, 1);
-  const rules = rulesForPlatform(platformTags);
+  const rules = rulesForPlatform(platformTags).filter((r) => !disabledRules.includes(r.id));
 
   const categories: CategoryScore[] = (Object.keys(CATEGORY_WEIGHTS) as Category[])
     .filter((c) => CATEGORY_WEIGHTS[c] > 0)
