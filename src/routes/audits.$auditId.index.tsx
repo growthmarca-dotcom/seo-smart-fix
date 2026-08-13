@@ -3,6 +3,7 @@ import { useMemo, useState } from "react";
 import { ArrowUpDown, ExternalLink, Search } from "lucide-react";
 import { PageHeader } from "@/components/app-shell";
 import { DiagnosticGroupCard } from "@/components/diagnostic";
+import { PageTypeSummary } from "@/components/page-context-ui";
 import {
   CategoryBadge,
   DemoBadge,
@@ -327,6 +328,8 @@ function AuditResults() {
         <ExternalLink className="size-3" /> Abrí una URL para ver cada hallazgo con Actual vs
         Sugerido.
       </p>
+
+      <PageTypeSummary audit={audit} />
 
       <section className="panel mt-4 p-4">
         <h2 className="font-display text-base font-semibold">Problemas agrupados por regla</h2>
