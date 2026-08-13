@@ -148,12 +148,17 @@ export function createAuditFromSite(
     finishedAt: now(),
     crawlLimit: meta.crawlLimit,
     respectRobots: meta.respectRobots,
-    progress: { discovered: site.pages.length, analyzed: site.pages.length, issues },
+    progress: {
+      discovered: site.coverage?.discovered ?? site.pages.length,
+      analyzed: site.pages.length,
+      issues,
+    },
     pages: site.pages,
     findings,
     score,
     sitemapFound: site.sitemap?.found,
     robotsFound: site.robotsTxt?.found,
+    coverage: site.coverage,
   };
 }
 
