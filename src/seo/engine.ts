@@ -37,17 +37,20 @@ const SEVERITY_PENALTY: Record<Severity, number> = {
  */
 const KIND_FACTOR: Record<FindingKind, number> = {
   indexation: 1,
-  technical: 1,
-  onpage: 0.85,
-  opportunity: 0.6,
-  heuristic: 0.35,
+  technical: 0.95,
+  onpage: 0.8,
+  content: 0.7,
+  structure: 0.65,
+  images: 0.4,
+  opportunity: 0.55,
+  heuristic: 0.3,
 };
 
 /** Saturación: evita que una categoría caiga a 0 por muchos avisos menores. */
 const SATURATION = 14;
 
 export const SCORE_METHOD =
-  "Score ponderado por categoría, severidad, impacto estimado y naturaleza del hallazgo, normalizado por cantidad de páginas analizadas. Es una guía de priorización interna: no predice ni garantiza posiciones en Google.";
+  "Indicador de salud SEO ponderado por categoría, severidad, impacto estimado y naturaleza del hallazgo, normalizado por cantidad de páginas analizadas. Es una guía de priorización interna: no predice ni garantiza posiciones en Google.";
 
 export function runAudit(
   site: SiteContext,
@@ -143,9 +146,18 @@ export function computeScore(
   const weightSum = categories.reduce((sum, c) => sum + c.weight, 0) || 1;
   const total = Math.round(categories.reduce((sum, c) => sum + c.score * c.weight, 0) / weightSum);
 
+  const kinds = (Object.keys(KIND_FACTOR) as FindingKind[])
+    .map((kind) => {
+      const list = findings.filter((f) => f.kind === kind);
+      const raw = list.reduce((sum, f) => sum + penaltyOf(f), 0);
+      return { kind, score: categoryScoreFrom(raw, pages).score, findings: list.length };
+    })
+    .filter((k) => k.findings > 0 || k.kind === "indexation" || k.kind === "technical");
+
   return {
     total,
     categories,
+    kinds,
     drivers: computeDrivers(findings, categories, pages, weightSum),
     pagesAnalyzed: site.pages.length,
     method: SCORE_METHOD,
@@ -218,16 +230,22 @@ export function countByKind(findings: Finding[]) {
       acc[f.kind] = (acc[f.kind] ?? 0) + 1;
       return acc;
     },
-    { technical: 0, indexation: 0, onpage: 0, opportunity: 0, heuristic: 0 } as Record<
-      FindingKind,
-      number
-    >,
+    {
+      technical: 0,
+      indexation: 0,
+      onpage: 0,
+      content: 0,
+      structure: 0,
+      images: 0,
+      opportunity: 0,
+      heuristic: 0,
+    } as Record<FindingKind, number>,
   );
 }
 
 export function scoreLabel(score: number) {
-  if (score >= 85) return "Excelente";
-  if (score >= 70) return "Bueno";
-  if (score >= 50) return "Regular";
-  return "Crítico";
+  if (score >= 85) return "Salud alta";
+  if (score >= 70) return "Salud buena";
+  if (score >= 50) return "Salud media";
+  return "Prioridad alta";
 }
