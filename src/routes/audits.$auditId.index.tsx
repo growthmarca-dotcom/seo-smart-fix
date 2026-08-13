@@ -24,7 +24,12 @@ import { CATEGORY_LABELS, kindLabel, SEVERITY_LABELS } from "@/seo/rules";
 import { countBySeverity } from "@/seo/engine";
 import { getConnector } from "@/seo/connectors";
 import { useAppState } from "@/store/app-store";
-import { EXCLUSION_LABELS } from "@/seo/types";
+import {
+  EXCLUSION_LABELS,
+  LINK_STATUS_LABELS,
+  ROBOTS_STATE_LABELS,
+  SITEMAP_KIND_LABELS,
+} from "@/seo/types";
 import type { Audit, Category, PageType, Severity } from "@/seo/types";
 
 export const Route = createFileRoute("/audits/$auditId/")({
@@ -322,8 +327,26 @@ function ScoreExplanation({ audit }: { audit: Audit }) {
   if (!score) return null;
   return (
     <section className="panel p-5">
-      <h2 className="font-display text-base font-semibold">Por qué obtuviste este score</h2>
+      <h2 className="font-display text-base font-semibold">
+        Salud SEO: por qué obtuviste este resultado
+      </h2>
       <p className="mt-1 text-xs text-muted-foreground">{score.method}</p>
+      {score.kinds && score.kinds.length > 0 && (
+        <ul className="mt-3 grid grid-cols-2 gap-2 text-xs sm:grid-cols-3">
+          {score.kinds.map((k) => (
+            <li key={k.kind} className="rounded-lg border border-border bg-muted/40 px-2.5 py-2">
+              <span className="block truncate text-[11px] text-muted-foreground">
+                {kindLabel(k.kind)}
+              </span>
+              <span className="font-display text-base font-semibold">{k.score}</span>
+              <span className="ml-1 text-[11px] text-muted-foreground">· {k.findings}</span>
+            </li>
+          ))}
+        </ul>
+      )}
+      <h3 className="mt-4 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+        Prioridades de optimización
+      </h3>
       {score.drivers.length === 0 ? (
         <p className="mt-4 text-sm text-muted-foreground">
           No hay hallazgos que estén restando puntos en las páginas analizadas.
@@ -371,10 +394,16 @@ function CoveragePanel({ audit }: { audit: Audit }) {
       <dl className="mt-3 grid grid-cols-2 gap-3 text-sm sm:grid-cols-3">
         <Metric label="Descubiertas" value={c.discovered} />
         <Metric label="Analizadas" value={c.analyzed} />
+        <Metric label="Bloqueadas por robots" value={c.blocked ?? 0} />
         <Metric label="Excluidas" value={c.excluded.length} />
-        <Metric label="Errores" value={c.errors.length} />
+        <Metric label="Con error" value={c.errors.length} />
+        <Metric label="Pendientes" value={c.pending ?? 0} />
         <Metric label="Redirecciones" value={c.redirects.length} />
         <Metric label="Límite" value={`${c.limit}${c.limitReached ? " (alcanzado)" : ""}`} />
+        <Metric
+          label="Cobertura"
+          value={`${(c.coveragePct ?? (c.discovered ? Math.round((c.analyzed / c.discovered) * 1000) / 10 : 0)).toString().replace(".", ",")}%`}
+        />
       </dl>
       <p className="mt-3 text-xs text-muted-foreground">
         Origen del descubrimiento: {c.urlsFromSitemap} solo sitemap · {c.urlsFromLinks} solo enlaces
@@ -385,6 +414,61 @@ function CoveragePanel({ audit }: { audit: Audit }) {
             : "robots.txt habilitado pero no encontrado."
           : "robots.txt no se está respetando por configuración."}
       </p>
+      <dl className="mt-3 space-y-1 text-xs">
+        <div className="flex gap-2">
+          <dt className="w-28 shrink-0 text-muted-foreground">robots.txt</dt>
+          <dd>
+            {c.robots ? ROBOTS_STATE_LABELS[c.robots.state] : c.robotsTxtFound ? "Encontrado" : "No encontrado"}
+            {c.robots?.userAgentGroup ? ` · grupo User-agent: ${c.robots.userAgentGroup}` : ""}
+            {c.robots ? ` · ${c.robots.disallow.length} Disallow / ${c.robots.allow.length} Allow` : ""}
+            {c.robots?.parseWarnings.length ? ` · ${c.robots.parseWarnings.length} línea(s) no interpretada(s)` : ""}
+          </dd>
+        </div>
+        <div className="flex gap-2">
+          <dt className="w-28 shrink-0 text-muted-foreground">Sitemaps</dt>
+          <dd>
+            {c.sitemapDocs && c.sitemapDocs.length > 0 ? (
+              <ul className="space-y-0.5">
+                {c.sitemapDocs.slice(0, 6).map((d) => (
+                  <li key={d.url} className="truncate">
+                    <span className="font-medium">{SITEMAP_KIND_LABELS[d.kind]}</span>{" "}
+                    <span className="font-mono text-[11px]">{d.url}</span>
+                    {d.kind === "sitemap" || d.kind === "child" || d.kind === "index"
+                      ? ` · ${d.urlCount} URLs`
+                      : d.detail
+                        ? ` · ${d.detail}`
+                        : d.status
+                          ? ` · HTTP ${d.status}`
+                          : ""}
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              "No se encontró sitemap accesible en las rutas habituales."
+            )}
+          </dd>
+        </div>
+        {c.linkChecksUsed !== undefined && (
+          <div className="flex gap-2">
+            <dt className="w-28 shrink-0 text-muted-foreground">Enlaces</dt>
+            <dd>
+              {c.linkChecksUsed} verificación(es) extra de {c.linkCheckBudget ?? 0} disponibles
+              {c.linkChecks && c.linkChecks.length > 0
+                ? ` · ${summarizeLinkChecks(c.linkChecks)}`
+                : ""}
+            </dd>
+          </div>
+        )}
+        {c.normalizations && c.normalizations.length > 0 && (
+          <div className="flex gap-2">
+            <dt className="w-28 shrink-0 text-muted-foreground">Normalizadas</dt>
+            <dd>
+              {c.normalizations.length} URL(s) ajustada(s):{" "}
+              {[...new Set(c.normalizations.flatMap((n) => n.reasons))].slice(0, 4).join(", ")}
+            </dd>
+          </div>
+        )}
+      </dl>
       {notAnalyzed.length > 0 && (
         <div className="mt-4">
           <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
@@ -410,6 +494,15 @@ function CoveragePanel({ audit }: { audit: Audit }) {
       )}
     </section>
   );
+}
+
+/** Resume los estados verificados sin afirmar roturas que no lo son. */
+function summarizeLinkChecks(checks: NonNullable<Audit["coverage"]>["linkChecks"]) {
+  const counts = new Map<string, number>();
+  for (const c of checks ?? []) counts.set(c.statusClass, (counts.get(c.statusClass) ?? 0) + 1);
+  return [...counts.entries()]
+    .map(([k, n]) => `${n} ${LINK_STATUS_LABELS[k as keyof typeof LINK_STATUS_LABELS]}`)
+    .join(" · ");
 }
 
 function Metric({ label, value }: { label: string; value: string | number }) {
