@@ -4,6 +4,7 @@
  * No conoce ninguna plataforma en particular.
  */
 import { CATEGORY_WEIGHTS, rulesForPlatform } from "./rules";
+import { ruleMatchesPageType } from "./page-profiles";
 import type {
   Category,
   CategoryScore,
@@ -62,6 +63,8 @@ export function runAudit(
 
   for (const page of site.pages) {
     for (const rule of rules) {
+      // FASE 3: contexto por tipo de página declarado por la regla.
+      if (!ruleMatchesPageType(rule, page)) continue;
       if (rule.appliesTo && !rule.appliesTo(page)) continue;
       let result = null;
       try {

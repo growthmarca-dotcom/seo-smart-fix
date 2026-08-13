@@ -5,6 +5,7 @@ import { CategoryBadge, SeverityBadge } from "@/components/seo-ui";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import { CATEGORY_LABELS, KIND_HINTS, KIND_LABELS, RULES } from "@/seo/rules";
+import { PAGE_CONTEXT_LABELS } from "@/seo/page-context";
 import { actions, useAppState } from "@/store/app-store";
 
 export const Route = createFileRoute("/rules")({
@@ -78,6 +79,29 @@ function Rules() {
               </div>
             </header>
             <p className="mt-2 text-xs text-muted-foreground">{r.explanation}</p>
+            {(r.pageTypes || r.excludedPageTypes) && (
+              <p className="mt-1 text-xs text-muted-foreground">
+                {r.pageTypes && (
+                  <>
+                    Se evalúa solo en:{" "}
+                    <span className="font-medium text-foreground">
+                      {r.pageTypes.map((t) => PAGE_CONTEXT_LABELS[t]).join(", ")}
+                    </span>
+                    .{" "}
+                  </>
+                )}
+                {r.excludedPageTypes && (
+                  <>
+                    No se evalúa en:{" "}
+                    <span className="font-medium text-foreground">
+                      {r.excludedPageTypes.map((t) => PAGE_CONTEXT_LABELS[t]).join(", ")}
+                    </span>
+                    .
+                  </>
+                )}
+                {r.requiresEvidence ? ` Evidencia necesaria: ${r.requiresEvidence}` : ""}
+              </p>
+            )}
             <div className="mt-2 flex flex-wrap gap-1.5">
               {r.tags.map((t) => (
                 <span
