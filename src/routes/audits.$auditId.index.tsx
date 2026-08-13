@@ -444,7 +444,9 @@ function CoveragePanel({ audit }: { audit: Audit }) {
                 ))}
               </ul>
             ) : (
-              "No se encontró sitemap accesible en las rutas habituales."
+              audit.sitemapFound
+                ? "Sitemap detectado (auditoría sin detalle por documento)."
+                : "No se encontró sitemap accesible en las rutas habituales."
             )}
           </dd>
         </div>
