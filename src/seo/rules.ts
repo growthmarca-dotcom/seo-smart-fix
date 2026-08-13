@@ -34,9 +34,20 @@ export interface SeoRule {
   explanation: string;
   /** "universal" o etiquetas de plataforma (tiendanube, mercadolibre, ...). */
   tags: string[];
+  /**
+   * FASE 3 — contexto: tipos de página a los que aplica la regla.
+   * Acepta los PageType del modelo y el contexto derivado "institutional".
+   * Sin declarar = aplica a cualquier tipo (comportamiento previo intacto).
+   */
+  pageTypes?: Array<PageType | "institutional"> | undefined;
+  /** Tipos de página excluidos explícitamente por contexto. */
+  excludedPageTypes?: Array<PageType | "institutional"> | undefined;
+  /** Qué evidencia necesita la regla para poder evaluarse. */
+  requiresEvidence?: string | undefined;
   appliesTo?: (page: PageSnapshot) => boolean;
   check: (page: PageSnapshot, site: SiteContext) => RuleResult | null;
 }
+
 
 const has = (v?: string) => Boolean(v && v.trim().length);
 
