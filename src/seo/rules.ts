@@ -198,7 +198,7 @@ export const RULES: SeoRule[] = [
   },
   {
     id: "thin-content",
-    kind: "opportunity",
+    kind: "content",
     name: "Contenido pobre",
     category: "content",
     severity: "important",
@@ -220,7 +220,7 @@ export const RULES: SeoRule[] = [
   },
   {
     id: "duplicate-content",
-    kind: "indexation",
+    kind: "content",
     name: "Contenido duplicado",
     category: "content",
     severity: "important",
@@ -272,7 +272,7 @@ export const RULES: SeoRule[] = [
   },
   {
     id: "images-alt",
-    kind: "onpage",
+    kind: "images",
     name: "Imágenes sin ALT",
     category: "onpage",
     severity: "improvement",
@@ -298,7 +298,7 @@ export const RULES: SeoRule[] = [
   },
   {
     id: "image-filenames",
-    kind: "heuristic",
+    kind: "images",
     name: "Nombres de archivo poco descriptivos",
     category: "onpage",
     severity: "improvement",
@@ -327,7 +327,7 @@ export const RULES: SeoRule[] = [
   },
   {
     id: "internal-links-few",
-    kind: "opportunity",
+    kind: "structure",
     name: "Pocos enlaces internos",
     category: "content",
     severity: "improvement",
@@ -348,7 +348,7 @@ export const RULES: SeoRule[] = [
   },
   {
     id: "anchor-text-generic",
-    kind: "heuristic",
+    kind: "structure",
     name: "Anchor text genérico",
     category: "content",
     severity: "improvement",
@@ -544,7 +544,7 @@ export const RULES: SeoRule[] = [
   },
   {
     id: "deep-page",
-    kind: "technical",
+    kind: "structure",
     name: "Profundidad de clics excesiva",
     category: "technical",
     severity: "improvement",
@@ -565,54 +565,92 @@ export const RULES: SeoRule[] = [
         : null,
   },
   {
-    id: "robots-txt-missing",
+    id: "robots-blocking",
     kind: "indexation",
-    name: "robots.txt ausente o bloqueante",
+    name: "robots.txt bloquea el rastreo",
     category: "technical",
     severity: "critical",
-    impact: 9,
+    impact: 10,
     field: "robots.txt",
     tags: ["universal"],
     appliesTo: (p) => p.pageType === "home",
     explanation:
-      "Un robots.txt con Disallow: / bloquea todo el rastreo. Su ausencia impide dar directivas y declarar el sitemap.",
+      "Un robots.txt con Disallow: / impide que los buscadores rastreen el sitio. Es el bloqueo de rastreo más severo posible.",
+    check: (_p, site) =>
+      site.robotsTxt?.disallowsAll
+        ? {
+            current: "Disallow: /",
+            problem: "robots.txt bloquea el rastreo de todo el sitio.",
+            suggestion:
+              "Permitir el rastreo y bloquear solo carrito, checkout y búsquedas internas.",
+          }
+        : null,
+  },
+  {
+    id: "robots-txt-missing",
+    kind: "heuristic",
+    name: "robots.txt ausente (recomendación)",
+    category: "technical",
+    severity: "improvement",
+    impact: 2,
+    field: "robots.txt",
+    tags: ["universal"],
+    appliesTo: (p) => p.pageType === "home",
+    explanation:
+      "Recomendación, no un error: sin robots.txt el sitio se rastrea igual con las reglas por defecto. Tenerlo permite dar directivas explícitas y declarar el sitemap.",
     check: (_p, site) => {
-      if (site.robotsTxt?.disallowsAll)
-        return {
-          current: "Disallow: /",
-          problem: "robots.txt bloquea el rastreo de todo el sitio.",
-          suggestion: "Permitir el rastreo y bloquear solo carrito, checkout y búsquedas internas.",
-        };
-      if (site.robotsTxt && !site.robotsTxt.found)
-        return {
-          severity: "improvement",
-          current: "(sin robots.txt)",
-          problem: "No se encontró robots.txt.",
-          suggestion: `User-agent: *\nAllow: /\nSitemap: ${site.rootUrl.replace(/\/$/, "")}/sitemap.xml`,
-        };
-      return null;
+      if (!site.robotsTxt || site.robotsTxt.found || site.robotsTxt.disallowsAll) return null;
+      const state = site.robotsTxt.state;
+      const current =
+        state === "fetch-error"
+          ? "(robots.txt no se pudo leer)"
+          : state === "invalid"
+            ? "(robots.txt con contenido no válido)"
+            : "(sin robots.txt)";
+      return {
+        current,
+        problem:
+          state === "invalid"
+            ? "La ruta /robots.txt responde, pero su contenido no parece un robots.txt válido."
+            : state === "fetch-error"
+              ? "No se pudo leer /robots.txt durante el rastreo."
+              : "No se encontró robots.txt. El rastreo continúa con las reglas por defecto.",
+        suggestion: `User-agent: *\nAllow: /\nSitemap: ${site.rootUrl.replace(/\/$/, "")}/sitemap.xml`,
+      };
     },
   },
   {
     id: "sitemap-missing",
-    kind: "indexation",
-    name: "sitemap.xml ausente",
+    kind: "heuristic",
+    name: "sitemap.xml ausente (recomendación)",
     category: "technical",
-    severity: "important",
-    impact: 7,
+    severity: "improvement",
+    impact: 3,
     field: "sitemap.xml",
     tags: ["universal"],
     appliesTo: (p) => p.pageType === "home",
     explanation:
-      "El sitemap acelera el descubrimiento de URLs nuevas, especialmente en catálogos grandes.",
-    check: (_p, site) =>
-      site.sitemap && !site.sitemap.found
-        ? {
-            current: "(sin sitemap.xml)",
-            problem: "No se encontró sitemap.xml en las rutas habituales.",
-            suggestion: "Generar /sitemap.xml y declararlo en robots.txt y en Search Console.",
-          }
-        : null,
+      "Recomendación contextual: un sitio pequeño y bien enlazado se rastrea sin sitemap. En catálogos grandes o con páginas poco enlazadas el sitemap acelera el descubrimiento.",
+    check: (_p, site) => {
+      if (!site.sitemap || site.sitemap.found) return null;
+      const pages = site.pages.length;
+      const inaccessible = (site.sitemap.docs ?? []).some(
+        (d) => d.kind === "inaccessible" || d.kind === "invalid",
+      );
+      const big = pages >= 50;
+      return {
+        severity: big ? "important" : "improvement",
+        current: inaccessible
+          ? "(sitemap declarado pero inaccesible o inválido)"
+          : "(sin sitemap.xml)",
+        problem: inaccessible
+          ? "Se encontró una referencia a sitemap, pero no se pudo procesar."
+          : big
+            ? `No se encontró sitemap.xml y el sitio tiene al menos ${pages} URLs analizadas.`
+            : "No se encontró sitemap.xml. En un sitio pequeño y bien enlazado no es imprescindible.",
+        suggestion: "Generar /sitemap.xml, declararlo en robots.txt y enviarlo en Search Console.",
+      };
+    },
   },
   {
     id: "viewport-missing",
@@ -636,7 +674,7 @@ export const RULES: SeoRule[] = [
   },
   {
     id: "heavy-page",
-    kind: "heuristic",
+    kind: "images",
     name: "Página pesada",
     category: "performance",
     severity: "improvement",
@@ -933,7 +971,7 @@ export const RULES: SeoRule[] = [
   },
   {
     id: "orphan-page",
-    kind: "opportunity",
+    kind: "structure",
     name: "Página sin enlaces entrantes internos",
     category: "content",
     severity: "important",
@@ -986,7 +1024,10 @@ export const KIND_LABELS: Record<FindingKind, string> = {
   technical: "Problema técnico",
   indexation: "Problema de indexación",
   onpage: "Problema on-page",
-  opportunity: "Oportunidad",
+  content: "Problema de contenido",
+  structure: "Problema de estructura",
+  images: "Problema de imágenes",
+  opportunity: "Oportunidad SEO",
   heuristic: "Recomendación (heurística)",
 };
 
@@ -994,6 +1035,9 @@ export const KIND_HINTS: Record<FindingKind, string> = {
   technical: "Hecho verificable en la respuesta del servidor o el HTML.",
   indexation: "Afecta directamente el rastreo o la indexación de la URL.",
   onpage: "Elemento on-page ausente, duplicado o mal formado.",
+  content: "Calidad, cobertura o duplicación del contenido de la página.",
+  structure: "Arquitectura del sitio, profundidad de clics y enlazado interno.",
+  images: "Imágenes, ALT, nombres de archivo y peso de la página.",
   opportunity: "Mejora de contenido o enlazado interno, no un error.",
   heuristic: "Buena práctica habitual del sector, no una regla de Google.",
 };
