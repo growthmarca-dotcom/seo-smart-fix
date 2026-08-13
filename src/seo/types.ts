@@ -74,6 +74,8 @@ export interface PageSnapshot {
   hasViewport: boolean;
   htmlSizeKb?: number | undefined;
   responseMs?: number | undefined;
+  /** Origen del descubrimiento de la URL (sitemap, enlace interno o ambos). */
+  discoveredVia?: DiscoverySource | undefined;
   /** Señales locales detectadas (teléfono, dirección, horario). */
   localSignals?:
     | { phone?: string | undefined; address?: string | undefined; openingHours?: boolean }
@@ -81,6 +83,43 @@ export interface PageSnapshot {
   /** Metadatos del conector de origen (id de producto, categoría, etc.). */
   source?: Record<string, string | number | boolean | undefined> | undefined;
 }
+
+/** Motivo por el que una URL descubierta no se analizó. */
+export type ExclusionReason =
+  | "limit-reached"
+  | "robots-disallow"
+  | "non-html"
+  | "external-host"
+  | "duplicate-normalized"
+  | "fetch-error";
+
+export const EXCLUSION_LABELS: Record<ExclusionReason, string> = {
+  "limit-reached": "Fuera del límite de rastreo",
+  "robots-disallow": "Bloqueada por robots.txt",
+  "non-html": "Recurso no HTML",
+  "external-host": "Fuera del dominio",
+  "duplicate-normalized": "Duplicada tras normalizar",
+  "fetch-error": "Error al descargar",
+};
+
+/** Cobertura del rastreo: qué se descubrió, analizó, excluyó y falló. */
+export interface CrawlCoverage {
+  limit: number;
+  limitReached: boolean;
+  respectRobots: boolean;
+  robotsTxtFound: boolean;
+  robotsRulesApplied: number;
+  sitemapsFound: string[];
+  urlsFromSitemap: number;
+  urlsFromLinks: number;
+  urlsFromBoth: number;
+  discovered: number;
+  analyzed: number;
+  excluded: Array<{ url: string; reason: ExclusionReason; detail?: string | undefined }>;
+  errors: Array<{ url: string; reason: string }>;
+  redirects: Array<{ from: string; to: string; status: number }>;
+}
+
 
 /** Contexto del sitio: lo que solo se sabe mirando todas las páginas. */
 export interface SiteContext {
