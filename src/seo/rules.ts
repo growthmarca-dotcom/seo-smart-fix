@@ -853,6 +853,113 @@ export const RULES: SeoRule[] = [
         : null;
     },
   },
+
+  // ---------- ENLAZADO / RASTREO (requieren contexto del sitio) ----------
+  {
+    id: "broken-internal-links",
+    kind: "technical",
+    name: "Enlaces internos rotos",
+    category: "technical",
+    severity: "critical",
+    impact: 8,
+    field: "internalLinks",
+    tags: ["universal"],
+    explanation:
+      "Un enlace interno que responde 4xx/5xx desperdicia rastreo, corta la navegación y deja páginas sin recibir autoridad interna.",
+    check: (p, site) => {
+      const broken = (site.brokenLinks ?? []).filter((b) => b.from === p.url);
+      if (!broken.length) return null;
+      return {
+        severity: broken.length > 3 ? "critical" : "important",
+        current: `${broken.length} enlace(s) roto(s)`,
+        evidence: broken.slice(0, 10).map((b) => `${b.to} → HTTP ${b.status}`),
+        problem: "La página enlaza a URLs que responden con error.",
+        suggestion:
+          "Actualizar el destino del enlace o redirigir 301 la URL antigua a la equivalente vigente.",
+      };
+    },
+  },
+  {
+    id: "internal-link-redirects",
+    kind: "technical",
+    name: "Enlaces internos hacia redirecciones",
+    category: "technical",
+    severity: "improvement",
+    impact: 3,
+    field: "internalLinks",
+    tags: ["universal"],
+    explanation:
+      "Enlazar a una URL que redirige añade un salto innecesario. Conviene enlazar directamente al destino final.",
+    check: (p, site) => {
+      const redirects = site.coverage?.redirects ?? [];
+      if (!redirects.length) return null;
+      const hits = p.internalLinks.filter((l) =>
+        redirects.some((r) => r.from.replace(/\/$/, "") === l.href.replace(/\/$/, "")),
+      );
+      if (!hits.length) return null;
+      return {
+        current: `${hits.length} enlace(s) hacia URLs que redirigen`,
+        evidence: hits.slice(0, 10).map((h) => h.href),
+        problem: "Hay enlaces internos que pasan por una redirección.",
+        suggestion: "Reemplazar el href por la URL final para evitar saltos intermedios.",
+      };
+    },
+  },
+  {
+    id: "duplicate-meta-description",
+    kind: "onpage",
+    name: "Meta description duplicada",
+    category: "onpage",
+    severity: "improvement",
+    impact: 3,
+    field: "metaDescription",
+    tags: ["universal"],
+    explanation:
+      "Descripciones repetidas producen snippets iguales para páginas distintas y reducen el CTR de cada resultado.",
+    check: (p, site) => {
+      if (!has(p.metaDescription)) return null;
+      const twins = site.pages.filter(
+        (o) => o.id !== p.id && o.metaDescription === p.metaDescription,
+      );
+      return twins.length
+        ? {
+            current: p.metaDescription!,
+            evidence: twins.slice(0, 8).map((t) => t.url),
+            problem: `La misma descripción se repite en ${twins.length} URL(s).`,
+            suggestion: "Escribir una descripción propia que resuma el contenido de esta URL.",
+          }
+        : null;
+    },
+  },
+  {
+    id: "orphan-page",
+    kind: "opportunity",
+    name: "Página sin enlaces entrantes internos",
+    category: "content",
+    severity: "important",
+    impact: 6,
+    field: "internalLinks",
+    tags: ["universal"],
+    explanation:
+      "Una URL sin enlaces internos entrantes depende solo del sitemap: se rastrea peor y recibe muy poca autoridad interna.",
+    appliesTo: (p) => p.depth > 0 && p.statusCode < 300,
+    check: (p, site) => {
+      // Solo evaluable si se analizó más de una página del sitio.
+      if (site.pages.length < 2) return null;
+      const norm = (u: string) => u.replace(/\/$/, "");
+      const inbound = site.pages.filter(
+        (o) => o.id !== p.id && o.internalLinks.some((l) => norm(l.href) === norm(p.url)),
+      );
+      return inbound.length === 0
+        ? {
+            current: "0 enlaces internos entrantes detectados",
+            problem: "Ninguna página analizada enlaza a esta URL.",
+            suggestion:
+              "Enlazarla desde su categoría, desde el menú o desde contenidos relacionados.",
+          }
+        : null;
+    },
+  },
 ];
 
 export const RECOMMENDED_SCHEMA: Record<string, string[]> = {
@@ -873,6 +980,22 @@ export const CATEGORY_LABELS: Record<Category, string> = {
   local: "SEO local",
   content: "Contenido y enlazado",
   authority: "Autoridad y competencia",
+};
+
+export const KIND_LABELS: Record<FindingKind, string> = {
+  technical: "Problema técnico",
+  indexation: "Problema de indexación",
+  onpage: "Problema on-page",
+  opportunity: "Oportunidad",
+  heuristic: "Recomendación (heurística)",
+};
+
+export const KIND_HINTS: Record<FindingKind, string> = {
+  technical: "Hecho verificable en la respuesta del servidor o el HTML.",
+  indexation: "Afecta directamente el rastreo o la indexación de la URL.",
+  onpage: "Elemento on-page ausente, duplicado o mal formado.",
+  opportunity: "Mejora de contenido o enlazado interno, no un error.",
+  heuristic: "Buena práctica habitual del sector, no una regla de Google.",
 };
 
 export const SEVERITY_LABELS: Record<Severity, string> = {
