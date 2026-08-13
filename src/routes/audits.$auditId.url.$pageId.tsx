@@ -12,9 +12,11 @@ import {
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { getConnector } from "@/seo/connectors";
+import { buildDiagnostic } from "@/seo/diagnostics";
 import { KIND_HINTS, kindLabel } from "@/seo/rules";
+import { DiagnosticDialog } from "@/components/diagnostic";
 import { actions, useAppState } from "@/store/app-store";
-import type { ChangeProposal, Finding, PageSnapshot, PlatformId } from "@/seo/types";
+import type { Audit, ChangeProposal, Finding, PageSnapshot, PlatformId } from "@/seo/types";
 
 export const Route = createFileRoute("/audits/$auditId/url/$pageId")({
   head: () => ({
@@ -124,6 +126,7 @@ function UrlDetail() {
           {findings.map((f) => (
             <FindingCard
               key={f.id}
+              audit={audit}
               finding={f}
               change={changes.find((c) => c.findingId === f.id)}
               platform={audit.platform}
@@ -166,15 +169,19 @@ function ImageList({ page }: { page: PageSnapshot }) {
 }
 
 function FindingCard({
+  audit,
   finding,
   change,
   platform,
 }: {
+  audit: Audit;
   finding: Finding;
   change?: ChangeProposal | undefined;
   platform: PlatformId;
 }) {
   const [editing, setEditing] = useState(false);
+  const [showDiagnostic, setShowDiagnostic] = useState(false);
+  const diagnostic = buildDiagnostic(audit, finding);
   const [draft, setDraft] = useState(change?.editedValue ?? change?.suggestedValue ?? "");
   const connector = getConnector(platform);
   const writable = change?.writable ?? false;
@@ -192,7 +199,16 @@ function FindingCard({
         </span>
         <h3 className="font-display text-base font-semibold">{finding.ruleName}</h3>
         <span className="ml-auto text-xs text-muted-foreground">Impacto {finding.impact}/10</span>
+        <Button size="sm" variant="outline" onClick={() => setShowDiagnostic(true)}>
+          Ver diagnóstico
+        </Button>
       </header>
+
+      <DiagnosticDialog
+        diagnostic={diagnostic}
+        open={showDiagnostic}
+        onOpenChange={setShowDiagnostic}
+      />
 
       <p className="mt-2 break-all font-mono text-[11px] text-muted-foreground">{finding.pageUrl}</p>
       <p className="mt-3 text-sm font-medium">{finding.problem}</p>
