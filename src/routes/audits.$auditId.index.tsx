@@ -20,11 +20,12 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { CATEGORY_LABELS, SEVERITY_LABELS } from "@/seo/rules";
+import { CATEGORY_LABELS, KIND_LABELS, SEVERITY_LABELS } from "@/seo/rules";
 import { countBySeverity } from "@/seo/engine";
 import { getConnector } from "@/seo/connectors";
 import { useAppState } from "@/store/app-store";
-import type { Category, PageType, Severity } from "@/seo/types";
+import { EXCLUSION_LABELS } from "@/seo/types";
+import type { Audit, Category, PageType, Severity } from "@/seo/types";
 
 export const Route = createFileRoute("/audits/$auditId/")({
   head: () => ({
@@ -313,6 +314,112 @@ function AuditResults() {
         Sugerido.
       </p>
     </>
+  );
+}
+
+function ScoreExplanation({ audit }: { audit: Audit }) {
+  const score = audit.score;
+  if (!score) return null;
+  return (
+    <section className="panel p-5">
+      <h2 className="font-display text-base font-semibold">Por qué obtuviste este score</h2>
+      <p className="mt-1 text-xs text-muted-foreground">{score.method}</p>
+      {score.drivers.length === 0 ? (
+        <p className="mt-4 text-sm text-muted-foreground">
+          No hay hallazgos que estén restando puntos en las páginas analizadas.
+        </p>
+      ) : (
+        <ul className="mt-4 space-y-2">
+          {score.drivers.map((d) => (
+            <li
+              key={d.ruleId}
+              className="flex flex-wrap items-center gap-2 rounded-lg border border-border bg-muted/40 px-3 py-2 text-sm"
+            >
+              <SeverityBadge severity={d.severity} />
+              <span className="font-medium">{d.ruleName}</span>
+              <span className="text-xs text-muted-foreground">
+                {CATEGORY_LABELS[d.category]} · {KIND_LABELS[d.kind]} · {d.occurrences} URL(s)
+              </span>
+              <span className="ml-auto text-xs font-semibold text-primary">
+                +{d.points.toFixed(1)} pts al resolverlo
+              </span>
+            </li>
+          ))}
+        </ul>
+      )}
+    </section>
+  );
+}
+
+function CoveragePanel({ audit }: { audit: Audit }) {
+  const c = audit.coverage;
+  if (!c) {
+    return (
+      <section className="panel p-5">
+        <h2 className="font-display text-base font-semibold">Cobertura del rastreo</h2>
+        <p className="mt-2 text-sm text-muted-foreground">
+          Esta auditoría se generó sin reporte de cobertura (análisis de una sola URL o versión
+          anterior del crawler).
+        </p>
+      </section>
+    );
+  }
+  const notAnalyzed = c.excluded;
+  return (
+    <section className="panel p-5">
+      <h2 className="font-display text-base font-semibold">Cobertura del rastreo</h2>
+      <dl className="mt-3 grid grid-cols-2 gap-3 text-sm sm:grid-cols-3">
+        <Metric label="Descubiertas" value={c.discovered} />
+        <Metric label="Analizadas" value={c.analyzed} />
+        <Metric label="Excluidas" value={c.excluded.length} />
+        <Metric label="Errores" value={c.errors.length} />
+        <Metric label="Redirecciones" value={c.redirects.length} />
+        <Metric label="Límite" value={`${c.limit}${c.limitReached ? " (alcanzado)" : ""}`} />
+      </dl>
+      <p className="mt-3 text-xs text-muted-foreground">
+        Origen del descubrimiento: {c.urlsFromSitemap} solo sitemap · {c.urlsFromLinks} solo enlaces
+        internos · {c.urlsFromBoth} en ambos.{" "}
+        {c.respectRobots
+          ? c.robotsTxtFound
+            ? `robots.txt aplicado (${c.robotsRulesApplied} reglas Disallow).`
+            : "robots.txt habilitado pero no encontrado."
+          : "robots.txt no se está respetando por configuración."}
+      </p>
+      {notAnalyzed.length > 0 && (
+        <div className="mt-4">
+          <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+            Descubiertas pero no analizadas
+          </h3>
+          <ul className="mt-2 max-h-48 space-y-1 overflow-y-auto text-xs">
+            {notAnalyzed.slice(0, 40).map((e, i) => (
+              <li key={`${e.url}-${i}`} className="flex items-start justify-between gap-2">
+                <span className="truncate font-mono text-[11px]">{e.url}</span>
+                <span className="shrink-0 text-muted-foreground">
+                  {EXCLUSION_LABELS[e.reason]}
+                  {e.detail ? ` · ${e.detail}` : ""}
+                </span>
+              </li>
+            ))}
+          </ul>
+          {notAnalyzed.length > 40 && (
+            <p className="mt-1 text-[11px] text-muted-foreground">
+              y {notAnalyzed.length - 40} más…
+            </p>
+          )}
+        </div>
+      )}
+    </section>
+  );
+}
+
+function Metric({ label, value }: { label: string; value: string | number }) {
+  return (
+    <div className="rounded-lg border border-border bg-muted/40 px-3 py-2">
+      <dt className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
+        {label}
+      </dt>
+      <dd className="font-display text-lg font-semibold">{value}</dd>
+    </div>
   );
 }
 
