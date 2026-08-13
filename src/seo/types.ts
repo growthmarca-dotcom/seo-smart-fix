@@ -131,6 +131,7 @@ export interface SiteContext {
   sitemap?: { found: boolean; urlCount?: number | undefined; url?: string | undefined } | undefined;
   pages: PageSnapshot[];
   brokenLinks?: Array<{ from: string; to: string; status: number }> | undefined;
+  coverage?: CrawlCoverage | undefined;
 }
 
 export interface Finding {
@@ -140,6 +141,8 @@ export interface Finding {
   pageId: string;
   pageUrl: string;
   category: Category;
+  /** Naturaleza del hallazgo: hecho técnico, indexación, on-page, oportunidad o heurística. */
+  kind: FindingKind;
   severity: Severity;
   /** 1-10, cuánto puede afectar rastreo/indexación/posicionamiento. */
   impact: number;
@@ -148,9 +151,17 @@ export interface Finding {
   problem: string;
   explanation: string;
   suggestion?: string | undefined;
+  /** Evidencia adicional (enlaces rotos, URLs duplicadas, imágenes afectadas). */
+  evidence?: string[] | undefined;
 }
 
 export type ChangeStatus = "pending" | "approved" | "rejected" | "applied";
+
+export interface ChangeEvent {
+  at: string;
+  status: ChangeStatus;
+  detail?: string | undefined;
+}
 
 export interface ChangeProposal {
   id: string;
@@ -170,6 +181,8 @@ export interface ChangeProposal {
   createdAt: string;
   updatedAt: string;
   note?: string | undefined;
+  /** Historial de estados de la propuesta. */
+  history?: ChangeEvent[] | undefined;
 }
 
 export interface CategoryScore {
@@ -177,11 +190,31 @@ export interface CategoryScore {
   score: number;
   weight: number;
   findings: number;
+  /** Penalización ponderada acumulada de la categoría (0-100). */
+  penalty: number;
+  /** Cantidad de comprobaciones aplicables en la categoría. */
+  checks: number;
+}
+
+/** Acción con mayor impacto sobre el score. */
+export interface ScoreDriver {
+  ruleId: string;
+  ruleName: string;
+  category: Category;
+  kind: FindingKind;
+  severity: Severity;
+  occurrences: number;
+  /** Puntos de score que se recuperan aproximadamente al resolverlo. */
+  points: number;
 }
 
 export interface SeoScore {
   total: number;
   categories: CategoryScore[];
+  /** Explicación de las acciones con mayor impacto en el score. */
+  drivers: ScoreDriver[];
+  pagesAnalyzed: number;
+  method: string;
 }
 
 export type AuditStatus = "queued" | "discovering" | "analyzing" | "done" | "error";
@@ -211,7 +244,9 @@ export interface Audit {
   error?: string | undefined;
   sitemapFound?: boolean | undefined;
   robotsFound?: boolean | undefined;
+  coverage?: CrawlCoverage | undefined;
 }
+
 
 export interface HistoryEntry {
   id: string;
