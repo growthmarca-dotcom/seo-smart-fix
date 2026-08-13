@@ -65,7 +65,7 @@ export const RULES: SeoRule[] = [
   {
     id: "title-length",
     kind: "heuristic",
-    name: "Longitud del title (recomendación)",
+    name: "Title potencialmente mejorable por longitud",
     category: "onpage",
     severity: "improvement",
     impact: 4,
@@ -82,8 +82,8 @@ export const RULES: SeoRule[] = [
         current: `${t} (${t.length} caracteres)`,
         problem:
           t.length < 30
-            ? "El title es más corto de lo recomendado (30-60 caracteres)."
-            : "El title supera los 60 caracteres recomendados y puede truncarse en el snippet.",
+            ? "Title posiblemente demasiado corto para describir la página con claridad."
+            : "Title largo: riesgo de truncamiento en el snippet de resultados.",
         suggestion:
           t.length > 60 ? `${t.slice(0, 57).trim()}…` : `${t} | ${hostOf(p.url).split(".")[0]}`,
       };
@@ -114,7 +114,7 @@ export const RULES: SeoRule[] = [
   {
     id: "meta-description-length",
     kind: "heuristic",
-    name: "Longitud de meta description (recomendación)",
+    name: "Meta description potencialmente mejorable por longitud",
     category: "onpage",
     severity: "improvement",
     impact: 3,
@@ -199,7 +199,7 @@ export const RULES: SeoRule[] = [
   {
     id: "thin-content",
     kind: "content",
-    name: "Contenido pobre",
+    name: "Contenido posiblemente insuficiente",
     category: "content",
     severity: "important",
     impact: 6,
@@ -212,9 +212,10 @@ export const RULES: SeoRule[] = [
         ? {
             severity: p.wordCount < 60 ? "important" : "improvement",
             current: `${p.wordCount} palabras`,
-            problem: "Contenido demasiado breve para cubrir la intención de búsqueda.",
+            problem:
+              "Contenido posiblemente insuficiente para cubrir adecuadamente la intención de búsqueda.",
             suggestion:
-              "Ampliar a 300+ palabras útiles: características, usos, materiales, preguntas frecuentes.",
+              "Ampliar con información útil y específica: características, usos, materiales, preguntas frecuentes.",
           }
         : null,
   },
@@ -288,7 +289,7 @@ export const RULES: SeoRule[] = [
       if (missing.length === 1 && p.images.length > 3) return null;
       const ratio = missing.length / Math.max(1, p.images.length);
       return {
-        severity: missing.length >= 5 && ratio > 0.5 ? "important" : "improvement",
+        severity: missing.length >= 5 && ratio > 0.6 ? "important" : "improvement",
         current: `${missing.length} de ${p.images.length} imágenes sin ALT`,
         evidence: missing.slice(0, 8).map((i) => i.fileName ?? i.src),
         problem: "Hay imágenes sin texto alternativo.",
@@ -903,17 +904,42 @@ export const RULES: SeoRule[] = [
     field: "internalLinks",
     tags: ["universal"],
     explanation:
-      "Un enlace interno que responde 4xx/5xx desperdicia rastreo, corta la navegación y deja páginas sin recibir autoridad interna.",
+      "Un enlace interno que responde 404 o 410 desperdicia rastreo, corta la navegación y deja páginas sin recibir autoridad interna.",
     check: (p, site) => {
-      const broken = (site.brokenLinks ?? []).filter((b) => b.from === p.url);
+      const broken = (site.brokenLinks ?? []).filter((b) => b.from === p.url && !b.temporary);
       if (!broken.length) return null;
       return {
         severity: broken.length > 3 ? "critical" : "important",
         current: `${broken.length} enlace(s) roto(s)`,
         evidence: broken.slice(0, 10).map((b) => `${b.to} → HTTP ${b.status}`),
-        problem: "La página enlaza a URLs que responden con error.",
+        problem: "La página enlaza a URLs que responden con error definitivo (404/410).",
         suggestion:
           "Actualizar el destino del enlace o redirigir 301 la URL antigua a la equivalente vigente.",
+      };
+    },
+  },
+  {
+    id: "internal-links-unstable",
+    kind: "technical",
+    name: "Enlaces internos con respuesta inestable",
+    category: "technical",
+    severity: "improvement",
+    impact: 3,
+    field: "internalLinks",
+    tags: ["universal"],
+    explanation:
+      "Respuestas 403, 429, 5xx o timeouts pueden ser temporales o defensas del servidor: no se afirma que el enlace esté roto, conviene reverificar manualmente.",
+    check: (p, site) => {
+      const unstable = (site.brokenLinks ?? []).filter((b) => b.from === p.url && b.temporary);
+      if (!unstable.length) return null;
+      return {
+        current: `${unstable.length} enlace(s) sin respuesta concluyente`,
+        evidence: unstable
+          .slice(0, 10)
+          .map((b) => `${b.to} → ${b.status > 0 ? `HTTP ${b.status}` : "sin respuesta"}`),
+        problem: "Algunos enlaces internos respondieron con un estado temporal o no concluyente.",
+        suggestion:
+          "Reverificar estas URLs: si el fallo persiste, corregir el enlace o el servidor de destino.",
       };
     },
   },
