@@ -12,6 +12,7 @@ import type {
   Severity,
   SiteContext,
 } from "./types";
+import { minWordsFor, resolvePageContext } from "./page-profiles";
 
 export interface RuleResult {
   severity?: Severity | undefined;
@@ -51,6 +52,9 @@ export interface SeoRule {
 
 
 const has = (v?: string) => Boolean(v && v.trim().length);
+
+/** Enlaces internos mínimos razonables por tipo de página (perfiles de FASE 3). */
+const PROFILE_LINKS = { home: 5, category: 4, product: 3, article: 2, landing: 1 } as const;
 
 export const RULES: SeoRule[] = [
   // ---------- ON-PAGE ----------
@@ -1043,7 +1047,215 @@ export const RULES: SeoRule[] = [
         : null;
     },
   },
+
+  // ---------- FASE 3: REGLAS ON-PAGE CONTEXTUALES POR TIPO DE PÁGINA ----------
+  {
+    id: "ctx-home-section-links",
+    kind: "opportunity",
+    name: "Home con pocos enlaces a secciones",
+    category: "content",
+    severity: "improvement",
+    impact: 5,
+    field: "internalLinks",
+    tags: ["universal"],
+    pageTypes: ["home"],
+    requiresEvidence: "Enlaces internos detectados en la home (HTTP 200).",
+    explanation:
+      "La home concentra la mayor autoridad interna del sitio: si no enlaza a las secciones importantes, esas páginas se rastrean peor y reciben menos autoridad.",
+    check: (p) => {
+      if (p.statusCode !== 200) return null;
+      const min = PROFILE_LINKS.home;
+      if (p.internalLinks.length >= min) return null;
+      return {
+        current: `${p.internalLinks.length} enlaces internos en la home`,
+        evidence: p.internalLinks.slice(0, 8).map((l) => `${l.anchor || "(sin anchor)"} → ${l.href}`),
+        problem: "La home enlaza a muy pocas secciones del sitio.",
+        suggestion:
+          "Enlazar desde la home las categorías y páginas principales con anchors descriptivos.",
+      };
+    },
+  },
+  {
+    id: "ctx-category-listing-links",
+    kind: "structure",
+    name: "Listado sin enlaces a productos o subcategorías",
+    category: "content",
+    severity: "important",
+    impact: 6,
+    field: "internalLinks",
+    tags: ["universal"],
+    pageTypes: ["category"],
+    requiresEvidence: "Enlaces internos detectados en la página de listado (HTTP 200).",
+    explanation:
+      "Una categoría existe para distribuir rastreo hacia su inventario. Si no enlaza productos ni subcategorías, la categoría aporta poco y su contenido queda sin destino.",
+    check: (p) => {
+      if (p.statusCode !== 200) return null;
+      const min = PROFILE_LINKS.category;
+      if (p.internalLinks.length >= min) return null;
+      return {
+        severity: p.internalLinks.length === 0 ? "important" : "improvement",
+        current: `${p.internalLinks.length} enlaces internos en el listado`,
+        evidence: [`Referencia para categorías: al menos ${min} enlaces internos`],
+        problem: "El listado no enlaza suficientes productos o subcategorías.",
+        suggestion: "Mostrar y enlazar el inventario de la categoría y sus subcategorías.",
+      };
+    },
+  },
+  {
+    id: "ctx-product-images-missing",
+    kind: "images",
+    name: "Ficha de producto sin imágenes",
+    category: "onpage",
+    severity: "important",
+    impact: 6,
+    field: "images",
+    tags: ["universal"],
+    pageTypes: ["product"],
+    requiresEvidence: "Listado de imágenes detectadas en el HTML (HTTP 200).",
+    explanation:
+      "En una ficha de producto la imagen es parte de la información de compra y una fuente real de tráfico en Google Imágenes. Sin imágenes la página compite en desventaja.",
+    check: (p) =>
+      p.statusCode === 200 && p.images.length === 0
+        ? {
+            current: "0 imágenes detectadas",
+            problem: "La ficha de producto no presenta imágenes.",
+            suggestion:
+              "Publicar al menos una imagen del producto con nombre de archivo y ALT descriptivos.",
+          }
+        : null,
+  },
+  {
+    id: "ctx-product-description-short",
+    kind: "content",
+    name: "Descripción de producto poco informativa",
+    category: "content",
+    severity: "improvement",
+    impact: 5,
+    field: "content",
+    tags: ["universal"],
+    pageTypes: ["product"],
+    requiresEvidence: "Cantidad de palabras de la ficha (HTTP 200).",
+    explanation:
+      "La descripción es lo único propio que diferencia una ficha de la de la competencia: con muy poca información no cubre dudas de compra ni búsquedas long tail.",
+    check: (p) => {
+      const min = minWordsFor(p);
+      if (p.statusCode !== 200 || min === null) return null;
+      // Solo cuando ya hay algo de contenido: si está casi vacía lo reporta thin-content.
+      if (p.wordCount < min * 0.4 || p.wordCount >= min * 2) return null;
+      return {
+        current: `${p.wordCount} palabras de descripción`,
+        evidence: [`Referencia para fichas de producto: ${min * 2} palabras o más`],
+        problem: "La ficha describe el producto de forma escueta.",
+        suggestion:
+          "Ampliar con materiales, medidas, usos recomendados, cuidados y preguntas frecuentes del producto.",
+      };
+    },
+  },
+  {
+    id: "ctx-product-related-links",
+    kind: "structure",
+    name: "Producto sin enlaces relacionados",
+    category: "content",
+    severity: "improvement",
+    impact: 4,
+    field: "internalLinks",
+    tags: ["universal"],
+    pageTypes: ["product"],
+    requiresEvidence: "Enlaces internos salientes de la ficha (HTTP 200).",
+    explanation:
+      "Enlazar a su categoría y a productos complementarios ayuda al rastreo y aumenta las páginas vistas por sesión.",
+    check: (p) => {
+      if (p.statusCode !== 200) return null;
+      const min = PROFILE_LINKS.product;
+      return p.internalLinks.length < min
+        ? {
+            current: `${p.internalLinks.length} enlaces internos salientes`,
+            problem: "La ficha casi no enlaza a su categoría ni a productos relacionados.",
+            suggestion: "Agregar enlaces a la categoría del producto y a productos complementarios.",
+          }
+        : null;
+    },
+  },
+  {
+    id: "ctx-article-internal-links",
+    kind: "opportunity",
+    name: "Artículo sin enlaces internos relacionados",
+    category: "content",
+    severity: "improvement",
+    impact: 4,
+    field: "internalLinks",
+    tags: ["universal"],
+    pageTypes: ["article"],
+    requiresEvidence: "Enlaces internos salientes del artículo (HTTP 200).",
+    explanation:
+      "El contenido editorial gana valor cuando deriva tráfico hacia productos o categorías relacionadas y refuerza el enlazado temático interno.",
+    check: (p) => {
+      if (p.statusCode !== 200) return null;
+      const min = PROFILE_LINKS.article;
+      return p.internalLinks.length < min
+        ? {
+            current: `${p.internalLinks.length} enlaces internos en el artículo`,
+            problem: "El artículo no enlaza a contenidos ni productos relacionados.",
+            suggestion:
+              "Insertar enlaces contextuales a las categorías o productos mencionados en el texto.",
+          }
+        : null;
+    },
+  },
+  {
+    id: "ctx-landing-next-step",
+    kind: "opportunity",
+    name: "Landing sin camino de conversión detectable",
+    category: "content",
+    severity: "improvement",
+    impact: 4,
+    field: "internalLinks",
+    tags: ["universal"],
+    pageTypes: ["landing"],
+    requiresEvidence: "Enlaces internos detectados en la landing (HTTP 200).",
+    explanation:
+      "Una landing debe ofrecer un paso siguiente claro. Sin enlaces internos detectables el usuario no tiene a dónde avanzar y la página no cumple su objetivo.",
+    check: (p) =>
+      p.statusCode === 200 && p.internalLinks.length === 0
+        ? {
+            current: "0 enlaces internos detectables",
+            problem: "No se detecta ningún enlace hacia el siguiente paso de la campaña.",
+            suggestion:
+              "Agregar un enlace o botón principal hacia la categoría, producto o formulario que resuelve la intención.",
+          }
+        : null,
+  },
+  {
+    id: "ctx-essential-clarity",
+    kind: "onpage",
+    name: "Página institucional sin H1 o title claro",
+    category: "onpage",
+    severity: "improvement",
+    impact: 4,
+    field: "h1",
+    tags: ["universal"],
+    pageTypes: ["contact", "institutional"],
+    requiresEvidence: "Title y H1 extraídos del HTML (HTTP 200).",
+    explanation:
+      "En páginas de contacto o institucionales no se espera contenido extenso, pero sí que title y H1 identifiquen sin ambigüedad de qué página se trata.",
+    check: (p) => {
+      if (p.statusCode !== 200) return null;
+      const weakTitle = !has(p.title) || p.title!.trim().length < 10;
+      const weakH1 = p.h1.length === 0;
+      if (!weakTitle && !weakH1) return null;
+      return {
+        current: `Title: ${p.title ?? "(sin title)"} · H1: ${p.h1[0] ?? "(sin H1)"}`,
+        problem: weakTitle && weakH1
+          ? "La página no identifica con claridad su propósito ni en el title ni en el H1."
+          : weakTitle
+            ? "El title no identifica con claridad la página."
+            : "La página no tiene H1 que la identifique.",
+        suggestion: "Usar un title y un H1 explícitos, por ejemplo \"Contacto\" o \"Sobre nosotros\".",
+      };
+    },
+  },
 ];
+
 
 export const RECOMMENDED_SCHEMA: Record<string, string[]> = {
   home: ["WebSite", "Organization"],
