@@ -65,14 +65,14 @@ export const RULES: SeoRule[] = [
   {
     id: "title-length",
     kind: "heuristic",
-    name: "Longitud del title",
+    name: "Longitud del title (recomendación)",
     category: "onpage",
-    severity: "important",
-    impact: 6,
+    severity: "improvement",
+    impact: 4,
     field: "title",
     tags: ["universal"],
     explanation:
-      "Entre 30 y 60 caracteres el title se muestra completo en resultados y permite incluir la keyword principal más la marca.",
+      "Recomendación basada en buenas prácticas, no una regla de Google: entre 30 y 60 caracteres el title suele mostrarse completo en resultados. Fuera de ese rango la página puede seguir posicionando.",
     check: (p) => {
       if (!has(p.title)) return null;
       const t = p.title!.trim();
@@ -80,7 +80,10 @@ export const RULES: SeoRule[] = [
       return {
         severity: t.length < 15 || t.length > 75 ? "important" : "improvement",
         current: `${t} (${t.length} caracteres)`,
-        problem: t.length < 30 ? "Title demasiado corto." : "Title demasiado largo, se truncará.",
+        problem:
+          t.length < 30
+            ? "El title es más corto de lo recomendado (30-60 caracteres)."
+            : "El title supera los 60 caracteres recomendados y puede truncarse en el snippet.",
         suggestion:
           t.length > 60 ? `${t.slice(0, 57).trim()}…` : `${t} | ${hostOf(p.url).split(".")[0]}`,
       };
@@ -111,21 +114,24 @@ export const RULES: SeoRule[] = [
   {
     id: "meta-description-length",
     kind: "heuristic",
-    name: "Longitud de meta description",
+    name: "Longitud de meta description (recomendación)",
     category: "onpage",
     severity: "improvement",
     impact: 3,
     field: "metaDescription",
     tags: ["universal"],
     explanation:
-      "Entre 70 y 160 caracteres se muestra completa; muy corta desaprovecha espacio y muy larga se corta.",
+      "Recomendación heurística: entre 70 y 160 caracteres la descripción suele mostrarse completa. Google reescribe el snippet con frecuencia, así que no es una regla fija.",
     check: (p) => {
       if (!has(p.metaDescription)) return null;
       const d = p.metaDescription!.trim();
       if (d.length >= 70 && d.length <= 160) return null;
       return {
         current: `${d} (${d.length} caracteres)`,
-        problem: d.length < 70 ? "Descripción demasiado corta." : "Descripción demasiado larga.",
+        problem:
+          d.length < 70
+            ? "La descripción es más corta de lo recomendado."
+            : "La descripción supera la longitud recomendada y puede recortarse.",
         suggestion: d.length > 160 ? `${d.slice(0, 157).trim()}…` : undefined,
       };
     },
@@ -135,8 +141,8 @@ export const RULES: SeoRule[] = [
     kind: "onpage",
     name: "H1 ausente",
     category: "onpage",
-    severity: "critical",
-    impact: 8,
+    severity: "important",
+    impact: 7,
     field: "h1",
     tags: ["universal"],
     explanation:
@@ -200,7 +206,7 @@ export const RULES: SeoRule[] = [
     field: "content",
     tags: ["universal"],
     explanation:
-      "Páginas con muy poco texto rara vez resuelven la intención de búsqueda y compiten mal contra resultados más completos.",
+      "Oportunidad de contenido: no existe un mínimo oficial de palabras, pero páginas con muy poco texto suelen resolver peor la intención de búsqueda frente a resultados más completos.",
     check: (p) =>
       p.statusCode === 200 && p.wordCount < 150
         ? {
@@ -232,6 +238,7 @@ export const RULES: SeoRule[] = [
               .slice(0, 3)
               .map((t) => t.path)
               .join(", ")}`,
+            evidence: twins.map((t) => t.url),
             problem: "El contenido principal se repite en otras URLs.",
             suggestion:
               "Diferenciar el texto o consolidar con canonical hacia la versión preferida.",
@@ -256,6 +263,7 @@ export const RULES: SeoRule[] = [
       return twins.length
         ? {
             current: p.title!,
+            evidence: twins.map((t) => t.url),
             problem: `El mismo title se usa en ${twins.length} URL(s) más.`,
             suggestion: `${p.title} — ${p.h1[0] ?? p.path}`,
           }
@@ -267,22 +275,25 @@ export const RULES: SeoRule[] = [
     kind: "onpage",
     name: "Imágenes sin ALT",
     category: "onpage",
-    severity: "important",
-    impact: 5,
+    severity: "improvement",
+    impact: 3,
     field: "images.alt",
     tags: ["universal"],
     explanation:
       "El ALT describe la imagen para accesibilidad y para Google Imágenes, una fuente real de tráfico en e-commerce.",
     check: (p) => {
       const missing = p.images.filter((i) => !has(i.alt));
-      return missing.length
-        ? {
-            severity: missing.length > 5 ? "important" : "improvement",
-            current: `${missing.length} de ${p.images.length} imágenes sin ALT`,
-            problem: "Hay imágenes sin texto alternativo.",
-            suggestion: `Describir cada imagen, ej: "${p.h1[0] ?? "producto"} — vista frontal".`,
-          }
-        : null;
+      if (!missing.length) return null;
+      // Una sola imagen secundaria sin ALT no merece un hallazgo.
+      if (missing.length === 1 && p.images.length > 3) return null;
+      const ratio = missing.length / Math.max(1, p.images.length);
+      return {
+        severity: missing.length >= 5 && ratio > 0.5 ? "important" : "improvement",
+        current: `${missing.length} de ${p.images.length} imágenes sin ALT`,
+        evidence: missing.slice(0, 8).map((i) => i.fileName ?? i.src),
+        problem: "Hay imágenes sin texto alternativo.",
+        suggestion: `Describir cada imagen, ej: "${p.h1[0] ?? "producto"} — vista frontal".`,
+      };
     },
   },
   {
@@ -458,20 +469,31 @@ export const RULES: SeoRule[] = [
     tags: ["universal"],
     explanation:
       "Si el canonical apunta a otra URL, el buscador puede ignorar esta página y consolidar señales en otra.",
-    check: (p) => {
+    check: (p, site) => {
       if (!has(p.canonical)) return null;
       try {
         const c = new URL(p.canonical!, p.url);
         const self = new URL(p.url);
         const same =
           c.origin === self.origin && c.pathname.replace(/\/$/, "") === self.pathname.replace(/\/$/, "");
-        return same
-          ? null
-          : {
-              current: p.canonical!,
-              problem: "El canonical no coincide con la URL de la página.",
-              suggestion: p.url,
-            };
+        if (same) return null;
+        const target = site.pages.find(
+          (o) => o.url.replace(/\/$/, "") === c.toString().replace(/\/$/, ""),
+        );
+        const targetOk = target
+          ? target.statusCode < 300 && !/noindex/i.test(target.robotsMeta ?? "")
+          : undefined;
+        return {
+          // Si el destino existe y es indexable puede tratarse de una consolidación deliberada.
+          severity: targetOk === true ? "improvement" : "important",
+          current: p.canonical!,
+          evidence: target ? [`Destino ${target.url}: HTTP ${target.statusCode}`] : undefined,
+          problem:
+            targetOk === false
+              ? "El canonical apunta a una URL con error o marcada como noindex."
+              : "El canonical no coincide con la URL de la página.",
+          suggestion: p.url,
+        };
       } catch {
         return { current: p.canonical!, problem: "Canonical inválido.", suggestion: p.url };
       }
@@ -534,6 +556,7 @@ export const RULES: SeoRule[] = [
     check: (p) =>
       p.depth > 3
         ? {
+            severity: p.depth > 5 ? "important" : "improvement",
             current: `${p.depth} clics desde la home`,
             problem: "Página demasiado profunda en la arquitectura.",
             suggestion:
