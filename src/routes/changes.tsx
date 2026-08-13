@@ -1,6 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
-import { Check, Download, Rocket, X } from "lucide-react";
+import { Check, Download, Rocket, Stethoscope, X } from "lucide-react";
 import { toast } from "sonner";
 import { PageHeader } from "@/components/app-shell";
 import { CategoryBadge, EmptyState, PAGE_TYPE_LABELS, SeverityBadge, StatCard } from "@/components/seo-ui";
@@ -14,7 +14,10 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { DiagnosticDialog } from "@/components/diagnostic";
 import { getConnector } from "@/seo/connectors";
+import { buildDiagnosticById } from "@/seo/diagnostics";
+import type { Diagnostic } from "@/seo/diagnostics";
 import { exportChanges } from "@/seo/suggestions";
 import { actions, useAppState } from "@/store/app-store";
 import type { ChangeStatus } from "@/seo/types";
@@ -51,6 +54,7 @@ function Changes() {
   const [query, setQuery] = useState("");
   const [selected, setSelected] = useState<string[]>([]);
   const [scope, setScope] = useState<string>(auditId ?? "all");
+  const [detail, setDetail] = useState<Diagnostic | null>(null);
 
   /** Solo sugerencias cuya auditoría siga existiendo (evita huérfanas). */
   const liveChanges = useMemo(
@@ -271,6 +275,15 @@ function Changes() {
                 </div>
 
                 <footer className="mt-3 flex flex-wrap justify-end gap-2">
+                  {audit && (
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => setDetail(buildDiagnosticById(audit, c.findingId))}
+                    >
+                      <Stethoscope className="mr-1 size-3.5" /> Ver diagnóstico
+                    </Button>
+                  )}
                   {c.status !== "approved" && (
                     <Button size="sm" onClick={() => actions.setChangeStatus(c.id, "approved")}>
                       <Check className="mr-1 size-3.5" /> Aprobar
@@ -305,6 +318,64 @@ function Changes() {
             );
           })}
         </div>
+      )}
+
+      <DiagnosticDialog
+        diagnostic={detail}
+        open={Boolean(detail)}
+        onOpenChange={(v) => !v && setDetail(null)}
+        extraActions={
+          detail ? (
+            <ChangeActions
+              changeId={`${detail.auditId}:${detail.findingId}`}
+              onDone={() => setDetail(null)}
+            />
+          ) : null
+        }
+      />
+    </>
+  );
+}
+
+/** Acciones de aprobación reutilizadas dentro del panel de diagnóstico. */
+function ChangeActions({ changeId, onDone }: { changeId: string; onDone: () => void }) {
+  const change = useAppState((s) => s.changes.find((c) => c.id === changeId));
+  if (!change) return null;
+  return (
+    <>
+      <Button
+        size="sm"
+        onClick={() => {
+          actions.setChangeStatus(change.id, "approved");
+          onDone();
+        }}
+      >
+        <Check className="mr-1 size-3.5" /> Aprobar
+      </Button>
+      <Button
+        size="sm"
+        variant="outline"
+        onClick={() => {
+          actions.setChangeStatus(change.id, "rejected");
+          onDone();
+        }}
+      >
+        <X className="mr-1 size-3.5" /> Rechazar
+      </Button>
+      {change.status === "approved" && (
+        <Button
+          size="sm"
+          variant="secondary"
+          onClick={() =>
+            change.writable
+              ? (actions.setChangeStatus(change.id, "applied"), onDone())
+              : toast.error(
+                  "El conector actual no permite escribir este campo. Exportá la instrucción.",
+                )
+          }
+        >
+          <Rocket className="mr-1 size-3.5" /> Aplicar
+        </Button>
       )}
     </>
   );
