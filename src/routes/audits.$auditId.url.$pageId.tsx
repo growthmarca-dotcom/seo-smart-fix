@@ -12,6 +12,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { getConnector } from "@/seo/connectors";
+import { KIND_HINTS, KIND_LABELS } from "@/seo/rules";
 import { actions, useAppState } from "@/store/app-store";
 import type { ChangeProposal, Finding, PageSnapshot, PlatformId } from "@/seo/types";
 
@@ -82,6 +83,20 @@ function UrlDetail() {
             <Row label="Enlaces internos" value={String(page.internalLinks.length)} />
             <Row label="Viewport móvil" value={page.hasViewport ? "Sí" : "No"} />
             <Row label="Peso HTML" value={`${page.htmlSizeKb ?? 0} KB`} />
+            <Row
+              label="Origen de descubrimiento"
+              value={
+                page.discoveredVia === "seed"
+                  ? "URL raíz / puntual"
+                  : page.discoveredVia === "sitemap"
+                    ? "sitemap.xml"
+                    : page.discoveredVia === "internal-link"
+                      ? "Enlace interno"
+                      : page.discoveredVia === "both"
+                        ? "Sitemap + enlace interno"
+                        : "—"
+              }
+            />
           </dl>
           <ImageList page={page} />
         </aside>
@@ -155,12 +170,28 @@ function FindingCard({
       <header className="flex flex-wrap items-center gap-2">
         <SeverityBadge severity={finding.severity} />
         <CategoryBadge category={finding.category} />
+        <span
+          className="inline-flex items-center rounded-md border border-border px-2 py-0.5 text-[11px] font-medium text-muted-foreground"
+          title={KIND_HINTS[finding.kind]}
+        >
+          {KIND_LABELS[finding.kind]}
+        </span>
         <h3 className="font-display text-base font-semibold">{finding.ruleName}</h3>
         <span className="ml-auto text-xs text-muted-foreground">Impacto {finding.impact}/10</span>
       </header>
 
+      <p className="mt-2 break-all font-mono text-[11px] text-muted-foreground">{finding.pageUrl}</p>
       <p className="mt-3 text-sm font-medium">{finding.problem}</p>
       <p className="mt-1 text-xs text-muted-foreground">{finding.explanation}</p>
+      {finding.evidence && finding.evidence.length > 0 && (
+        <ul className="mt-3 space-y-1 rounded-lg border border-border bg-muted/40 p-3 text-[11px] font-mono">
+          {finding.evidence.slice(0, 10).map((e) => (
+            <li key={e} className="truncate">
+              {e}
+            </li>
+          ))}
+        </ul>
+      )}
 
       <div className="mt-4 grid gap-3 sm:grid-cols-2">
         <div className="rounded-lg border border-border bg-muted/50 p-3">
@@ -191,6 +222,11 @@ function FindingCard({
           <span className="rounded-md bg-muted px-2 py-1 text-[11px] font-medium text-muted-foreground">
             Estado: {STATUS_LABELS[change.status]}
           </span>
+          {change.history && change.history.length > 1 && (
+            <span className="text-[11px] text-muted-foreground">
+              {change.history.length} cambios de estado registrados
+            </span>
+          )}
           <span className="text-[11px] text-muted-foreground">
             {writable
               ? `${connector?.name} puede escribir este campo`
