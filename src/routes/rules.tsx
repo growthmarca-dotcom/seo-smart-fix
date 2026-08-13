@@ -1,0 +1,87 @@
+import { createFileRoute } from "@tanstack/react-router";
+import { useState } from "react";
+import { PageHeader } from "@/components/app-shell";
+import { CategoryBadge, SeverityBadge } from "@/components/seo-ui";
+import { Input } from "@/components/ui/input";
+import { Switch } from "@/components/ui/switch";
+import { CATEGORY_LABELS, RULES } from "@/seo/rules";
+import { actions, useAppState } from "@/store/app-store";
+
+export const Route = createFileRoute("/rules")({
+  head: () => ({
+    meta: [
+      { title: "Reglas SEO — SEO Fixer" },
+      {
+        name: "description",
+        content:
+          "Catálogo de reglas universales y específicas por plataforma, con severidad, impacto y explicación.",
+      },
+      { property: "og:title", content: "Reglas SEO — SEO Fixer" },
+      { property: "og:description", content: "Reglas universales y por plataforma, configurables." },
+    ],
+  }),
+  component: Rules,
+});
+
+function Rules() {
+  const disabled = useAppState((s) => s.settings.disabledRules);
+  const [query, setQuery] = useState("");
+
+  const rows = RULES.filter((r) =>
+    query.trim()
+      ? `${r.name} ${r.id} ${CATEGORY_LABELS[r.category]} ${r.tags.join(" ")}`
+          .toLowerCase()
+          .includes(query.toLowerCase())
+      : true,
+  );
+
+  return (
+    <>
+      <PageHeader
+        title="Reglas SEO"
+        description="Cada regla declara categoría, severidad base, impacto estimado y por qué importa. Las etiquetas indican si es universal o específica de una plataforma."
+      />
+
+      <div className="panel mb-4 p-4">
+        <Input
+          className="max-w-sm"
+          placeholder="Buscar regla, categoría o plataforma…"
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+        />
+      </div>
+
+      <div className="space-y-3">
+        {rows.map((r) => (
+          <article key={r.id} className="panel p-4">
+            <header className="flex flex-wrap items-center gap-2">
+              <SeverityBadge severity={r.severity} />
+              <CategoryBadge category={r.category} />
+              <h3 className="font-display text-sm font-semibold">{r.name}</h3>
+              <span className="font-mono text-[11px] text-muted-foreground">{r.id}</span>
+              <div className="ml-auto flex items-center gap-3">
+                <span className="text-xs text-muted-foreground">Impacto {r.impact}/10</span>
+                <Switch
+                  checked={!disabled.includes(r.id)}
+                  onCheckedChange={() => actions.toggleRule(r.id)}
+                  aria-label="Activar regla"
+                />
+              </div>
+            </header>
+            <p className="mt-2 text-xs text-muted-foreground">{r.explanation}</p>
+            <div className="mt-2 flex flex-wrap gap-1.5">
+              {r.tags.map((t) => (
+                <span
+                  key={t}
+                  className="rounded-md border border-border bg-muted px-2 py-0.5 text-[10px] uppercase tracking-wide text-muted-foreground"
+                >
+                  {t}
+                </span>
+              ))}
+            </div>
+          </article>
+        ))}
+      </div>
+    </>
+  );
+}

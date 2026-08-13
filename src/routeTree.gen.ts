@@ -10,33 +10,163 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as ChangesRouteImport } from './routes/changes'
+import { Route as HistoryRouteImport } from './routes/history'
+import { Route as IntegrationsRouteImport } from './routes/integrations'
+import { Route as RulesRouteImport } from './routes/rules'
+import { Route as SettingsRouteImport } from './routes/settings'
+import { Route as AuditsIndexRouteImport } from './routes/audits.index'
+import { Route as AuditsAuditIdRouteImport } from './routes/audits.$auditId'
+import { Route as AuditsNewRouteImport } from './routes/audits.new'
+import { Route as AuditsAuditIdIndexRouteImport } from './routes/audits.$auditId.index'
+import { Route as AuditsAuditIdUrlPageIdRouteImport } from './routes/audits.$auditId.url.$pageId'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ChangesRoute = ChangesRouteImport.update({
+  id: '/changes',
+  path: '/changes',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const HistoryRoute = HistoryRouteImport.update({
+  id: '/history',
+  path: '/history',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const IntegrationsRoute = IntegrationsRouteImport.update({
+  id: '/integrations',
+  path: '/integrations',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const RulesRoute = RulesRouteImport.update({
+  id: '/rules',
+  path: '/rules',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SettingsRoute = SettingsRouteImport.update({
+  id: '/settings',
+  path: '/settings',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AuditsIndexRoute = AuditsIndexRouteImport.update({
+  id: '/audits/',
+  path: '/audits/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AuditsAuditIdRoute = AuditsAuditIdRouteImport.update({
+  id: '/audits/$auditId',
+  path: '/audits/$auditId',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AuditsNewRoute = AuditsNewRouteImport.update({
+  id: '/audits/new',
+  path: '/audits/new',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AuditsAuditIdIndexRoute = AuditsAuditIdIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => AuditsAuditIdRoute,
+} as any)
+const AuditsAuditIdUrlPageIdRoute = AuditsAuditIdUrlPageIdRouteImport.update({
+  id: '/url/$pageId',
+  path: '/url/$pageId',
+  getParentRoute: () => AuditsAuditIdRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/changes': typeof ChangesRoute
+  '/history': typeof HistoryRoute
+  '/integrations': typeof IntegrationsRoute
+  '/rules': typeof RulesRoute
+  '/settings': typeof SettingsRoute
+  '/audits/$auditId': typeof AuditsAuditIdRouteWithChildren
+  '/audits/new': typeof AuditsNewRoute
+  '/audits/': typeof AuditsIndexRoute
+  '/audits/$auditId/': typeof AuditsAuditIdIndexRoute
+  '/audits/$auditId/url/$pageId': typeof AuditsAuditIdUrlPageIdRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/changes': typeof ChangesRoute
+  '/history': typeof HistoryRoute
+  '/integrations': typeof IntegrationsRoute
+  '/rules': typeof RulesRoute
+  '/settings': typeof SettingsRoute
+  '/audits/new': typeof AuditsNewRoute
+  '/audits': typeof AuditsIndexRoute
+  '/audits/$auditId': typeof AuditsAuditIdIndexRoute
+  '/audits/$auditId/url/$pageId': typeof AuditsAuditIdUrlPageIdRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/changes': typeof ChangesRoute
+  '/history': typeof HistoryRoute
+  '/integrations': typeof IntegrationsRoute
+  '/rules': typeof RulesRoute
+  '/settings': typeof SettingsRoute
+  '/audits/$auditId': typeof AuditsAuditIdRouteWithChildren
+  '/audits/new': typeof AuditsNewRoute
+  '/audits/': typeof AuditsIndexRoute
+  '/audits/$auditId/': typeof AuditsAuditIdIndexRoute
+  '/audits/$auditId/url/$pageId': typeof AuditsAuditIdUrlPageIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/'
+  fullPaths:
+    | '/'
+    | '/changes'
+    | '/history'
+    | '/integrations'
+    | '/rules'
+    | '/settings'
+    | '/audits/$auditId'
+    | '/audits/new'
+    | '/audits/'
+    | '/audits/$auditId/'
+    | '/audits/$auditId/url/$pageId'
   fileRoutesByTo: FileRoutesByTo
-  to: '/'
-  id: '__root__' | '/'
+  to:
+    | '/'
+    | '/changes'
+    | '/history'
+    | '/integrations'
+    | '/rules'
+    | '/settings'
+    | '/audits/new'
+    | '/audits'
+    | '/audits/$auditId'
+    | '/audits/$auditId/url/$pageId'
+  id:
+    | '__root__'
+    | '/'
+    | '/changes'
+    | '/history'
+    | '/integrations'
+    | '/rules'
+    | '/settings'
+    | '/audits/$auditId'
+    | '/audits/new'
+    | '/audits/'
+    | '/audits/$auditId/'
+    | '/audits/$auditId/url/$pageId'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  ChangesRoute: typeof ChangesRoute
+  HistoryRoute: typeof HistoryRoute
+  IntegrationsRoute: typeof IntegrationsRoute
+  RulesRoute: typeof RulesRoute
+  SettingsRoute: typeof SettingsRoute
+  AuditsAuditIdRoute: typeof AuditsAuditIdRouteWithChildren
+  AuditsNewRoute: typeof AuditsNewRoute
+  AuditsIndexRoute: typeof AuditsIndexRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -48,11 +178,103 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/changes': {
+      id: '/changes'
+      path: '/changes'
+      fullPath: '/changes'
+      preLoaderRoute: typeof ChangesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/history': {
+      id: '/history'
+      path: '/history'
+      fullPath: '/history'
+      preLoaderRoute: typeof HistoryRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/integrations': {
+      id: '/integrations'
+      path: '/integrations'
+      fullPath: '/integrations'
+      preLoaderRoute: typeof IntegrationsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/rules': {
+      id: '/rules'
+      path: '/rules'
+      fullPath: '/rules'
+      preLoaderRoute: typeof RulesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/settings': {
+      id: '/settings'
+      path: '/settings'
+      fullPath: '/settings'
+      preLoaderRoute: typeof SettingsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/audits/': {
+      id: '/audits/'
+      path: '/audits'
+      fullPath: '/audits/'
+      preLoaderRoute: typeof AuditsIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/audits/$auditId': {
+      id: '/audits/$auditId'
+      path: '/audits/$auditId'
+      fullPath: '/audits/$auditId'
+      preLoaderRoute: typeof AuditsAuditIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/audits/new': {
+      id: '/audits/new'
+      path: '/audits/new'
+      fullPath: '/audits/new'
+      preLoaderRoute: typeof AuditsNewRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/audits/$auditId/': {
+      id: '/audits/$auditId/'
+      path: '/'
+      fullPath: '/audits/$auditId/'
+      preLoaderRoute: typeof AuditsAuditIdIndexRouteImport
+      parentRoute: typeof AuditsAuditIdRoute
+    }
+    '/audits/$auditId/url/$pageId': {
+      id: '/audits/$auditId/url/$pageId'
+      path: '/url/$pageId'
+      fullPath: '/audits/$auditId/url/$pageId'
+      preLoaderRoute: typeof AuditsAuditIdUrlPageIdRouteImport
+      parentRoute: typeof AuditsAuditIdRoute
+    }
   }
 }
 
+interface AuditsAuditIdRouteChildren {
+  AuditsAuditIdIndexRoute: typeof AuditsAuditIdIndexRoute
+  AuditsAuditIdUrlPageIdRoute: typeof AuditsAuditIdUrlPageIdRoute
+}
+
+const AuditsAuditIdRouteChildren: AuditsAuditIdRouteChildren = {
+  AuditsAuditIdIndexRoute: AuditsAuditIdIndexRoute,
+  AuditsAuditIdUrlPageIdRoute: AuditsAuditIdUrlPageIdRoute,
+}
+
+const AuditsAuditIdRouteWithChildren = AuditsAuditIdRoute._addFileChildren(
+  AuditsAuditIdRouteChildren,
+)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  ChangesRoute: ChangesRoute,
+  HistoryRoute: HistoryRoute,
+  IntegrationsRoute: IntegrationsRoute,
+  RulesRoute: RulesRoute,
+  SettingsRoute: SettingsRoute,
+  AuditsAuditIdRoute: AuditsAuditIdRouteWithChildren,
+  AuditsNewRoute: AuditsNewRoute,
+  AuditsIndexRoute: AuditsIndexRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
