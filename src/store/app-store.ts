@@ -195,11 +195,6 @@ export const actions = {
   setChangeStatus(changeId: string, status: ChangeStatus, note?: string) {
     set((prev) => {
       const change = prev.changes.find((c) => c.id === changeId);
-      return {
-        ...prev,
-  setChangeStatus(changeId: string, status: ChangeStatus, note?: string) {
-    set((prev) => {
-      const change = prev.changes.find((c) => c.id === changeId);
       const at = now();
       return {
         ...prev,
@@ -219,6 +214,7 @@ export const actions = {
               log({
                 auditId: change.auditId,
                 action:
+
 
                   status === "approved"
                     ? "Cambio aprobado"
