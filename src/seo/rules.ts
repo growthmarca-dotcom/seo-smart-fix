@@ -53,8 +53,6 @@ export interface SeoRule {
 
 const has = (v?: string) => Boolean(v && v.trim().length);
 
-/** Enlaces internos mínimos razonables por tipo de página (perfiles de FASE 3). */
-const PROFILE_LINKS = { home: 5, category: 4, product: 3, article: 2, landing: 1 } as const;
 
 export const RULES: SeoRule[] = [
   // ---------- ON-PAGE ----------
@@ -1064,7 +1062,7 @@ export const RULES: SeoRule[] = [
       "La home concentra la mayor autoridad interna del sitio: si no enlaza a las secciones importantes, esas páginas se rastrean peor y reciben menos autoridad.",
     check: (p) => {
       if (p.statusCode !== 200) return null;
-      const min = PROFILE_LINKS.home;
+      const min = resolvePageContext(p).profile.minInternalLinks ?? 0;
       if (p.internalLinks.length >= min) return null;
       return {
         current: `${p.internalLinks.length} enlaces internos en la home`,
@@ -1090,7 +1088,7 @@ export const RULES: SeoRule[] = [
       "Una categoría existe para distribuir rastreo hacia su inventario. Si no enlaza productos ni subcategorías, la categoría aporta poco y su contenido queda sin destino.",
     check: (p) => {
       if (p.statusCode !== 200) return null;
-      const min = PROFILE_LINKS.category;
+      const min = resolvePageContext(p).profile.minInternalLinks ?? 0;
       if (p.internalLinks.length >= min) return null;
       return {
         severity: p.internalLinks.length === 0 ? "important" : "improvement",
@@ -1166,7 +1164,7 @@ export const RULES: SeoRule[] = [
       "Enlazar a su categoría y a productos complementarios ayuda al rastreo y aumenta las páginas vistas por sesión.",
     check: (p) => {
       if (p.statusCode !== 200) return null;
-      const min = PROFILE_LINKS.product;
+      const min = resolvePageContext(p).profile.minInternalLinks ?? 0;
       return p.internalLinks.length < min
         ? {
             current: `${p.internalLinks.length} enlaces internos salientes`,
@@ -1191,7 +1189,7 @@ export const RULES: SeoRule[] = [
       "El contenido editorial gana valor cuando deriva tráfico hacia productos o categorías relacionadas y refuerza el enlazado temático interno.",
     check: (p) => {
       if (p.statusCode !== 200) return null;
-      const min = PROFILE_LINKS.article;
+      const min = resolvePageContext(p).profile.minInternalLinks ?? 0;
       return p.internalLinks.length < min
         ? {
             current: `${p.internalLinks.length} enlaces internos en el artículo`,
