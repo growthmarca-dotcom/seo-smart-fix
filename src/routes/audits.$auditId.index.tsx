@@ -2,6 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { ArrowUpDown, ExternalLink, Search } from "lucide-react";
 import { PageHeader } from "@/components/app-shell";
+import { DiagnosticGroupCard } from "@/components/diagnostic";
 import {
   CategoryBadge,
   DemoBadge,
@@ -23,6 +24,7 @@ import {
 import { CATEGORY_LABELS, kindLabel, SEVERITY_LABELS } from "@/seo/rules";
 import { countBySeverity } from "@/seo/engine";
 import { getConnector } from "@/seo/connectors";
+import { groupDiagnostics } from "@/seo/diagnostics";
 import { useAppState } from "@/store/app-store";
 import {
   EXCLUSION_LABELS,
@@ -103,6 +105,11 @@ function AuditResults() {
         return order[a.worst] - order[b.worst] || b.findings.length - a.findings.length;
       });
   }, [audit, query, severity, category, pageType, status, sort]);
+
+  const groups = useMemo(
+    () => (audit ? groupDiagnostics(audit, rows.flatMap((r) => r.findings)) : []),
+    [audit, rows],
+  );
 
   if (!audit) {
     return (
