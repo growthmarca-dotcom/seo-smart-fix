@@ -998,6 +998,11 @@ export const KIND_HINTS: Record<FindingKind, string> = {
   heuristic: "Buena práctica habitual del sector, no una regla de Google.",
 };
 
+/** Etiqueta tolerante con auditorías guardadas antes de clasificar por naturaleza. */
+export function kindLabel(kind?: FindingKind) {
+  return kind ? (KIND_LABELS[kind] ?? "Hallazgo") : "Hallazgo";
+}
+
 export const SEVERITY_LABELS: Record<Severity, string> = {
   critical: "Crítico",
   important: "Importante",

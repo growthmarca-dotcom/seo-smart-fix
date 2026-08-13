@@ -20,7 +20,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { CATEGORY_LABELS, KIND_LABELS, SEVERITY_LABELS } from "@/seo/rules";
+import { CATEGORY_LABELS, kindLabel, SEVERITY_LABELS } from "@/seo/rules";
 import { countBySeverity } from "@/seo/engine";
 import { getConnector } from "@/seo/connectors";
 import { useAppState } from "@/store/app-store";
@@ -338,7 +338,7 @@ function ScoreExplanation({ audit }: { audit: Audit }) {
               <SeverityBadge severity={d.severity} />
               <span className="font-medium">{d.ruleName}</span>
               <span className="text-xs text-muted-foreground">
-                {CATEGORY_LABELS[d.category]} · {KIND_LABELS[d.kind]} · {d.occurrences} URL(s)
+                {CATEGORY_LABELS[d.category]} · {kindLabel(d.kind)} · {d.occurrences} URL(s)
               </span>
               <span className="ml-auto text-xs font-semibold text-primary">
                 +{d.points.toFixed(1)} pts al resolverlo

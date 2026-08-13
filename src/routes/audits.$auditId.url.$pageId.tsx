@@ -12,7 +12,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { getConnector } from "@/seo/connectors";
-import { KIND_HINTS, KIND_LABELS } from "@/seo/rules";
+import { KIND_HINTS, kindLabel } from "@/seo/rules";
 import { actions, useAppState } from "@/store/app-store";
 import type { ChangeProposal, Finding, PageSnapshot, PlatformId } from "@/seo/types";
 
@@ -172,9 +172,9 @@ function FindingCard({
         <CategoryBadge category={finding.category} />
         <span
           className="inline-flex items-center rounded-md border border-border px-2 py-0.5 text-[11px] font-medium text-muted-foreground"
-          title={KIND_HINTS[finding.kind]}
+          title={finding.kind ? KIND_HINTS[finding.kind] : undefined}
         >
-          {KIND_LABELS[finding.kind]}
+          {kindLabel(finding.kind)}
         </span>
         <h3 className="font-display text-base font-semibold">{finding.ruleName}</h3>
         <span className="ml-auto text-xs text-muted-foreground">Impacto {finding.impact}/10</span>
