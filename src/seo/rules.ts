@@ -3,19 +3,30 @@
  * Agregar una regla nueva = agregar un objeto a este array. El motor
  * (engine.ts) no necesita cambios.
  */
-import type { Category, Finding, PageSnapshot, Severity, SiteContext } from "./types";
+import type {
+  Category,
+  Finding,
+  FindingKind,
+  PageSnapshot,
+  Severity,
+  SiteContext,
+} from "./types";
 
 export interface RuleResult {
   severity?: Severity | undefined;
   current: string;
   problem: string;
   suggestion?: string | undefined;
+  /** Evidencia concreta: URLs, imágenes o enlaces afectados. */
+  evidence?: string[] | undefined;
 }
 
 export interface SeoRule {
   id: string;
   name: string;
   category: Category;
+  /** Naturaleza de la regla: hecho técnico/indexación/on-page, oportunidad o heurística. */
+  kind: FindingKind;
   severity: Severity;
   impact: number;
   field?: string | undefined;
@@ -33,6 +44,7 @@ export const RULES: SeoRule[] = [
   // ---------- ON-PAGE ----------
   {
     id: "title-missing",
+    kind: "onpage",
     name: "Title ausente",
     category: "onpage",
     severity: "critical",
@@ -52,14 +64,15 @@ export const RULES: SeoRule[] = [
   },
   {
     id: "title-length",
-    name: "Longitud del title",
+    kind: "heuristic",
+    name: "Longitud del title (recomendación)",
     category: "onpage",
-    severity: "important",
-    impact: 6,
+    severity: "improvement",
+    impact: 4,
     field: "title",
     tags: ["universal"],
     explanation:
-      "Entre 30 y 60 caracteres el title se muestra completo en resultados y permite incluir la keyword principal más la marca.",
+      "Recomendación basada en buenas prácticas, no una regla de Google: entre 30 y 60 caracteres el title suele mostrarse completo en resultados. Fuera de ese rango la página puede seguir posicionando.",
     check: (p) => {
       if (!has(p.title)) return null;
       const t = p.title!.trim();
@@ -67,7 +80,10 @@ export const RULES: SeoRule[] = [
       return {
         severity: t.length < 15 || t.length > 75 ? "important" : "improvement",
         current: `${t} (${t.length} caracteres)`,
-        problem: t.length < 30 ? "Title demasiado corto." : "Title demasiado largo, se truncará.",
+        problem:
+          t.length < 30
+            ? "El title es más corto de lo recomendado (30-60 caracteres)."
+            : "El title supera los 60 caracteres recomendados y puede truncarse en el snippet.",
         suggestion:
           t.length > 60 ? `${t.slice(0, 57).trim()}…` : `${t} | ${hostOf(p.url).split(".")[0]}`,
       };
@@ -75,6 +91,7 @@ export const RULES: SeoRule[] = [
   },
   {
     id: "meta-description-missing",
+    kind: "onpage",
     name: "Meta description ausente",
     category: "onpage",
     severity: "important",
@@ -96,31 +113,36 @@ export const RULES: SeoRule[] = [
   },
   {
     id: "meta-description-length",
-    name: "Longitud de meta description",
+    kind: "heuristic",
+    name: "Longitud de meta description (recomendación)",
     category: "onpage",
     severity: "improvement",
     impact: 3,
     field: "metaDescription",
     tags: ["universal"],
     explanation:
-      "Entre 70 y 160 caracteres se muestra completa; muy corta desaprovecha espacio y muy larga se corta.",
+      "Recomendación heurística: entre 70 y 160 caracteres la descripción suele mostrarse completa. Google reescribe el snippet con frecuencia, así que no es una regla fija.",
     check: (p) => {
       if (!has(p.metaDescription)) return null;
       const d = p.metaDescription!.trim();
       if (d.length >= 70 && d.length <= 160) return null;
       return {
         current: `${d} (${d.length} caracteres)`,
-        problem: d.length < 70 ? "Descripción demasiado corta." : "Descripción demasiado larga.",
+        problem:
+          d.length < 70
+            ? "La descripción es más corta de lo recomendado."
+            : "La descripción supera la longitud recomendada y puede recortarse.",
         suggestion: d.length > 160 ? `${d.slice(0, 157).trim()}…` : undefined,
       };
     },
   },
   {
     id: "h1-missing",
+    kind: "onpage",
     name: "H1 ausente",
     category: "onpage",
-    severity: "critical",
-    impact: 8,
+    severity: "important",
+    impact: 7,
     field: "h1",
     tags: ["universal"],
     explanation:
@@ -136,6 +158,7 @@ export const RULES: SeoRule[] = [
   },
   {
     id: "h1-multiple",
+    kind: "heuristic",
     name: "Múltiples H1",
     category: "onpage",
     severity: "improvement",
@@ -155,6 +178,7 @@ export const RULES: SeoRule[] = [
   },
   {
     id: "heading-structure",
+    kind: "heuristic",
     name: "Estructura de headings",
     category: "onpage",
     severity: "improvement",
@@ -174,6 +198,7 @@ export const RULES: SeoRule[] = [
   },
   {
     id: "thin-content",
+    kind: "opportunity",
     name: "Contenido pobre",
     category: "content",
     severity: "important",
@@ -181,7 +206,7 @@ export const RULES: SeoRule[] = [
     field: "content",
     tags: ["universal"],
     explanation:
-      "Páginas con muy poco texto rara vez resuelven la intención de búsqueda y compiten mal contra resultados más completos.",
+      "Oportunidad de contenido: no existe un mínimo oficial de palabras, pero páginas con muy poco texto suelen resolver peor la intención de búsqueda frente a resultados más completos.",
     check: (p) =>
       p.statusCode === 200 && p.wordCount < 150
         ? {
@@ -195,6 +220,7 @@ export const RULES: SeoRule[] = [
   },
   {
     id: "duplicate-content",
+    kind: "indexation",
     name: "Contenido duplicado",
     category: "content",
     severity: "important",
@@ -212,6 +238,7 @@ export const RULES: SeoRule[] = [
               .slice(0, 3)
               .map((t) => t.path)
               .join(", ")}`,
+            evidence: twins.map((t) => t.url),
             problem: "El contenido principal se repite en otras URLs.",
             suggestion:
               "Diferenciar el texto o consolidar con canonical hacia la versión preferida.",
@@ -221,6 +248,7 @@ export const RULES: SeoRule[] = [
   },
   {
     id: "duplicate-title",
+    kind: "onpage",
     name: "Title duplicado",
     category: "onpage",
     severity: "important",
@@ -235,6 +263,7 @@ export const RULES: SeoRule[] = [
       return twins.length
         ? {
             current: p.title!,
+            evidence: twins.map((t) => t.url),
             problem: `El mismo title se usa en ${twins.length} URL(s) más.`,
             suggestion: `${p.title} — ${p.h1[0] ?? p.path}`,
           }
@@ -243,28 +272,33 @@ export const RULES: SeoRule[] = [
   },
   {
     id: "images-alt",
+    kind: "onpage",
     name: "Imágenes sin ALT",
     category: "onpage",
-    severity: "important",
-    impact: 5,
+    severity: "improvement",
+    impact: 3,
     field: "images.alt",
     tags: ["universal"],
     explanation:
       "El ALT describe la imagen para accesibilidad y para Google Imágenes, una fuente real de tráfico en e-commerce.",
     check: (p) => {
       const missing = p.images.filter((i) => !has(i.alt));
-      return missing.length
-        ? {
-            severity: missing.length > 5 ? "important" : "improvement",
-            current: `${missing.length} de ${p.images.length} imágenes sin ALT`,
-            problem: "Hay imágenes sin texto alternativo.",
-            suggestion: `Describir cada imagen, ej: "${p.h1[0] ?? "producto"} — vista frontal".`,
-          }
-        : null;
+      if (!missing.length) return null;
+      // Una sola imagen secundaria sin ALT no merece un hallazgo.
+      if (missing.length === 1 && p.images.length > 3) return null;
+      const ratio = missing.length / Math.max(1, p.images.length);
+      return {
+        severity: missing.length >= 5 && ratio > 0.5 ? "important" : "improvement",
+        current: `${missing.length} de ${p.images.length} imágenes sin ALT`,
+        evidence: missing.slice(0, 8).map((i) => i.fileName ?? i.src),
+        problem: "Hay imágenes sin texto alternativo.",
+        suggestion: `Describir cada imagen, ej: "${p.h1[0] ?? "producto"} — vista frontal".`,
+      };
     },
   },
   {
     id: "image-filenames",
+    kind: "heuristic",
     name: "Nombres de archivo poco descriptivos",
     category: "onpage",
     severity: "improvement",
@@ -293,6 +327,7 @@ export const RULES: SeoRule[] = [
   },
   {
     id: "internal-links-few",
+    kind: "opportunity",
     name: "Pocos enlaces internos",
     category: "content",
     severity: "improvement",
@@ -313,6 +348,7 @@ export const RULES: SeoRule[] = [
   },
   {
     id: "anchor-text-generic",
+    kind: "heuristic",
     name: "Anchor text genérico",
     category: "content",
     severity: "improvement",
@@ -336,6 +372,7 @@ export const RULES: SeoRule[] = [
   },
   {
     id: "url-quality",
+    kind: "heuristic",
     name: "URL poco amigable",
     category: "technical",
     severity: "improvement",
@@ -363,6 +400,7 @@ export const RULES: SeoRule[] = [
   // ---------- TÉCNICO ----------
   {
     id: "noindex",
+    kind: "indexation",
     name: "Página con noindex",
     category: "technical",
     severity: "critical",
@@ -382,6 +420,7 @@ export const RULES: SeoRule[] = [
   },
   {
     id: "nofollow-meta",
+    kind: "indexation",
     name: "Meta robots nofollow",
     category: "technical",
     severity: "important",
@@ -401,6 +440,7 @@ export const RULES: SeoRule[] = [
   },
   {
     id: "canonical-missing",
+    kind: "indexation",
     name: "Canonical ausente",
     category: "technical",
     severity: "improvement",
@@ -420,6 +460,7 @@ export const RULES: SeoRule[] = [
   },
   {
     id: "canonical-mismatch",
+    kind: "indexation",
     name: "Canonical apunta a otra URL",
     category: "technical",
     severity: "important",
@@ -428,20 +469,31 @@ export const RULES: SeoRule[] = [
     tags: ["universal"],
     explanation:
       "Si el canonical apunta a otra URL, el buscador puede ignorar esta página y consolidar señales en otra.",
-    check: (p) => {
+    check: (p, site) => {
       if (!has(p.canonical)) return null;
       try {
         const c = new URL(p.canonical!, p.url);
         const self = new URL(p.url);
         const same =
           c.origin === self.origin && c.pathname.replace(/\/$/, "") === self.pathname.replace(/\/$/, "");
-        return same
-          ? null
-          : {
-              current: p.canonical!,
-              problem: "El canonical no coincide con la URL de la página.",
-              suggestion: p.url,
-            };
+        if (same) return null;
+        const target = site.pages.find(
+          (o) => o.url.replace(/\/$/, "") === c.toString().replace(/\/$/, ""),
+        );
+        const targetOk = target
+          ? target.statusCode < 300 && !/noindex/i.test(target.robotsMeta ?? "")
+          : undefined;
+        return {
+          // Si el destino existe y es indexable puede tratarse de una consolidación deliberada.
+          severity: targetOk === true ? "improvement" : "important",
+          current: p.canonical!,
+          evidence: target ? [`Destino ${target.url}: HTTP ${target.statusCode}`] : undefined,
+          problem:
+            targetOk === false
+              ? "El canonical apunta a una URL con error o marcada como noindex."
+              : "El canonical no coincide con la URL de la página.",
+          suggestion: p.url,
+        };
       } catch {
         return { current: p.canonical!, problem: "Canonical inválido.", suggestion: p.url };
       }
@@ -449,6 +501,7 @@ export const RULES: SeoRule[] = [
   },
   {
     id: "http-error",
+    kind: "technical",
     name: "Código HTTP con error",
     category: "technical",
     severity: "critical",
@@ -471,6 +524,7 @@ export const RULES: SeoRule[] = [
   },
   {
     id: "redirect-chain",
+    kind: "technical",
     name: "Redirecciones encadenadas",
     category: "technical",
     severity: "important",
@@ -490,6 +544,7 @@ export const RULES: SeoRule[] = [
   },
   {
     id: "deep-page",
+    kind: "technical",
     name: "Profundidad de clics excesiva",
     category: "technical",
     severity: "improvement",
@@ -501,6 +556,7 @@ export const RULES: SeoRule[] = [
     check: (p) =>
       p.depth > 3
         ? {
+            severity: p.depth > 5 ? "important" : "improvement",
             current: `${p.depth} clics desde la home`,
             problem: "Página demasiado profunda en la arquitectura.",
             suggestion:
@@ -510,6 +566,7 @@ export const RULES: SeoRule[] = [
   },
   {
     id: "robots-txt-missing",
+    kind: "indexation",
     name: "robots.txt ausente o bloqueante",
     category: "technical",
     severity: "critical",
@@ -538,6 +595,7 @@ export const RULES: SeoRule[] = [
   },
   {
     id: "sitemap-missing",
+    kind: "indexation",
     name: "sitemap.xml ausente",
     category: "technical",
     severity: "important",
@@ -558,6 +616,7 @@ export const RULES: SeoRule[] = [
   },
   {
     id: "viewport-missing",
+    kind: "technical",
     name: "Sin viewport móvil",
     category: "performance",
     severity: "important",
@@ -577,6 +636,7 @@ export const RULES: SeoRule[] = [
   },
   {
     id: "heavy-page",
+    kind: "heuristic",
     name: "Página pesada",
     category: "performance",
     severity: "improvement",
@@ -599,6 +659,7 @@ export const RULES: SeoRule[] = [
   // ---------- STRUCTURED DATA ----------
   {
     id: "schema-invalid",
+    kind: "technical",
     name: "JSON-LD inválido",
     category: "structured-data",
     severity: "important",
@@ -618,6 +679,7 @@ export const RULES: SeoRule[] = [
   },
   {
     id: "schema-recommended",
+    kind: "opportunity",
     name: "Datos estructurados recomendados",
     category: "structured-data",
     severity: "important",
@@ -641,6 +703,7 @@ export const RULES: SeoRule[] = [
   },
   {
     id: "breadcrumb-schema",
+    kind: "opportunity",
     name: "Breadcrumb sin marcado",
     category: "structured-data",
     severity: "improvement",
@@ -662,6 +725,7 @@ export const RULES: SeoRule[] = [
   // ---------- SEO LOCAL ----------
   {
     id: "local-nap",
+    kind: "opportunity",
     name: "Datos NAP incompletos",
     category: "local",
     severity: "important",
@@ -695,6 +759,7 @@ export const RULES: SeoRule[] = [
   },
   {
     id: "local-business-schema",
+    kind: "opportunity",
     name: "LocalBusiness ausente",
     category: "local",
     severity: "improvement",
@@ -717,6 +782,7 @@ export const RULES: SeoRule[] = [
   // ---------- REGLAS ESPECÍFICAS DE PLATAFORMA ----------
   {
     id: "tn-product-title-format",
+    kind: "heuristic",
     name: "Título de producto poco optimizado",
     category: "onpage",
     severity: "important",
@@ -739,6 +805,7 @@ export const RULES: SeoRule[] = [
   },
   {
     id: "ml-title-length",
+    kind: "onpage",
     name: "Título de publicación fuera de rango",
     category: "onpage",
     severity: "important",
@@ -764,6 +831,7 @@ export const RULES: SeoRule[] = [
   },
   {
     id: "ml-attributes",
+    kind: "onpage",
     name: "Atributos de ficha incompletos",
     category: "content",
     severity: "important",
@@ -781,6 +849,113 @@ export const RULES: SeoRule[] = [
             current: `${filled}/${total} atributos completos`,
             problem: "La ficha técnica tiene atributos sin completar.",
             suggestion: "Completar marca, modelo, material, talle y color en la ficha técnica.",
+          }
+        : null;
+    },
+  },
+
+  // ---------- ENLAZADO / RASTREO (requieren contexto del sitio) ----------
+  {
+    id: "broken-internal-links",
+    kind: "technical",
+    name: "Enlaces internos rotos",
+    category: "technical",
+    severity: "critical",
+    impact: 8,
+    field: "internalLinks",
+    tags: ["universal"],
+    explanation:
+      "Un enlace interno que responde 4xx/5xx desperdicia rastreo, corta la navegación y deja páginas sin recibir autoridad interna.",
+    check: (p, site) => {
+      const broken = (site.brokenLinks ?? []).filter((b) => b.from === p.url);
+      if (!broken.length) return null;
+      return {
+        severity: broken.length > 3 ? "critical" : "important",
+        current: `${broken.length} enlace(s) roto(s)`,
+        evidence: broken.slice(0, 10).map((b) => `${b.to} → HTTP ${b.status}`),
+        problem: "La página enlaza a URLs que responden con error.",
+        suggestion:
+          "Actualizar el destino del enlace o redirigir 301 la URL antigua a la equivalente vigente.",
+      };
+    },
+  },
+  {
+    id: "internal-link-redirects",
+    kind: "technical",
+    name: "Enlaces internos hacia redirecciones",
+    category: "technical",
+    severity: "improvement",
+    impact: 3,
+    field: "internalLinks",
+    tags: ["universal"],
+    explanation:
+      "Enlazar a una URL que redirige añade un salto innecesario. Conviene enlazar directamente al destino final.",
+    check: (p, site) => {
+      const redirects = site.coverage?.redirects ?? [];
+      if (!redirects.length) return null;
+      const hits = p.internalLinks.filter((l) =>
+        redirects.some((r) => r.from.replace(/\/$/, "") === l.href.replace(/\/$/, "")),
+      );
+      if (!hits.length) return null;
+      return {
+        current: `${hits.length} enlace(s) hacia URLs que redirigen`,
+        evidence: hits.slice(0, 10).map((h) => h.href),
+        problem: "Hay enlaces internos que pasan por una redirección.",
+        suggestion: "Reemplazar el href por la URL final para evitar saltos intermedios.",
+      };
+    },
+  },
+  {
+    id: "duplicate-meta-description",
+    kind: "onpage",
+    name: "Meta description duplicada",
+    category: "onpage",
+    severity: "improvement",
+    impact: 3,
+    field: "metaDescription",
+    tags: ["universal"],
+    explanation:
+      "Descripciones repetidas producen snippets iguales para páginas distintas y reducen el CTR de cada resultado.",
+    check: (p, site) => {
+      if (!has(p.metaDescription)) return null;
+      const twins = site.pages.filter(
+        (o) => o.id !== p.id && o.metaDescription === p.metaDescription,
+      );
+      return twins.length
+        ? {
+            current: p.metaDescription!,
+            evidence: twins.slice(0, 8).map((t) => t.url),
+            problem: `La misma descripción se repite en ${twins.length} URL(s).`,
+            suggestion: "Escribir una descripción propia que resuma el contenido de esta URL.",
+          }
+        : null;
+    },
+  },
+  {
+    id: "orphan-page",
+    kind: "opportunity",
+    name: "Página sin enlaces entrantes internos",
+    category: "content",
+    severity: "important",
+    impact: 6,
+    field: "internalLinks",
+    tags: ["universal"],
+    explanation:
+      "Una URL sin enlaces internos entrantes depende solo del sitemap: se rastrea peor y recibe muy poca autoridad interna.",
+    appliesTo: (p) => p.depth > 0 && p.statusCode < 300,
+    check: (p, site) => {
+      // Solo evaluable si se analizó más de una página del sitio.
+      if (site.pages.length < 2) return null;
+      const norm = (u: string) => u.replace(/\/$/, "");
+      const inbound = site.pages.filter(
+        (o) => o.id !== p.id && o.internalLinks.some((l) => norm(l.href) === norm(p.url)),
+      );
+      return inbound.length === 0
+        ? {
+            current: "0 enlaces internos entrantes detectados",
+            problem: "Ninguna página analizada enlaza a esta URL.",
+            suggestion:
+              "Enlazarla desde su categoría, desde el menú o desde contenidos relacionados.",
           }
         : null;
     },
@@ -806,6 +981,27 @@ export const CATEGORY_LABELS: Record<Category, string> = {
   content: "Contenido y enlazado",
   authority: "Autoridad y competencia",
 };
+
+export const KIND_LABELS: Record<FindingKind, string> = {
+  technical: "Problema técnico",
+  indexation: "Problema de indexación",
+  onpage: "Problema on-page",
+  opportunity: "Oportunidad",
+  heuristic: "Recomendación (heurística)",
+};
+
+export const KIND_HINTS: Record<FindingKind, string> = {
+  technical: "Hecho verificable en la respuesta del servidor o el HTML.",
+  indexation: "Afecta directamente el rastreo o la indexación de la URL.",
+  onpage: "Elemento on-page ausente, duplicado o mal formado.",
+  opportunity: "Mejora de contenido o enlazado interno, no un error.",
+  heuristic: "Buena práctica habitual del sector, no una regla de Google.",
+};
+
+/** Etiqueta tolerante con auditorías guardadas antes de clasificar por naturaleza. */
+export function kindLabel(kind?: FindingKind) {
+  return kind ? (KIND_LABELS[kind] ?? "Hallazgo") : "Hallazgo";
+}
 
 export const SEVERITY_LABELS: Record<Severity, string> = {
   critical: "Crítico",

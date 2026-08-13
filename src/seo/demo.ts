@@ -241,14 +241,49 @@ const DEMO_PAGES: PageSnapshot[] = [
 ];
 
 export function buildDemoSite(platform: PlatformId = "generic-web"): SiteContext {
+  const pages = DEMO_PAGES.map((p, i) => ({
+    ...p,
+    discoveredVia: (i === 0 ? "seed" : i % 3 === 0 ? "sitemap" : i % 3 === 1 ? "internal-link" : "both") as
+      | "seed"
+      | "sitemap"
+      | "internal-link"
+      | "both",
+  }));
+  const brokenLinks = [
+    { from: `${ROOT}/`, to: `${ROOT}/productos/campera-descontinuada`, status: 404 },
+    { from: `${ROOT}/categorias/camperas`, to: `${ROOT}/productos/campera-descontinuada`, status: 404 },
+  ];
   return {
     rootUrl: ROOT,
     platform,
     robotsTxt: { found: true, disallowsAll: false, sitemapDeclared: false },
-    sitemap: { found: true, urlCount: DEMO_PAGES.length, url: `${ROOT}/sitemap.xml` },
-    pages: DEMO_PAGES.map((p) => ({ ...p })),
+    sitemap: { found: true, urlCount: pages.length, url: `${ROOT}/sitemap.xml` },
+    pages,
+    brokenLinks,
+    coverage: {
+      limit: 100,
+      limitReached: false,
+      respectRobots: true,
+      robotsTxtFound: true,
+      robotsRulesApplied: 3,
+      sitemapsFound: [`${ROOT}/sitemap.xml`],
+      urlsFromSitemap: pages.filter((p) => p.discoveredVia === "sitemap").length,
+      urlsFromLinks: pages.filter((p) => p.discoveredVia === "internal-link").length,
+      urlsFromBoth: pages.filter((p) => p.discoveredVia === "both").length,
+      discovered: pages.length + 4,
+      analyzed: pages.length,
+      excluded: [
+        { url: `${ROOT}/carrito`, reason: "robots-disallow", detail: "Disallow: /carrito" },
+        { url: `${ROOT}/checkout`, reason: "robots-disallow", detail: "Disallow: /checkout" },
+        { url: `${ROOT}/img/catalogo.pdf`, reason: "non-html", detail: "application/pdf" },
+        { url: `${ROOT}/productos/campera-descontinuada`, reason: "fetch-error", detail: "HTTP 404" },
+      ],
+      errors: [{ url: `${ROOT}/productos/campera-descontinuada`, reason: "HTTP 404" }],
+      redirects: [{ from: `${ROOT}/camperas`, to: `${ROOT}/categorias/camperas`, status: 301 }],
+    },
   };
 }
+
 
 export const DEMO_STORE_NAME = "Outdoor Patagonia (demo)";
 export const DEMO_ROOT_URL = ROOT;

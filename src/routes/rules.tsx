@@ -4,7 +4,7 @@ import { PageHeader } from "@/components/app-shell";
 import { CategoryBadge, SeverityBadge } from "@/components/seo-ui";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
-import { CATEGORY_LABELS, RULES } from "@/seo/rules";
+import { CATEGORY_LABELS, KIND_HINTS, KIND_LABELS, RULES } from "@/seo/rules";
 import { actions, useAppState } from "@/store/app-store";
 
 export const Route = createFileRoute("/rules")({
@@ -29,7 +29,7 @@ function Rules() {
 
   const rows = RULES.filter((r) =>
     query.trim()
-      ? `${r.name} ${r.id} ${CATEGORY_LABELS[r.category]} ${r.tags.join(" ")}`
+      ? `${r.name} ${r.id} ${CATEGORY_LABELS[r.category]} ${KIND_LABELS[r.kind]} ${r.tags.join(" ")}`
           .toLowerCase()
           .includes(query.toLowerCase())
       : true,
@@ -39,7 +39,7 @@ function Rules() {
     <>
       <PageHeader
         title="Reglas SEO"
-        description="Cada regla declara categoría, severidad base, impacto estimado y por qué importa. Las etiquetas indican si es universal o específica de una plataforma."
+        description="Cada regla declara categoría, naturaleza (técnico, indexación, on-page, oportunidad o recomendación heurística), severidad base, impacto estimado y por qué importa. Las heurísticas son buenas prácticas del sector, no reglas de Google."
       />
 
       <div className="panel mb-4 p-4">
@@ -57,6 +57,12 @@ function Rules() {
             <header className="flex flex-wrap items-center gap-2">
               <SeverityBadge severity={r.severity} />
               <CategoryBadge category={r.category} />
+              <span
+                className="inline-flex items-center rounded-md border border-border px-2 py-0.5 text-[11px] font-medium text-muted-foreground"
+                title={KIND_HINTS[r.kind]}
+              >
+                {KIND_LABELS[r.kind]}
+              </span>
               <h3 className="font-display text-sm font-semibold">{r.name}</h3>
               <span className="font-mono text-[11px] text-muted-foreground">{r.id}</span>
               <div className="ml-auto flex items-center gap-3">

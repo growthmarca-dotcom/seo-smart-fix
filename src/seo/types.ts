@@ -16,6 +16,17 @@ export type Category =
   | "content"
   | "authority";
 
+/**
+ * Naturaleza del hallazgo. Permite separar hechos verificables de
+ * recomendaciones basadas en buenas prácticas del sector.
+ * - technical: fallo técnico comprobable (HTTP, redirecciones, enlaces rotos).
+ * - indexation: afecta directamente rastreo o indexación (noindex, robots, canonical).
+ * - onpage: elemento on-page ausente o mal formado (hecho, no opinión).
+ * - opportunity: oportunidad de contenido o enlazado interno.
+ * - heuristic: recomendación basada en buenas prácticas, no una regla de Google.
+ */
+export type FindingKind = "technical" | "indexation" | "onpage" | "opportunity" | "heuristic";
+
 export type PlatformId = "generic-web" | "tiendanube" | "mercadolibre";
 
 export type PageType =
@@ -26,6 +37,10 @@ export type PageType =
   | "landing"
   | "contact"
   | "other";
+
+/** Cómo se descubrió una URL durante el rastreo. */
+export type DiscoverySource = "seed" | "sitemap" | "internal-link" | "both";
+
 
 /** Representación normalizada de una página / publicación / producto. */
 export interface PageSnapshot {
@@ -59,6 +74,8 @@ export interface PageSnapshot {
   hasViewport: boolean;
   htmlSizeKb?: number | undefined;
   responseMs?: number | undefined;
+  /** Origen del descubrimiento de la URL (sitemap, enlace interno o ambos). */
+  discoveredVia?: DiscoverySource | undefined;
   /** Señales locales detectadas (teléfono, dirección, horario). */
   localSignals?:
     | { phone?: string | undefined; address?: string | undefined; openingHours?: boolean }
@@ -66,6 +83,43 @@ export interface PageSnapshot {
   /** Metadatos del conector de origen (id de producto, categoría, etc.). */
   source?: Record<string, string | number | boolean | undefined> | undefined;
 }
+
+/** Motivo por el que una URL descubierta no se analizó. */
+export type ExclusionReason =
+  | "limit-reached"
+  | "robots-disallow"
+  | "non-html"
+  | "external-host"
+  | "duplicate-normalized"
+  | "fetch-error";
+
+export const EXCLUSION_LABELS: Record<ExclusionReason, string> = {
+  "limit-reached": "Fuera del límite de rastreo",
+  "robots-disallow": "Bloqueada por robots.txt",
+  "non-html": "Recurso no HTML",
+  "external-host": "Fuera del dominio",
+  "duplicate-normalized": "Duplicada tras normalizar",
+  "fetch-error": "Error al descargar",
+};
+
+/** Cobertura del rastreo: qué se descubrió, analizó, excluyó y falló. */
+export interface CrawlCoverage {
+  limit: number;
+  limitReached: boolean;
+  respectRobots: boolean;
+  robotsTxtFound: boolean;
+  robotsRulesApplied: number;
+  sitemapsFound: string[];
+  urlsFromSitemap: number;
+  urlsFromLinks: number;
+  urlsFromBoth: number;
+  discovered: number;
+  analyzed: number;
+  excluded: Array<{ url: string; reason: ExclusionReason; detail?: string | undefined }>;
+  errors: Array<{ url: string; reason: string }>;
+  redirects: Array<{ from: string; to: string; status: number }>;
+}
+
 
 /** Contexto del sitio: lo que solo se sabe mirando todas las páginas. */
 export interface SiteContext {
@@ -77,6 +131,7 @@ export interface SiteContext {
   sitemap?: { found: boolean; urlCount?: number | undefined; url?: string | undefined } | undefined;
   pages: PageSnapshot[];
   brokenLinks?: Array<{ from: string; to: string; status: number }> | undefined;
+  coverage?: CrawlCoverage | undefined;
 }
 
 export interface Finding {
@@ -86,6 +141,8 @@ export interface Finding {
   pageId: string;
   pageUrl: string;
   category: Category;
+  /** Naturaleza del hallazgo: hecho técnico, indexación, on-page, oportunidad o heurística. */
+  kind: FindingKind;
   severity: Severity;
   /** 1-10, cuánto puede afectar rastreo/indexación/posicionamiento. */
   impact: number;
@@ -94,9 +151,17 @@ export interface Finding {
   problem: string;
   explanation: string;
   suggestion?: string | undefined;
+  /** Evidencia adicional (enlaces rotos, URLs duplicadas, imágenes afectadas). */
+  evidence?: string[] | undefined;
 }
 
 export type ChangeStatus = "pending" | "approved" | "rejected" | "applied";
+
+export interface ChangeEvent {
+  at: string;
+  status: ChangeStatus;
+  detail?: string | undefined;
+}
 
 export interface ChangeProposal {
   id: string;
@@ -116,6 +181,8 @@ export interface ChangeProposal {
   createdAt: string;
   updatedAt: string;
   note?: string | undefined;
+  /** Historial de estados de la propuesta. */
+  history?: ChangeEvent[] | undefined;
 }
 
 export interface CategoryScore {
@@ -123,11 +190,31 @@ export interface CategoryScore {
   score: number;
   weight: number;
   findings: number;
+  /** Penalización ponderada acumulada de la categoría (0-100). */
+  penalty: number;
+  /** Cantidad de comprobaciones aplicables en la categoría. */
+  checks: number;
+}
+
+/** Acción con mayor impacto sobre el score. */
+export interface ScoreDriver {
+  ruleId: string;
+  ruleName: string;
+  category: Category;
+  kind: FindingKind;
+  severity: Severity;
+  occurrences: number;
+  /** Puntos de score que se recuperan aproximadamente al resolverlo. */
+  points: number;
 }
 
 export interface SeoScore {
   total: number;
   categories: CategoryScore[];
+  /** Explicación de las acciones con mayor impacto en el score. */
+  drivers: ScoreDriver[];
+  pagesAnalyzed: number;
+  method: string;
 }
 
 export type AuditStatus = "queued" | "discovering" | "analyzing" | "done" | "error";
@@ -157,7 +244,9 @@ export interface Audit {
   error?: string | undefined;
   sitemapFound?: boolean | undefined;
   robotsFound?: boolean | undefined;
+  coverage?: CrawlCoverage | undefined;
 }
+
 
 export interface HistoryEntry {
   id: string;

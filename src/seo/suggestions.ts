@@ -28,6 +28,7 @@ export function proposalFromFinding(
     writable,
     createdAt: now,
     updatedAt: now,
+    history: [{ at: now, status: "pending", detail: "Sugerencia generada por el motor SEO" }],
   };
 }
 

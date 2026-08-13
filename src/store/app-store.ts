@@ -135,7 +135,7 @@ export function createAuditFromSite(
   },
 ): Audit {
   const tags = getConnector(meta.platform)?.ruleTags ?? [];
-  const { findings, score } = runAudit(site, tags);
+  const { findings, score } = runAudit(site, tags, state.settings.disabledRules);
   const issues = findings.filter((f) => f.severity !== "ok").length;
   return {
     id: id(),
@@ -148,12 +148,17 @@ export function createAuditFromSite(
     finishedAt: now(),
     crawlLimit: meta.crawlLimit,
     respectRobots: meta.respectRobots,
-    progress: { discovered: site.pages.length, analyzed: site.pages.length, issues },
+    progress: {
+      discovered: site.coverage?.discovered ?? site.pages.length,
+      analyzed: site.pages.length,
+      issues,
+    },
     pages: site.pages,
     findings,
     score,
     sitemapFound: site.sitemap?.found,
     robotsFound: site.robotsTxt?.found,
+    coverage: site.coverage,
   };
 }
 
@@ -190,16 +195,27 @@ export const actions = {
   setChangeStatus(changeId: string, status: ChangeStatus, note?: string) {
     set((prev) => {
       const change = prev.changes.find((c) => c.id === changeId);
+      const at = now();
       return {
         ...prev,
         changes: prev.changes.map((c) =>
-          c.id === changeId ? { ...c, status, note, updatedAt: now() } : c,
+          c.id === changeId
+            ? {
+                ...c,
+                status,
+                note,
+                updatedAt: at,
+                history: [...(c.history ?? []), { at, status, detail: note }],
+              }
+            : c,
         ),
         history: change
           ? [
               log({
                 auditId: change.auditId,
                 action:
+
+
                   status === "approved"
                     ? "Cambio aprobado"
                     : status === "rejected"
