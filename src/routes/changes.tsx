@@ -20,9 +20,8 @@ import { actions, useAppState } from "@/store/app-store";
 import type { ChangeStatus } from "@/seo/types";
 
 export const Route = createFileRoute("/changes")({
-  validateSearch: (search: Record<string, unknown>): { auditId?: string } => ({
-    auditId: typeof search.auditId === "string" ? search.auditId : undefined,
-  }),
+  validateSearch: (search: Record<string, unknown>): { auditId?: string | undefined } =>
+    typeof search["auditId"] === "string" ? { auditId: search["auditId"] } : {},
   head: () => ({
     meta: [
       { title: "Sugerencias y cambios — SEO Fixer" },
