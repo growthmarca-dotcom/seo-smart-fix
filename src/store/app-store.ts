@@ -286,7 +286,11 @@ export function useAppState<T>(selector: (s: AppState) => T): T {
     return next;
   }, []);
 
-  const getServerSnapshot = useCallback(() => selectorRef.current(initialState), []);
+  const serverCache = useRef<{ value: T } | null>(null);
+  const getServerSnapshot = useCallback(() => {
+    if (!serverCache.current) serverCache.current = { value: selectorRef.current(initialState) };
+    return serverCache.current.value;
+  }, []);
 
   return useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot);
 }
