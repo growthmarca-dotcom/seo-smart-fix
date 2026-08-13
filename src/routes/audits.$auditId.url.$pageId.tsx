@@ -76,6 +76,20 @@ function UrlDetail() {
             <Row label="H1" value={page.h1.join(" | ") || "—"} />
             <Row label="H2" value={String(page.h2.length)} />
             <Row label="Palabras" value={String(page.wordCount)} />
+            <Row
+              label="Indexabilidad"
+              value={
+                /noindex/i.test(page.robotsMeta ?? "")
+                  ? "No indexable (noindex)"
+                  : page.statusCode >= 400
+                    ? `No indexable (HTTP ${page.statusCode})`
+                    : page.statusCode >= 300
+                      ? `Redirección (HTTP ${page.statusCode})`
+                      : page.canonical && page.canonical !== page.url
+                        ? "Indexable, canonical apunta a otra URL"
+                        : "Indexable"
+              }
+            />
             <Row label="Canonical" value={page.canonical ?? "—"} />
             <Row label="Meta robots" value={page.robotsMeta ?? "(por defecto)"} />
             <Row label="Schema" value={page.schemaTypes.join(", ") || "—"} />
