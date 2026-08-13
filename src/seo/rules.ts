@@ -8,6 +8,7 @@ import type {
   Finding,
   FindingKind,
   PageSnapshot,
+  PageType,
   Severity,
   SiteContext,
 } from "./types";
