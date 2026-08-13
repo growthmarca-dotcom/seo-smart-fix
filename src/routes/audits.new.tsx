@@ -107,8 +107,13 @@ function NewAudit() {
       const site: SiteContext = {
         rootUrl: r.pages[0]!.url,
         platform,
-        robotsTxt: { found: r.robotsFound, disallowsAll: r.robotsDisallowAll, sitemapDeclared: r.sitemapFound },
-        sitemap: { found: r.sitemapFound, urlCount: r.sitemapUrlCount },
+        robotsTxt: {
+          found: r.robotsFound,
+          disallowsAll: r.robotsDisallowAll,
+          sitemapDeclared: r.sitemapFound,
+          state: r.robotsState,
+        },
+        sitemap: { found: r.sitemapFound, urlCount: r.sitemapUrlCount, docs: r.sitemapDocs },
         pages: r.pages,
         brokenLinks: r.brokenLinks,
         coverage: r.coverage,

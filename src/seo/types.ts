@@ -22,10 +22,21 @@ export type Category =
  * - technical: fallo técnico comprobable (HTTP, redirecciones, enlaces rotos).
  * - indexation: afecta directamente rastreo o indexación (noindex, robots, canonical).
  * - onpage: elemento on-page ausente o mal formado (hecho, no opinión).
+ * - content: calidad o duplicación de contenido.
+ * - structure: arquitectura, profundidad y enlazado interno.
+ * - images: imágenes, ALT y nombres de archivo.
  * - opportunity: oportunidad de contenido o enlazado interno.
  * - heuristic: recomendación basada en buenas prácticas, no una regla de Google.
  */
-export type FindingKind = "technical" | "indexation" | "onpage" | "opportunity" | "heuristic";
+export type FindingKind =
+  | "technical"
+  | "indexation"
+  | "onpage"
+  | "content"
+  | "structure"
+  | "images"
+  | "opportunity"
+  | "heuristic";
 
 export type PlatformId = "generic-web" | "tiendanube" | "mercadolibre";
 
@@ -84,6 +95,106 @@ export interface PageSnapshot {
   source?: Record<string, string | number | boolean | undefined> | undefined;
 }
 
+/** Estado de robots.txt detectado en el rastreo. */
+export type RobotsState =
+  | "missing"
+  | "empty"
+  | "valid"
+  | "invalid"
+  | "fetch-error"
+  | "disallow-all";
+
+export const ROBOTS_STATE_LABELS: Record<RobotsState, string> = {
+  missing: "robots.txt inexistente (HTTP 404)",
+  empty: "robots.txt accesible pero sin directivas",
+  valid: "robots.txt válido",
+  invalid: "robots.txt con contenido no válido",
+  "fetch-error": "robots.txt no se pudo leer",
+  "disallow-all": "robots.txt bloquea todo el sitio (Disallow: /)",
+};
+
+export interface RobotsReport {
+  state: RobotsState;
+  /** Se encontró un archivo servido en /robots.txt. */
+  found: boolean;
+  /** Directivas aplicables a nuestro user-agent. */
+  groupsFound: number;
+  userAgentGroup?: string | undefined;
+  disallow: string[];
+  allow: string[];
+  sitemaps: string[];
+  /** Líneas que no se pudieron interpretar. */
+  parseWarnings: string[];
+  /** true si el crawler aplicó realmente las reglas. */
+  applied: boolean;
+}
+
+/** Tipo de documento sitemap procesado. */
+export type SitemapKind = "sitemap" | "index" | "child" | "inaccessible" | "invalid";
+
+export const SITEMAP_KIND_LABELS: Record<SitemapKind, string> = {
+  sitemap: "Sitemap",
+  index: "Sitemap index",
+  child: "Sitemap hijo",
+  inaccessible: "Sitemap inaccesible",
+  invalid: "Sitemap inválido",
+};
+
+export interface SitemapDoc {
+  url: string;
+  kind: SitemapKind;
+  urlCount: number;
+  status?: number | undefined;
+  detail?: string | undefined;
+}
+
+/** Clasificación del estado de un enlace verificado. */
+export type LinkStatusClass =
+  | "ok"
+  | "redirect"
+  | "not-found"
+  | "gone"
+  | "forbidden"
+  | "rate-limited"
+  | "server-error"
+  | "timeout"
+  | "network-error"
+  | "unknown";
+
+export const LINK_STATUS_LABELS: Record<LinkStatusClass, string> = {
+  ok: "Válida",
+  redirect: "Redirección",
+  "not-found": "404 no encontrada",
+  gone: "410 eliminada",
+  forbidden: "403 prohibida",
+  "rate-limited": "429 límite de peticiones",
+  "server-error": "Error 5xx del servidor",
+  timeout: "Timeout",
+  "network-error": "Error de conexión",
+  unknown: "Sin verificar",
+};
+
+/** Estados que se consideran rotura definitiva del enlace. */
+export const DEFINITIVE_BROKEN: LinkStatusClass[] = ["not-found", "gone"];
+
+export interface LinkCheck {
+  url: string;
+  status: number;
+  statusClass: LinkStatusClass;
+  /** URL final si hubo redirección. */
+  finalUrl?: string | undefined;
+  /** true cuando el fallo puede ser temporal (429, 5xx, timeout). */
+  temporary: boolean;
+  from: string[];
+}
+
+/** Registro de una URL modificada al normalizar. */
+export interface NormalizationRecord {
+  from: string;
+  to: string;
+  reasons: string[];
+}
+
 /** Motivo por el que una URL descubierta no se analizó. */
 export type ExclusionReason =
   | "limit-reached"
@@ -91,7 +202,8 @@ export type ExclusionReason =
   | "non-html"
   | "external-host"
   | "duplicate-normalized"
-  | "fetch-error";
+  | "fetch-error"
+  | "not-html-response";
 
 export const EXCLUSION_LABELS: Record<ExclusionReason, string> = {
   "limit-reached": "Fuera del límite de rastreo",
@@ -100,6 +212,7 @@ export const EXCLUSION_LABELS: Record<ExclusionReason, string> = {
   "external-host": "Fuera del dominio",
   "duplicate-normalized": "Duplicada tras normalizar",
   "fetch-error": "Error al descargar",
+  "not-html-response": "La respuesta no era HTML",
 };
 
 /** Cobertura del rastreo: qué se descubrió, analizó, excluyó y falló. */
@@ -109,6 +222,23 @@ export interface CrawlCoverage {
   respectRobots: boolean;
   robotsTxtFound: boolean;
   robotsRulesApplied: number;
+  /** Informe detallado de robots.txt. */
+  robots?: RobotsReport | undefined;
+  /** Sitemaps procesados con su tipo y cantidad de URLs. */
+  sitemapDocs?: SitemapDoc[] | undefined;
+  /** URLs descubiertas y no analizadas por haberse agotado el límite. */
+  pending?: number | undefined;
+  /** URLs bloqueadas por robots.txt. */
+  blocked?: number | undefined;
+  /** Porcentaje analizadas / descubiertas. */
+  coveragePct?: number | undefined;
+  /** URLs cuya forma canónica difería de la encontrada. */
+  normalizations?: NormalizationRecord[] | undefined;
+  /** Resultado de las verificaciones de enlaces. */
+  linkChecks?: LinkCheck[] | undefined;
+  /** Verificaciones de enlaces realizadas / presupuesto disponible. */
+  linkChecksUsed?: number | undefined;
+  linkCheckBudget?: number | undefined;
   sitemapsFound: string[];
   urlsFromSitemap: number;
   urlsFromLinks: number;
@@ -126,11 +256,31 @@ export interface SiteContext {
   rootUrl: string;
   platform: PlatformId;
   robotsTxt?:
-    | { found: boolean; disallowsAll?: boolean | undefined; sitemapDeclared?: boolean | undefined }
+    | {
+        found: boolean;
+        disallowsAll?: boolean | undefined;
+        sitemapDeclared?: boolean | undefined;
+        state?: RobotsState | undefined;
+      }
     | undefined;
-  sitemap?: { found: boolean; urlCount?: number | undefined; url?: string | undefined } | undefined;
+  sitemap?:
+    | {
+        found: boolean;
+        urlCount?: number | undefined;
+        url?: string | undefined;
+        docs?: SitemapDoc[] | undefined;
+      }
+    | undefined;
   pages: PageSnapshot[];
-  brokenLinks?: Array<{ from: string; to: string; status: number }> | undefined;
+  brokenLinks?:
+    | Array<{
+        from: string;
+        to: string;
+        status: number;
+        statusClass?: LinkStatusClass | undefined;
+        temporary?: boolean | undefined;
+      }>
+    | undefined;
   coverage?: CrawlCoverage | undefined;
 }
 
@@ -208,9 +358,18 @@ export interface ScoreDriver {
   points: number;
 }
 
+/** Score por naturaleza del problema (técnico, indexación, on-page, ...). */
+export interface KindScore {
+  kind: FindingKind;
+  score: number;
+  findings: number;
+}
+
 export interface SeoScore {
   total: number;
   categories: CategoryScore[];
+  /** Salud por naturaleza del hallazgo. Opcional para auditorías guardadas antes. */
+  kinds?: KindScore[] | undefined;
   /** Explicación de las acciones con mayor impacto en el score. */
   drivers: ScoreDriver[];
   pagesAnalyzed: number;
