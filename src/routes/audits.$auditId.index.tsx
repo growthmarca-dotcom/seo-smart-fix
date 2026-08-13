@@ -129,7 +129,9 @@ function AuditResults() {
           <>
             {audit.isDemo && <DemoBadge />}
             <Button variant="outline" asChild>
-              <Link to="/changes">Ver cambios pendientes</Link>
+              <Link to="/changes" search={{ auditId: audit.id }}>
+                Ver cambios pendientes
+              </Link>
             </Button>
           </>
         }
