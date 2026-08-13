@@ -32,6 +32,12 @@ export interface AppState {
   audits: Audit[];
   changes: ChangeProposal[];
   history: HistoryEntry[];
+  /**
+   * Campo NUEVO y aditivo: claves `auditId:findingId` marcadas como revisadas.
+   * No reemplaza ningún campo existente; si falta en datos guardados se
+   * hidrata como array vacío (sin migraciones destructivas).
+   */
+  reviewed: string[];
   settings: Settings;
 }
 
@@ -42,6 +48,7 @@ const initialState: AppState = {
   audits: [],
   changes: [],
   history: [],
+  reviewed: [],
   settings: {
     defaultCrawlLimit: 100,
     respectRobots: true,
@@ -95,6 +102,7 @@ export function hydrate() {
   state = {
     ...initialState,
     ...loaded,
+    reviewed: loaded.reviewed ?? [],
     settings: { ...initialState.settings, ...(loaded.settings ?? {}) },
     hydrated: true,
   };
@@ -190,6 +198,7 @@ export const actions = {
       ...prev,
       audits: prev.audits.filter((a) => a.id !== auditId),
       changes: prev.changes.filter((c) => c.auditId !== auditId),
+      reviewed: prev.reviewed.filter((k) => !k.startsWith(`${auditId}:`)),
     }));
   },
   setChangeStatus(changeId: string, status: ChangeStatus, note?: string) {
@@ -254,6 +263,15 @@ export const actions = {
           ? prev.settings.disabledRules.filter((r) => r !== ruleId)
           : [...prev.settings.disabledRules, ruleId],
       },
+    }));
+  },
+  toggleReviewed(auditId: string, findingId: string) {
+    const key = `${auditId}:${findingId}`;
+    set((prev) => ({
+      ...prev,
+      reviewed: (prev.reviewed ?? []).includes(key)
+        ? prev.reviewed.filter((k) => k !== key)
+        : [...(prev.reviewed ?? []), key],
     }));
   },
   resetDemo() {
