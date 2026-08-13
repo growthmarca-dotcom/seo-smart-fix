@@ -3,19 +3,30 @@
  * Agregar una regla nueva = agregar un objeto a este array. El motor
  * (engine.ts) no necesita cambios.
  */
-import type { Category, Finding, PageSnapshot, Severity, SiteContext } from "./types";
+import type {
+  Category,
+  Finding,
+  FindingKind,
+  PageSnapshot,
+  Severity,
+  SiteContext,
+} from "./types";
 
 export interface RuleResult {
   severity?: Severity | undefined;
   current: string;
   problem: string;
   suggestion?: string | undefined;
+  /** Evidencia concreta: URLs, imágenes o enlaces afectados. */
+  evidence?: string[] | undefined;
 }
 
 export interface SeoRule {
   id: string;
   name: string;
   category: Category;
+  /** Naturaleza de la regla: hecho técnico/indexación/on-page, oportunidad o heurística. */
+  kind: FindingKind;
   severity: Severity;
   impact: number;
   field?: string | undefined;
@@ -33,6 +44,7 @@ export const RULES: SeoRule[] = [
   // ---------- ON-PAGE ----------
   {
     id: "title-missing",
+    kind: "onpage",
     name: "Title ausente",
     category: "onpage",
     severity: "critical",
@@ -52,6 +64,7 @@ export const RULES: SeoRule[] = [
   },
   {
     id: "title-length",
+    kind: "heuristic",
     name: "Longitud del title",
     category: "onpage",
     severity: "important",
@@ -75,6 +88,7 @@ export const RULES: SeoRule[] = [
   },
   {
     id: "meta-description-missing",
+    kind: "onpage",
     name: "Meta description ausente",
     category: "onpage",
     severity: "important",
@@ -96,6 +110,7 @@ export const RULES: SeoRule[] = [
   },
   {
     id: "meta-description-length",
+    kind: "heuristic",
     name: "Longitud de meta description",
     category: "onpage",
     severity: "improvement",
@@ -117,6 +132,7 @@ export const RULES: SeoRule[] = [
   },
   {
     id: "h1-missing",
+    kind: "onpage",
     name: "H1 ausente",
     category: "onpage",
     severity: "critical",
@@ -136,6 +152,7 @@ export const RULES: SeoRule[] = [
   },
   {
     id: "h1-multiple",
+    kind: "heuristic",
     name: "Múltiples H1",
     category: "onpage",
     severity: "improvement",
@@ -155,6 +172,7 @@ export const RULES: SeoRule[] = [
   },
   {
     id: "heading-structure",
+    kind: "heuristic",
     name: "Estructura de headings",
     category: "onpage",
     severity: "improvement",
@@ -174,6 +192,7 @@ export const RULES: SeoRule[] = [
   },
   {
     id: "thin-content",
+    kind: "opportunity",
     name: "Contenido pobre",
     category: "content",
     severity: "important",
@@ -195,6 +214,7 @@ export const RULES: SeoRule[] = [
   },
   {
     id: "duplicate-content",
+    kind: "indexation",
     name: "Contenido duplicado",
     category: "content",
     severity: "important",
@@ -221,6 +241,7 @@ export const RULES: SeoRule[] = [
   },
   {
     id: "duplicate-title",
+    kind: "onpage",
     name: "Title duplicado",
     category: "onpage",
     severity: "important",
@@ -243,6 +264,7 @@ export const RULES: SeoRule[] = [
   },
   {
     id: "images-alt",
+    kind: "onpage",
     name: "Imágenes sin ALT",
     category: "onpage",
     severity: "important",
@@ -265,6 +287,7 @@ export const RULES: SeoRule[] = [
   },
   {
     id: "image-filenames",
+    kind: "heuristic",
     name: "Nombres de archivo poco descriptivos",
     category: "onpage",
     severity: "improvement",
@@ -293,6 +316,7 @@ export const RULES: SeoRule[] = [
   },
   {
     id: "internal-links-few",
+    kind: "opportunity",
     name: "Pocos enlaces internos",
     category: "content",
     severity: "improvement",
@@ -313,6 +337,7 @@ export const RULES: SeoRule[] = [
   },
   {
     id: "anchor-text-generic",
+    kind: "heuristic",
     name: "Anchor text genérico",
     category: "content",
     severity: "improvement",
@@ -336,6 +361,7 @@ export const RULES: SeoRule[] = [
   },
   {
     id: "url-quality",
+    kind: "heuristic",
     name: "URL poco amigable",
     category: "technical",
     severity: "improvement",
@@ -363,6 +389,7 @@ export const RULES: SeoRule[] = [
   // ---------- TÉCNICO ----------
   {
     id: "noindex",
+    kind: "indexation",
     name: "Página con noindex",
     category: "technical",
     severity: "critical",
@@ -382,6 +409,7 @@ export const RULES: SeoRule[] = [
   },
   {
     id: "nofollow-meta",
+    kind: "indexation",
     name: "Meta robots nofollow",
     category: "technical",
     severity: "important",
@@ -401,6 +429,7 @@ export const RULES: SeoRule[] = [
   },
   {
     id: "canonical-missing",
+    kind: "indexation",
     name: "Canonical ausente",
     category: "technical",
     severity: "improvement",
@@ -420,6 +449,7 @@ export const RULES: SeoRule[] = [
   },
   {
     id: "canonical-mismatch",
+    kind: "indexation",
     name: "Canonical apunta a otra URL",
     category: "technical",
     severity: "important",
@@ -449,6 +479,7 @@ export const RULES: SeoRule[] = [
   },
   {
     id: "http-error",
+    kind: "technical",
     name: "Código HTTP con error",
     category: "technical",
     severity: "critical",
@@ -471,6 +502,7 @@ export const RULES: SeoRule[] = [
   },
   {
     id: "redirect-chain",
+    kind: "technical",
     name: "Redirecciones encadenadas",
     category: "technical",
     severity: "important",
@@ -490,6 +522,7 @@ export const RULES: SeoRule[] = [
   },
   {
     id: "deep-page",
+    kind: "technical",
     name: "Profundidad de clics excesiva",
     category: "technical",
     severity: "improvement",
@@ -510,6 +543,7 @@ export const RULES: SeoRule[] = [
   },
   {
     id: "robots-txt-missing",
+    kind: "indexation",
     name: "robots.txt ausente o bloqueante",
     category: "technical",
     severity: "critical",
@@ -538,6 +572,7 @@ export const RULES: SeoRule[] = [
   },
   {
     id: "sitemap-missing",
+    kind: "indexation",
     name: "sitemap.xml ausente",
     category: "technical",
     severity: "important",
@@ -558,6 +593,7 @@ export const RULES: SeoRule[] = [
   },
   {
     id: "viewport-missing",
+    kind: "technical",
     name: "Sin viewport móvil",
     category: "performance",
     severity: "important",
@@ -577,6 +613,7 @@ export const RULES: SeoRule[] = [
   },
   {
     id: "heavy-page",
+    kind: "heuristic",
     name: "Página pesada",
     category: "performance",
     severity: "improvement",
@@ -599,6 +636,7 @@ export const RULES: SeoRule[] = [
   // ---------- STRUCTURED DATA ----------
   {
     id: "schema-invalid",
+    kind: "technical",
     name: "JSON-LD inválido",
     category: "structured-data",
     severity: "important",
@@ -618,6 +656,7 @@ export const RULES: SeoRule[] = [
   },
   {
     id: "schema-recommended",
+    kind: "opportunity",
     name: "Datos estructurados recomendados",
     category: "structured-data",
     severity: "important",
@@ -641,6 +680,7 @@ export const RULES: SeoRule[] = [
   },
   {
     id: "breadcrumb-schema",
+    kind: "opportunity",
     name: "Breadcrumb sin marcado",
     category: "structured-data",
     severity: "improvement",
@@ -662,6 +702,7 @@ export const RULES: SeoRule[] = [
   // ---------- SEO LOCAL ----------
   {
     id: "local-nap",
+    kind: "opportunity",
     name: "Datos NAP incompletos",
     category: "local",
     severity: "important",
@@ -695,6 +736,7 @@ export const RULES: SeoRule[] = [
   },
   {
     id: "local-business-schema",
+    kind: "opportunity",
     name: "LocalBusiness ausente",
     category: "local",
     severity: "improvement",
@@ -717,6 +759,7 @@ export const RULES: SeoRule[] = [
   // ---------- REGLAS ESPECÍFICAS DE PLATAFORMA ----------
   {
     id: "tn-product-title-format",
+    kind: "heuristic",
     name: "Título de producto poco optimizado",
     category: "onpage",
     severity: "important",
@@ -739,6 +782,7 @@ export const RULES: SeoRule[] = [
   },
   {
     id: "ml-title-length",
+    kind: "onpage",
     name: "Título de publicación fuera de rango",
     category: "onpage",
     severity: "important",
@@ -764,6 +808,7 @@ export const RULES: SeoRule[] = [
   },
   {
     id: "ml-attributes",
+    kind: "onpage",
     name: "Atributos de ficha incompletos",
     category: "content",
     severity: "important",
