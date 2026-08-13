@@ -139,12 +139,23 @@ function AuditResults() {
                   {CATEGORY_LABELS[c.category]}
                 </span>
                 <span className="font-semibold">{c.score}</span>
+                <span className="text-muted-foreground">
+                  · peso {Math.round(c.weight * 100)}% · {c.findings} hallazgos
+                </span>
               </li>
             ))}
           </ul>
         </div>
         <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-          <StatCard label="URLs analizadas" value={audit.pages.length} />
+          <StatCard
+            label="URLs analizadas"
+            value={audit.pages.length}
+            hint={
+              audit.coverage
+                ? `${audit.coverage.discovered} descubiertas`
+                : "Sin reporte de cobertura"
+            }
+          />
           <StatCard label="Críticos" value={counts.critical} tone="critical" />
           <StatCard label="Importantes" value={counts.important} tone="important" />
           <StatCard
@@ -154,6 +165,12 @@ function AuditResults() {
           />
         </div>
       </div>
+
+      <div className="mt-4 grid gap-4 lg:grid-cols-2">
+        <ScoreExplanation audit={audit} />
+        <CoveragePanel audit={audit} />
+      </div>
+
 
       <div className="panel mt-4 p-4">
         <div className="flex flex-wrap items-end gap-3">
