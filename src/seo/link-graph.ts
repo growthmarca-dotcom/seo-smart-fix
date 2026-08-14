@@ -335,8 +335,10 @@ function classifyOrphan(args: {
   if (page.depth === 0 || page.discoveredVia === "seed") return "not-applicable";
   if (page.statusCode < 200 || page.statusCode >= 300) return "not-applicable";
   if (inbound > 0) return "linked";
-  if (!crawlComplete) return "no-inbound-detected";
+  // Precedencia: primero la evidencia que explica la ausencia de enlaces
+  // (sitemap), después la falta de datos del rastreo.
   if (fromSitemap) return "potentially-orphan";
+  if (!crawlComplete) return "no-inbound-detected";
   return "orphan";
 }
 
