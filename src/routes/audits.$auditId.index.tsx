@@ -346,6 +346,23 @@ function AuditResults() {
         </Button>
       </section>
 
+      <section className="panel mt-4 flex flex-wrap items-center justify-between gap-3 p-4">
+        <div>
+          <h2 className="font-display text-base font-semibold">Contenido y oportunidades</h2>
+          <p className="mt-1 text-xs text-muted-foreground">
+            Contenido potencialmente insuficiente por tipo de página, duplicación y similitud,
+            canibalización potencial, grupos potenciales de contenido y oportunidades. No modifica el
+            SEO Score.
+          </p>
+        </div>
+        <Button asChild size="sm" variant="outline">
+          <Link to="/audits/$auditId/content" params={{ auditId: audit.id }}>
+            Ver contenido y oportunidades
+          </Link>
+        </Button>
+      </section>
+
+
       <section className="panel mt-4 p-4">
         <h2 className="font-display text-base font-semibold">Problemas agrupados por regla</h2>
         <p className="mt-1 text-xs text-muted-foreground">
