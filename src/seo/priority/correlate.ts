@@ -563,7 +563,7 @@ export function buildSeoPriorities(input: CorrelationInput): PrioritySummary {
 export function queriesWithPages(rows: GscRow[], audit: Audit) {
   const groups = new Map<
     string,
-    { query: string; page?: string; clicks: number; impressions: number; positionWeighted: number }
+    { query: string; page?: string | undefined; clicks: number; impressions: number; positionWeighted: number }
   >();
   for (const row of rows) {
     if (!row.query || row.auditId !== audit.id) continue;
