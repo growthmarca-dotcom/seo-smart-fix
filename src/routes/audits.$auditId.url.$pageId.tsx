@@ -16,6 +16,7 @@ import { buildDiagnostic } from "@/seo/diagnostics";
 import { KIND_HINTS, kindLabel } from "@/seo/rules";
 import { DiagnosticDialog } from "@/components/diagnostic";
 import { PageContextPanel } from "@/components/page-context-ui";
+import { PageLinksPanel } from "@/components/link-graph-ui";
 import { actions, useAppState } from "@/store/app-store";
 import type { Audit, ChangeProposal, Finding, PageSnapshot, PlatformId } from "@/seo/types";
 
@@ -120,6 +121,7 @@ function UrlDetail() {
 
         <div className="space-y-4">
           <PageContextPanel audit={audit} page={page} findings={findings} />
+          <PageLinksPanel audit={audit} page={page} />
           {findings.length === 0 && (
             <div className="panel p-6 text-sm text-muted-foreground">
               Sin hallazgos para esta URL con las reglas activas.
