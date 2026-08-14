@@ -114,7 +114,7 @@ describe("duplicación vs similitud", () => {
 
 describe("aislamiento y score", () => {
   it("todo item queda atado al auditId y no hay score alterado", () => {
-    const demo = buildDemoAudit();
+    const demo = demoAudit();
     const r = analyzeContent(demo);
     expect(r.items.every((i) => i.auditId === demo.id)).toBe(true);
     expect(r.opportunities.every((i) => i.severity === undefined)).toBe(true);
