@@ -496,8 +496,9 @@ export function analyzeContent(audit: Audit, graphInput?: LinkGraph): ContentAna
     const min = resolvePageContext(p).profile.minWords;
     const metrics: PageLinkMetrics | undefined = graph.byPageId[p.id];
     if (!metrics) continue;
-    const contentOk = min === null || p.wordCount >= min;
-    if (!contentOk) continue;
+    // Contextos sin umbral (contacto, institucional, sin clasificar) no generan
+    // oportunidades de contenido: no hay evidencia de que su contenido "alcance".
+    if (min === null || p.wordCount < min) continue;
 
     if (metrics.orphanState === "linked" && metrics.inboundPages <= 1) {
       const base = itemBase(audit, p, "content-thematic-integration");
