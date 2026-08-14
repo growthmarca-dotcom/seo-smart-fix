@@ -56,7 +56,7 @@ export const Route = createFileRoute("/audits/$auditId/gsc")({
       { name: "twitter:card", content: "summary_large_image" },
     ],
   }),
-  component: GscView;
+  component: GscView,
 });
 
 type SortKey = "impressions" | "clicks" | "ctr" | "position";
