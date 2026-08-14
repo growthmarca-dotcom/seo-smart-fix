@@ -21,6 +21,7 @@ import { Route as AuditsNewRouteImport } from './routes/audits.new'
 import { Route as AuditsAuditIdIndexRouteImport } from './routes/audits.$auditId.index'
 import { Route as AuditsAuditIdArchitectureRouteImport } from './routes/audits.$auditId.architecture'
 import { Route as AuditsAuditIdContentRouteImport } from './routes/audits.$auditId.content'
+import { Route as AuditsAuditIdGscRouteImport } from './routes/audits.$auditId.gsc'
 import { Route as AuditsAuditIdUrlPageIdRouteImport } from './routes/audits.$auditId.url.$pageId'
 
 const IndexRoute = IndexRouteImport.update({
@@ -84,6 +85,11 @@ const AuditsAuditIdContentRoute = AuditsAuditIdContentRouteImport.update({
   path: '/content',
   getParentRoute: () => AuditsAuditIdRoute,
 } as any)
+const AuditsAuditIdGscRoute = AuditsAuditIdGscRouteImport.update({
+  id: '/gsc',
+  path: '/gsc',
+  getParentRoute: () => AuditsAuditIdRoute,
+} as any)
 const AuditsAuditIdUrlPageIdRoute = AuditsAuditIdUrlPageIdRouteImport.update({
   id: '/url/$pageId',
   path: '/url/$pageId',
@@ -102,6 +108,7 @@ export interface FileRoutesByFullPath {
   '/audits/': typeof AuditsIndexRoute
   '/audits/$auditId/architecture': typeof AuditsAuditIdArchitectureRoute
   '/audits/$auditId/content': typeof AuditsAuditIdContentRoute
+  '/audits/$auditId/gsc': typeof AuditsAuditIdGscRoute
   '/audits/$auditId/': typeof AuditsAuditIdIndexRoute
   '/audits/$auditId/url/$pageId': typeof AuditsAuditIdUrlPageIdRoute
 }
@@ -116,6 +123,7 @@ export interface FileRoutesByTo {
   '/audits': typeof AuditsIndexRoute
   '/audits/$auditId/architecture': typeof AuditsAuditIdArchitectureRoute
   '/audits/$auditId/content': typeof AuditsAuditIdContentRoute
+  '/audits/$auditId/gsc': typeof AuditsAuditIdGscRoute
   '/audits/$auditId': typeof AuditsAuditIdIndexRoute
   '/audits/$auditId/url/$pageId': typeof AuditsAuditIdUrlPageIdRoute
 }
@@ -132,6 +140,7 @@ export interface FileRoutesById {
   '/audits/': typeof AuditsIndexRoute
   '/audits/$auditId/architecture': typeof AuditsAuditIdArchitectureRoute
   '/audits/$auditId/content': typeof AuditsAuditIdContentRoute
+  '/audits/$auditId/gsc': typeof AuditsAuditIdGscRoute
   '/audits/$auditId/': typeof AuditsAuditIdIndexRoute
   '/audits/$auditId/url/$pageId': typeof AuditsAuditIdUrlPageIdRoute
 }
@@ -149,6 +158,7 @@ export interface FileRouteTypes {
     | '/audits/'
     | '/audits/$auditId/architecture'
     | '/audits/$auditId/content'
+    | '/audits/$auditId/gsc'
     | '/audits/$auditId/'
     | '/audits/$auditId/url/$pageId'
   fileRoutesByTo: FileRoutesByTo
@@ -163,6 +173,7 @@ export interface FileRouteTypes {
     | '/audits'
     | '/audits/$auditId/architecture'
     | '/audits/$auditId/content'
+    | '/audits/$auditId/gsc'
     | '/audits/$auditId'
     | '/audits/$auditId/url/$pageId'
   id:
@@ -178,6 +189,7 @@ export interface FileRouteTypes {
     | '/audits/'
     | '/audits/$auditId/architecture'
     | '/audits/$auditId/content'
+    | '/audits/$auditId/gsc'
     | '/audits/$auditId/'
     | '/audits/$auditId/url/$pageId'
   fileRoutesById: FileRoutesById
@@ -280,6 +292,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuditsAuditIdContentRouteImport
       parentRoute: typeof AuditsAuditIdRoute
     }
+    '/audits/$auditId/gsc': {
+      id: '/audits/$auditId/gsc'
+      path: '/gsc'
+      fullPath: '/audits/$auditId/gsc'
+      preLoaderRoute: typeof AuditsAuditIdGscRouteImport
+      parentRoute: typeof AuditsAuditIdRoute
+    }
     '/audits/$auditId/url/$pageId': {
       id: '/audits/$auditId/url/$pageId'
       path: '/url/$pageId'
@@ -293,6 +312,7 @@ declare module '@tanstack/react-router' {
 interface AuditsAuditIdRouteChildren {
   AuditsAuditIdArchitectureRoute: typeof AuditsAuditIdArchitectureRoute
   AuditsAuditIdContentRoute: typeof AuditsAuditIdContentRoute
+  AuditsAuditIdGscRoute: typeof AuditsAuditIdGscRoute
   AuditsAuditIdIndexRoute: typeof AuditsAuditIdIndexRoute
   AuditsAuditIdUrlPageIdRoute: typeof AuditsAuditIdUrlPageIdRoute
 }
@@ -300,6 +320,7 @@ interface AuditsAuditIdRouteChildren {
 const AuditsAuditIdRouteChildren: AuditsAuditIdRouteChildren = {
   AuditsAuditIdArchitectureRoute: AuditsAuditIdArchitectureRoute,
   AuditsAuditIdContentRoute: AuditsAuditIdContentRoute,
+  AuditsAuditIdGscRoute: AuditsAuditIdGscRoute,
   AuditsAuditIdIndexRoute: AuditsAuditIdIndexRoute,
   AuditsAuditIdUrlPageIdRoute: AuditsAuditIdUrlPageIdRoute,
 }

@@ -8,6 +8,8 @@ import { runAudit } from "@/seo/engine";
 import { buildDemoSite, DEMO_ROOT_URL, DEMO_STORE_NAME } from "@/seo/demo";
 import { getConnector } from "@/seo/connectors";
 import { proposalFromFinding } from "@/seo/suggestions";
+import { mergeRows } from "@/seo/gsc/import";
+import type { GscConnection, GscRow } from "@/seo/gsc/types";
 import type {
   Audit,
   ChangeProposal,
@@ -38,6 +40,11 @@ export interface AppState {
    * hidrata como array vacío (sin migraciones destructivas).
    */
   reviewed: string[];
+  /**
+   * FASE 6A (aditivo): conexiones de Google Search Console, una por auditId
+   * como máximo. Nunca se comparten datos entre auditorías.
+   */
+  gsc: GscConnection[];
   settings: Settings;
 }
 
@@ -49,6 +56,7 @@ const initialState: AppState = {
   changes: [],
   history: [],
   reviewed: [],
+  gsc: [],
   settings: {
     defaultCrawlLimit: 100,
     respectRobots: true,
@@ -103,6 +111,7 @@ export function hydrate() {
     ...initialState,
     ...loaded,
     reviewed: loaded.reviewed ?? [],
+    gsc: loaded.gsc ?? [],
     settings: { ...initialState.settings, ...(loaded.settings ?? {}) },
     hydrated: true,
   };
@@ -199,6 +208,7 @@ export const actions = {
       audits: prev.audits.filter((a) => a.id !== auditId),
       changes: prev.changes.filter((c) => c.auditId !== auditId),
       reviewed: prev.reviewed.filter((k) => !k.startsWith(`${auditId}:`)),
+      gsc: (prev.gsc ?? []).filter((g) => g.auditId !== auditId),
     }));
   },
   setChangeStatus(changeId: string, status: ChangeStatus, note?: string) {
@@ -274,6 +284,53 @@ export const actions = {
         : [...(prev.reviewed ?? []), key],
     }));
   },
+  /** FASE 6A — crea/actualiza la conexión GSC de UNA auditoría. */
+  setGscConnection(connection: GscConnection) {
+    set((prev) => ({
+      ...prev,
+      gsc: [
+        connection,
+        ...(prev.gsc ?? []).filter((g) => g.auditId !== connection.auditId),
+      ],
+      history: [
+        log({
+          auditId: connection.auditId,
+          action:
+            connection.source === "demo"
+              ? "GSC demo vinculado"
+              : "Propiedad de Search Console vinculada",
+          detail: `${connection.property.siteUrl} · ${connection.rows.length} registros`,
+        }),
+        ...prev.history,
+      ],
+    }));
+  },
+  /** Importa filas deduplicando por auditId+propiedad+fecha+dimensiones. */
+  importGscRows(auditId: string, rows: GscRow[], patch: Partial<GscConnection> = {}) {
+    set((prev) => ({
+      ...prev,
+      gsc: (prev.gsc ?? []).map((g) =>
+        g.auditId === auditId
+          ? {
+              ...g,
+              ...patch,
+              rows: mergeRows(g.rows, rows),
+              lastSyncAt: now(),
+              status: mergeRows(g.rows, rows).length === 0 ? "no-data" : "connected",
+            }
+          : g,
+      ),
+    }));
+  },
+  patchGscConnection(auditId: string, patch: Partial<GscConnection>) {
+    set((prev) => ({
+      ...prev,
+      gsc: (prev.gsc ?? []).map((g) => (g.auditId === auditId ? { ...g, ...patch } : g)),
+    }));
+  },
+  removeGscConnection(auditId: string) {
+    set((prev) => ({ ...prev, gsc: (prev.gsc ?? []).filter((g) => g.auditId !== auditId) }));
+  },
   resetDemo() {
     set(() => ({ ...initialState, hydrated: true }));
     try {
@@ -339,4 +396,9 @@ export function findPage(audit: Audit | undefined, pageId: string): PageSnapshot
 
 export function findingsForPage(audit: Audit | undefined, pageId: string): Finding[] {
   return (audit?.findings ?? []).filter((f) => f.pageId === pageId);
+}
+
+/** FASE 6A — conexión GSC de UNA auditoría (aislamiento estricto). */
+export function useGscConnection(auditId: string) {
+  return useAppState((s) => (s.gsc ?? []).find((g) => g.auditId === auditId));
 }

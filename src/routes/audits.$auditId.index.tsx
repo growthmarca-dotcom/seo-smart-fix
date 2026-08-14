@@ -363,6 +363,21 @@ function AuditResults() {
       </section>
 
 
+      <section className="panel mt-4 flex flex-wrap items-center justify-between gap-3 p-4">
+        <div>
+          <h2 className="font-display text-base font-semibold">Google Search Console</h2>
+          <p className="mt-1 text-xs text-muted-foreground">
+            Rendimiento orgánico real (clics, impresiones, CTR, posición) asociado a esta auditoría,
+            con oportunidades derivadas. Datos complementarios: no modifican el SEO Score.
+          </p>
+        </div>
+        <Button asChild size="sm" variant="outline">
+          <Link to="/audits/$auditId/gsc" params={{ auditId: audit.id }}>
+            Ver Search Console
+          </Link>
+        </Button>
+      </section>
+
       <section className="panel mt-4 p-4">
         <h2 className="font-display text-base font-semibold">Problemas agrupados por regla</h2>
         <p className="mt-1 text-xs text-muted-foreground">
