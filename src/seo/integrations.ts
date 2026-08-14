@@ -12,7 +12,7 @@ export const INTEGRATIONS: IntegrationModule[] = [
     id: "google-search-console",
     name: "Google Search Console",
     description:
-      "Cobertura de indexación, consultas, clics e impresiones reales por URL para cruzar con los hallazgos.",
+      "Consultas, clics, impresiones, CTR y posición real por URL, importados en modo lectura y asociados a una auditoría (Fase 6A). Requiere vincular la conexión OAuth oficial de Google.",
     status: "needs-credentials",
     provides: ["Indexación real", "Consultas y CTR", "Errores de rastreo"],
   },
