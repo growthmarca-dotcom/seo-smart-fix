@@ -191,7 +191,7 @@ export function OpportunityCard({ opportunity: o }: { opportunity: SeoOpportunit
         )}
         {o.ruleIds.length > 0 && (
           <Button asChild size="sm" variant="outline">
-            <Link to="/rules" search={{ q: o.ruleIds[0] }}>
+            <Link to="/rules">
               Ver regla
             </Link>
           </Button>
