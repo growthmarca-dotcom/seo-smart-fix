@@ -228,9 +228,12 @@ export function buildLinkGraph(audit: Audit): LinkGraph {
   }
 
   const cov = audit.coverage;
+  // El rastreo se considera completo solo si no quedaron URLs pendientes,
+  // bloqueadas ni límites alcanzados, y si todos los enlaces internos
+  // detectados apuntan a páginas efectivamente analizadas.
   const crawlComplete =
-    !cov ||
-    (!cov.limitReached && (cov.pending ?? 0) === 0 && (cov.blocked ?? 0) === 0 && edgesResolvable(unresolvedCount));
+    edgesResolvable(unresolvedCount) &&
+    (!cov || (!cov.limitReached && (cov.pending ?? 0) === 0 && (cov.blocked ?? 0) === 0));
 
   const depthThreshold = deriveDepthThreshold(pages.map((p) => p.depth));
   const inboundCounts = pages.map((p) => inbound.get(p.id)?.length ?? 0);
