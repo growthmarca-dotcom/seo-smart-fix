@@ -1,7 +1,27 @@
 import { describe, expect, it } from "vitest";
 import { analyzeContent, jaccard, significantTokens } from "./content-analysis";
-import { buildDemoAudit } from "./demo";
+import { buildDemoSite } from "./demo";
+import { runAudit } from "./engine";
 import type { Audit, PageSnapshot } from "./types";
+
+function demoAudit(): Audit {
+  const site = buildDemoSite("generic-web");
+  const { findings, score } = runAudit(site);
+  return {
+    id: "demo-audit",
+    name: "Outdoor Patagonia (demo)",
+    rootUrl: site.rootUrl,
+    platform: "generic-web",
+    createdAt: new Date().toISOString(),
+    status: "done",
+    crawlLimit: 100,
+    isDemo: true,
+    pages: site.pages,
+    findings,
+    score,
+  } as unknown as Audit;
+}
+
 
 function page(p: Partial<PageSnapshot> & { id: string; url: string; path: string }): PageSnapshot {
   return {
