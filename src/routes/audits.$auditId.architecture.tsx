@@ -73,8 +73,8 @@ function Architecture() {
       <PageHeader
         title="Arquitectura y enlazado interno"
         description={`Grafo derivado del rastreo de ${audit.name}: ${s.pages} URLs analizadas y ${s.edges} relaciones internas únicas. Solo enlaces internos detectados por el crawler; los externos quedan fuera.`}
-      >
-        <div className="flex items-center gap-2">
+        actions={
+          <div className="flex items-center gap-2">
           {audit.isDemo && <DemoBadge />}
           <Link
             to="/audits/$auditId"
@@ -83,8 +83,9 @@ function Architecture() {
           >
             Volver a resultados
           </Link>
-        </div>
-      </PageHeader>
+          </div>
+        }
+      />
 
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
         <StatCard label="URLs analizadas" value={s.pages} hint="Solo de esta auditoría" />

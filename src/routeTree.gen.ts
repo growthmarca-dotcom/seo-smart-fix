@@ -19,6 +19,7 @@ import { Route as AuditsIndexRouteImport } from './routes/audits.index'
 import { Route as AuditsAuditIdRouteImport } from './routes/audits.$auditId'
 import { Route as AuditsNewRouteImport } from './routes/audits.new'
 import { Route as AuditsAuditIdIndexRouteImport } from './routes/audits.$auditId.index'
+import { Route as AuditsAuditIdArchitectureRouteImport } from './routes/audits.$auditId.architecture'
 import { Route as AuditsAuditIdUrlPageIdRouteImport } from './routes/audits.$auditId.url.$pageId'
 
 const IndexRoute = IndexRouteImport.update({
@@ -71,6 +72,12 @@ const AuditsAuditIdIndexRoute = AuditsAuditIdIndexRouteImport.update({
   path: '/',
   getParentRoute: () => AuditsAuditIdRoute,
 } as any)
+const AuditsAuditIdArchitectureRoute =
+  AuditsAuditIdArchitectureRouteImport.update({
+    id: '/architecture',
+    path: '/architecture',
+    getParentRoute: () => AuditsAuditIdRoute,
+  } as any)
 const AuditsAuditIdUrlPageIdRoute = AuditsAuditIdUrlPageIdRouteImport.update({
   id: '/url/$pageId',
   path: '/url/$pageId',
@@ -87,6 +94,7 @@ export interface FileRoutesByFullPath {
   '/audits/$auditId': typeof AuditsAuditIdRouteWithChildren
   '/audits/new': typeof AuditsNewRoute
   '/audits/': typeof AuditsIndexRoute
+  '/audits/$auditId/architecture': typeof AuditsAuditIdArchitectureRoute
   '/audits/$auditId/': typeof AuditsAuditIdIndexRoute
   '/audits/$auditId/url/$pageId': typeof AuditsAuditIdUrlPageIdRoute
 }
@@ -99,6 +107,7 @@ export interface FileRoutesByTo {
   '/settings': typeof SettingsRoute
   '/audits/new': typeof AuditsNewRoute
   '/audits': typeof AuditsIndexRoute
+  '/audits/$auditId/architecture': typeof AuditsAuditIdArchitectureRoute
   '/audits/$auditId': typeof AuditsAuditIdIndexRoute
   '/audits/$auditId/url/$pageId': typeof AuditsAuditIdUrlPageIdRoute
 }
@@ -113,6 +122,7 @@ export interface FileRoutesById {
   '/audits/$auditId': typeof AuditsAuditIdRouteWithChildren
   '/audits/new': typeof AuditsNewRoute
   '/audits/': typeof AuditsIndexRoute
+  '/audits/$auditId/architecture': typeof AuditsAuditIdArchitectureRoute
   '/audits/$auditId/': typeof AuditsAuditIdIndexRoute
   '/audits/$auditId/url/$pageId': typeof AuditsAuditIdUrlPageIdRoute
 }
@@ -128,6 +138,7 @@ export interface FileRouteTypes {
     | '/audits/$auditId'
     | '/audits/new'
     | '/audits/'
+    | '/audits/$auditId/architecture'
     | '/audits/$auditId/'
     | '/audits/$auditId/url/$pageId'
   fileRoutesByTo: FileRoutesByTo
@@ -140,6 +151,7 @@ export interface FileRouteTypes {
     | '/settings'
     | '/audits/new'
     | '/audits'
+    | '/audits/$auditId/architecture'
     | '/audits/$auditId'
     | '/audits/$auditId/url/$pageId'
   id:
@@ -153,6 +165,7 @@ export interface FileRouteTypes {
     | '/audits/$auditId'
     | '/audits/new'
     | '/audits/'
+    | '/audits/$auditId/architecture'
     | '/audits/$auditId/'
     | '/audits/$auditId/url/$pageId'
   fileRoutesById: FileRoutesById
@@ -241,6 +254,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuditsAuditIdIndexRouteImport
       parentRoute: typeof AuditsAuditIdRoute
     }
+    '/audits/$auditId/architecture': {
+      id: '/audits/$auditId/architecture'
+      path: '/architecture'
+      fullPath: '/audits/$auditId/architecture'
+      preLoaderRoute: typeof AuditsAuditIdArchitectureRouteImport
+      parentRoute: typeof AuditsAuditIdRoute
+    }
     '/audits/$auditId/url/$pageId': {
       id: '/audits/$auditId/url/$pageId'
       path: '/url/$pageId'
@@ -252,11 +272,13 @@ declare module '@tanstack/react-router' {
 }
 
 interface AuditsAuditIdRouteChildren {
+  AuditsAuditIdArchitectureRoute: typeof AuditsAuditIdArchitectureRoute
   AuditsAuditIdIndexRoute: typeof AuditsAuditIdIndexRoute
   AuditsAuditIdUrlPageIdRoute: typeof AuditsAuditIdUrlPageIdRoute
 }
 
 const AuditsAuditIdRouteChildren: AuditsAuditIdRouteChildren = {
+  AuditsAuditIdArchitectureRoute: AuditsAuditIdArchitectureRoute,
   AuditsAuditIdIndexRoute: AuditsAuditIdIndexRoute,
   AuditsAuditIdUrlPageIdRoute: AuditsAuditIdUrlPageIdRoute,
 }
