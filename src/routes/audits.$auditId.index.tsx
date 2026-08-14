@@ -331,6 +331,21 @@ function AuditResults() {
 
       <PageTypeSummary audit={audit} />
 
+      <section className="panel mt-4 flex flex-wrap items-center justify-between gap-3 p-4">
+        <div>
+          <h2 className="font-display text-base font-semibold">Arquitectura y enlazado interno</h2>
+          <p className="mt-1 text-xs text-muted-foreground">
+            Enlaces internos entrantes y salientes, profundidad, conectividad y páginas
+            potencialmente huérfanas de esta auditoría.
+          </p>
+        </div>
+        <Button asChild size="sm" variant="outline">
+          <Link to="/audits/$auditId/architecture" params={{ auditId: audit.id }}>
+            Ver arquitectura
+          </Link>
+        </Button>
+      </section>
+
       <section className="panel mt-4 p-4">
         <h2 className="font-display text-base font-semibold">Problemas agrupados por regla</h2>
         <p className="mt-1 text-xs text-muted-foreground">
