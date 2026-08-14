@@ -378,6 +378,22 @@ function AuditResults() {
         </Button>
       </section>
 
+      <section className="panel mt-4 flex flex-wrap items-center justify-between gap-3 p-4">
+        <div>
+          <h2 className="font-display text-base font-semibold">Prioridades SEO</h2>
+          <p className="mt-1 text-xs text-muted-foreground">
+            Correlación entre el rendimiento real de Search Console, los diagnósticos del crawler, la
+            arquitectura interna y el análisis de contenido, con priorización explicable. Independiente
+            del SEO Score.
+          </p>
+        </div>
+        <Button asChild size="sm" variant="outline">
+          <Link to="/audits/$auditId/priorities" params={{ auditId: audit.id }}>
+            Ver prioridades SEO
+          </Link>
+        </Button>
+      </section>
+
       <section className="panel mt-4 p-4">
         <h2 className="font-display text-base font-semibold">Problemas agrupados por regla</h2>
         <p className="mt-1 text-xs text-muted-foreground">
