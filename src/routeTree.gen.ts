@@ -22,6 +22,7 @@ import { Route as AuditsAuditIdIndexRouteImport } from './routes/audits.$auditId
 import { Route as AuditsAuditIdArchitectureRouteImport } from './routes/audits.$auditId.architecture'
 import { Route as AuditsAuditIdContentRouteImport } from './routes/audits.$auditId.content'
 import { Route as AuditsAuditIdGscRouteImport } from './routes/audits.$auditId.gsc'
+import { Route as AuditsAuditIdPrioritiesRouteImport } from './routes/audits.$auditId.priorities'
 import { Route as AuditsAuditIdUrlPageIdRouteImport } from './routes/audits.$auditId.url.$pageId'
 
 const IndexRoute = IndexRouteImport.update({
@@ -90,6 +91,11 @@ const AuditsAuditIdGscRoute = AuditsAuditIdGscRouteImport.update({
   path: '/gsc',
   getParentRoute: () => AuditsAuditIdRoute,
 } as any)
+const AuditsAuditIdPrioritiesRoute = AuditsAuditIdPrioritiesRouteImport.update({
+  id: '/priorities',
+  path: '/priorities',
+  getParentRoute: () => AuditsAuditIdRoute,
+} as any)
 const AuditsAuditIdUrlPageIdRoute = AuditsAuditIdUrlPageIdRouteImport.update({
   id: '/url/$pageId',
   path: '/url/$pageId',
@@ -109,6 +115,7 @@ export interface FileRoutesByFullPath {
   '/audits/$auditId/architecture': typeof AuditsAuditIdArchitectureRoute
   '/audits/$auditId/content': typeof AuditsAuditIdContentRoute
   '/audits/$auditId/gsc': typeof AuditsAuditIdGscRoute
+  '/audits/$auditId/priorities': typeof AuditsAuditIdPrioritiesRoute
   '/audits/$auditId/': typeof AuditsAuditIdIndexRoute
   '/audits/$auditId/url/$pageId': typeof AuditsAuditIdUrlPageIdRoute
 }
@@ -124,6 +131,7 @@ export interface FileRoutesByTo {
   '/audits/$auditId/architecture': typeof AuditsAuditIdArchitectureRoute
   '/audits/$auditId/content': typeof AuditsAuditIdContentRoute
   '/audits/$auditId/gsc': typeof AuditsAuditIdGscRoute
+  '/audits/$auditId/priorities': typeof AuditsAuditIdPrioritiesRoute
   '/audits/$auditId': typeof AuditsAuditIdIndexRoute
   '/audits/$auditId/url/$pageId': typeof AuditsAuditIdUrlPageIdRoute
 }
@@ -141,6 +149,7 @@ export interface FileRoutesById {
   '/audits/$auditId/architecture': typeof AuditsAuditIdArchitectureRoute
   '/audits/$auditId/content': typeof AuditsAuditIdContentRoute
   '/audits/$auditId/gsc': typeof AuditsAuditIdGscRoute
+  '/audits/$auditId/priorities': typeof AuditsAuditIdPrioritiesRoute
   '/audits/$auditId/': typeof AuditsAuditIdIndexRoute
   '/audits/$auditId/url/$pageId': typeof AuditsAuditIdUrlPageIdRoute
 }
@@ -159,6 +168,7 @@ export interface FileRouteTypes {
     | '/audits/$auditId/architecture'
     | '/audits/$auditId/content'
     | '/audits/$auditId/gsc'
+    | '/audits/$auditId/priorities'
     | '/audits/$auditId/'
     | '/audits/$auditId/url/$pageId'
   fileRoutesByTo: FileRoutesByTo
@@ -174,6 +184,7 @@ export interface FileRouteTypes {
     | '/audits/$auditId/architecture'
     | '/audits/$auditId/content'
     | '/audits/$auditId/gsc'
+    | '/audits/$auditId/priorities'
     | '/audits/$auditId'
     | '/audits/$auditId/url/$pageId'
   id:
@@ -190,6 +201,7 @@ export interface FileRouteTypes {
     | '/audits/$auditId/architecture'
     | '/audits/$auditId/content'
     | '/audits/$auditId/gsc'
+    | '/audits/$auditId/priorities'
     | '/audits/$auditId/'
     | '/audits/$auditId/url/$pageId'
   fileRoutesById: FileRoutesById
@@ -299,6 +311,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuditsAuditIdGscRouteImport
       parentRoute: typeof AuditsAuditIdRoute
     }
+    '/audits/$auditId/priorities': {
+      id: '/audits/$auditId/priorities'
+      path: '/priorities'
+      fullPath: '/audits/$auditId/priorities'
+      preLoaderRoute: typeof AuditsAuditIdPrioritiesRouteImport
+      parentRoute: typeof AuditsAuditIdRoute
+    }
     '/audits/$auditId/url/$pageId': {
       id: '/audits/$auditId/url/$pageId'
       path: '/url/$pageId'
@@ -313,6 +332,7 @@ interface AuditsAuditIdRouteChildren {
   AuditsAuditIdArchitectureRoute: typeof AuditsAuditIdArchitectureRoute
   AuditsAuditIdContentRoute: typeof AuditsAuditIdContentRoute
   AuditsAuditIdGscRoute: typeof AuditsAuditIdGscRoute
+  AuditsAuditIdPrioritiesRoute: typeof AuditsAuditIdPrioritiesRoute
   AuditsAuditIdIndexRoute: typeof AuditsAuditIdIndexRoute
   AuditsAuditIdUrlPageIdRoute: typeof AuditsAuditIdUrlPageIdRoute
 }
@@ -321,6 +341,7 @@ const AuditsAuditIdRouteChildren: AuditsAuditIdRouteChildren = {
   AuditsAuditIdArchitectureRoute: AuditsAuditIdArchitectureRoute,
   AuditsAuditIdContentRoute: AuditsAuditIdContentRoute,
   AuditsAuditIdGscRoute: AuditsAuditIdGscRoute,
+  AuditsAuditIdPrioritiesRoute: AuditsAuditIdPrioritiesRoute,
   AuditsAuditIdIndexRoute: AuditsAuditIdIndexRoute,
   AuditsAuditIdUrlPageIdRoute: AuditsAuditIdUrlPageIdRoute,
 }
