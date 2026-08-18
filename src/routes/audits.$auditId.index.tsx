@@ -26,6 +26,7 @@ import { CATEGORY_LABELS, kindLabel, SEVERITY_LABELS } from "@/seo/rules";
 import { countBySeverity } from "@/seo/engine";
 import { getConnector } from "@/seo/connectors";
 import { groupDiagnostics } from "@/seo/diagnostics";
+import { detectEcommerce } from "@/seo/ecommerce";
 import { useAppState } from "@/store/app-store";
 import {
   EXCLUSION_LABELS,
@@ -110,6 +111,15 @@ function AuditResults() {
   const groups = useMemo(
     () => (audit ? groupDiagnostics(audit, rows.flatMap((r) => r.findings)) : []),
     [audit, rows],
+  );
+
+  // FASE 7A — detección e-commerce (solo lectura, para mostrar u ocultar la sección).
+  const ecommerceDetection = useMemo(
+    () =>
+      audit
+        ? detectEcommerce(audit)
+        : { isEcommerce: false, confidence: 0 },
+    [audit],
   );
 
   if (!audit) {
@@ -362,6 +372,24 @@ function AuditResults() {
         </Button>
       </section>
 
+
+      {ecommerceDetection.isEcommerce ? (
+        <section className="panel mt-4 flex flex-wrap items-center justify-between gap-3 p-4">
+          <div>
+            <h2 className="font-display text-base font-semibold">SEO E-commerce</h2>
+            <p className="mt-1 text-xs text-muted-foreground">
+              Estructura de tienda detectada (confianza {ecommerceDetection.confidence}/100):
+              productos, categorías, variantes, facetas, paginación y datos estructurados
+              Product/Offer. Capa descriptiva: no modifica el SEO Score.
+            </p>
+          </div>
+          <Button asChild size="sm" variant="outline">
+            <Link to="/audits/$auditId/ecommerce" params={{ auditId: audit.id }}>
+              Ver SEO E-commerce
+            </Link>
+          </Button>
+        </section>
+      ) : null}
 
       <section className="panel mt-4 flex flex-wrap items-center justify-between gap-3 p-4">
         <div>
