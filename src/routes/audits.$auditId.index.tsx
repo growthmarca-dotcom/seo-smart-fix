@@ -113,6 +113,15 @@ function AuditResults() {
     [audit, rows],
   );
 
+  // FASE 7A — detección e-commerce (solo lectura, para mostrar u ocultar la sección).
+  const ecommerceDetection = useMemo(
+    () =>
+      audit
+        ? detectEcommerce(audit)
+        : { isEcommerce: false, confidence: 0 },
+    [audit],
+  );
+
   if (!audit) {
     return (
       <EmptyState
