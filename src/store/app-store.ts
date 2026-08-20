@@ -55,6 +55,13 @@ export interface AppState {
    * como máximo. Nunca se comparten datos entre auditorías.
    */
   gsc: GscConnection[];
+  /**
+   * FASE 7B (aditivo): conexiones de tienda (Tienda Nube / demo) e
+   * importaciones normalizadas. Una importación pertenece siempre a
+   * UNA auditoría y UNA tienda (`auditId` + `storeId`).
+   */
+  stores: StoreConnection[];
+  storeImports: StoreImport[];
   settings: Settings;
 }
 
@@ -67,6 +74,8 @@ const initialState: AppState = {
   history: [],
   reviewed: [],
   gsc: [],
+  stores: [],
+  storeImports: [],
   settings: {
     defaultCrawlLimit: 100,
     respectRobots: true,
