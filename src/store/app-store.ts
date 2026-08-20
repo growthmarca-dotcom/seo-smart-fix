@@ -10,6 +10,16 @@ import { getConnector } from "@/seo/connectors";
 import { proposalFromFinding } from "@/seo/suggestions";
 import { mergeRows } from "@/seo/gsc/import";
 import type { GscConnection, GscRow } from "@/seo/gsc/types";
+import { mergeCategories, mergeProducts } from "@/seo/commerce/dedupe";
+import type {
+  CommerceApiError,
+  CommerceSource,
+  NormalizedCategory,
+  NormalizedProduct,
+  StoreConnection,
+  StoreConnectionStatus,
+  StoreImport,
+} from "@/seo/commerce/types";
 import type {
   Audit,
   ChangeProposal,
