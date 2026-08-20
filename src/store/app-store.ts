@@ -541,3 +541,22 @@ export function findingsForPage(audit: Audit | undefined, pageId: string): Findi
 export function useGscConnection(auditId: string) {
   return useAppState((s) => (s.gsc ?? []).find((g) => g.auditId === auditId));
 }
+
+/** FASE 7B — conexiones de tienda registradas (sin tokens ni secretos). */
+export function useStoreConnections() {
+  return useAppState((s) => s.stores ?? []);
+}
+
+/** FASE 7B — importación de UNA tienda en UNA auditoría (aislamiento estricto). */
+export function useStoreImport(auditId: string, storeId?: string) {
+  return useAppState((s) =>
+    (s.storeImports ?? []).find(
+      (i) => i.auditId === auditId && (storeId ? i.storeId === storeId : true),
+    ),
+  );
+}
+
+/** FASE 7B — todas las importaciones de una auditoría (histórico por tienda). */
+export function useStoreImportsForAudit(auditId: string) {
+  return useAppState((s) => (s.storeImports ?? []).filter((i) => i.auditId === auditId));
+}
