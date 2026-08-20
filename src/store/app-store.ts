@@ -10,6 +10,16 @@ import { getConnector } from "@/seo/connectors";
 import { proposalFromFinding } from "@/seo/suggestions";
 import { mergeRows } from "@/seo/gsc/import";
 import type { GscConnection, GscRow } from "@/seo/gsc/types";
+import { mergeCategories, mergeProducts } from "@/seo/commerce/dedupe";
+import type {
+  CommerceApiError,
+  CommerceSource,
+  NormalizedCategory,
+  NormalizedProduct,
+  StoreConnection,
+  StoreConnectionStatus,
+  StoreImport,
+} from "@/seo/commerce/types";
 import type {
   Audit,
   ChangeProposal,
@@ -45,6 +55,13 @@ export interface AppState {
    * como máximo. Nunca se comparten datos entre auditorías.
    */
   gsc: GscConnection[];
+  /**
+   * FASE 7B (aditivo): conexiones de tienda (Tienda Nube / demo) e
+   * importaciones normalizadas. Una importación pertenece siempre a
+   * UNA auditoría y UNA tienda (`auditId` + `storeId`).
+   */
+  stores: StoreConnection[];
+  storeImports: StoreImport[];
   settings: Settings;
 }
 
@@ -57,6 +74,8 @@ const initialState: AppState = {
   history: [],
   reviewed: [],
   gsc: [],
+  stores: [],
+  storeImports: [],
   settings: {
     defaultCrawlLimit: 100,
     respectRobots: true,
@@ -112,6 +131,8 @@ export function hydrate() {
     ...loaded,
     reviewed: loaded.reviewed ?? [],
     gsc: loaded.gsc ?? [],
+    stores: loaded.stores ?? [],
+    storeImports: loaded.storeImports ?? [],
     settings: { ...initialState.settings, ...(loaded.settings ?? {}) },
     hydrated: true,
   };
@@ -209,6 +230,12 @@ export const actions = {
       changes: prev.changes.filter((c) => c.auditId !== auditId),
       reviewed: prev.reviewed.filter((k) => !k.startsWith(`${auditId}:`)),
       gsc: (prev.gsc ?? []).filter((g) => g.auditId !== auditId),
+      // FASE 7B: al borrar una auditoría se borran solo SUS importaciones.
+      storeImports: (prev.storeImports ?? []).filter((i) => i.auditId !== auditId),
+      stores: (prev.stores ?? []).map((s) => ({
+        ...s,
+        auditIds: s.auditIds.filter((a) => a !== auditId),
+      })),
     }));
   },
   setChangeStatus(changeId: string, status: ChangeStatus, note?: string) {
@@ -331,6 +358,118 @@ export const actions = {
   removeGscConnection(auditId: string) {
     set((prev) => ({ ...prev, gsc: (prev.gsc ?? []).filter((g) => g.auditId !== auditId) }));
   },
+
+  /* ------------------ FASE 7B — Tiendas (solo lectura) ------------------ */
+
+  /** Crea/actualiza una conexión de tienda por `storeId` (sin tokens). */
+  setStoreConnection(connection: StoreConnection) {
+    set((prev) => {
+      const existing = (prev.stores ?? []).find(
+        (s) => s.storeId === connection.storeId && s.source === connection.source,
+      );
+      const merged: StoreConnection = {
+        ...connection,
+        auditIds: [...new Set([...(existing?.auditIds ?? []), ...connection.auditIds])],
+        apiErrors: connection.apiErrors.length ? connection.apiErrors : (existing?.apiErrors ?? []),
+      };
+      return {
+        ...prev,
+        stores: [
+          merged,
+          ...(prev.stores ?? []).filter(
+            (s) => !(s.storeId === connection.storeId && s.source === connection.source),
+          ),
+        ],
+      };
+    });
+  },
+  patchStoreStatus(
+    storeId: string,
+    source: CommerceSource,
+    status: StoreConnectionStatus,
+    error?: string,
+  ) {
+    set((prev) => ({
+      ...prev,
+      stores: (prev.stores ?? []).map((s) =>
+        s.storeId === storeId && s.source === source ? { ...s, status, error } : s,
+      ),
+    }));
+  },
+  /**
+   * Importa datos normalizados de UNA tienda en UNA auditoría.
+   * Deduplica por `storeId + externalId`; no toca importaciones de otras
+   * auditorías ni de otras tiendas. Nunca escribe en la tienda.
+   */
+  importStoreData(input: {
+    auditId: string;
+    storeId: string;
+    source: CommerceSource;
+    products: NormalizedProduct[];
+    categories: NormalizedCategory[];
+    errors?: CommerceApiError[];
+    apiPages?: number;
+  }) {
+    set((prev) => {
+      const imports = prev.storeImports ?? [];
+      const current = imports.find(
+        (i) => i.auditId === input.auditId && i.storeId === input.storeId,
+      );
+      const products = mergeProducts(current?.products ?? [], input.products).items;
+      const categories = mergeCategories(current?.categories ?? [], input.categories).items;
+      const next: StoreImport = {
+        auditId: input.auditId,
+        storeId: input.storeId,
+        source: input.source,
+        syncedAt: now(),
+        syncVersion: (current?.syncVersion ?? 0) + 1,
+        products,
+        categories,
+        errors: input.errors ?? [],
+        apiPages: input.apiPages ?? 0,
+      };
+      return {
+        ...prev,
+        storeImports: [
+          next,
+          ...imports.filter(
+            (i) => !(i.auditId === input.auditId && i.storeId === input.storeId),
+          ),
+        ],
+        stores: (prev.stores ?? []).map((s) =>
+          s.storeId === input.storeId && s.source === input.source
+            ? {
+                ...s,
+                status: products.length === 0 ? "no-data" : "synced",
+                lastSyncAt: next.syncedAt,
+                error: undefined,
+                apiErrors: input.errors ?? [],
+                auditIds: [...new Set([...s.auditIds, input.auditId])],
+              }
+            : s,
+        ),
+        history: [
+          log({
+            auditId: input.auditId,
+            action:
+              input.source === "demo"
+                ? "Tienda demo Tienda Nube importada"
+                : "Datos de Tienda Nube importados (lectura)",
+            detail: `${products.length} productos · ${categories.length} categorías · sync #${next.syncVersion}`,
+          }),
+          ...prev.history,
+        ],
+      };
+    });
+  },
+  removeStoreImport(auditId: string, storeId: string) {
+    set((prev) => ({
+      ...prev,
+      storeImports: (prev.storeImports ?? []).filter(
+        (i) => !(i.auditId === auditId && i.storeId === storeId),
+      ),
+    }));
+  },
   resetDemo() {
     set(() => ({ ...initialState, hydrated: true }));
     try {
@@ -401,4 +540,23 @@ export function findingsForPage(audit: Audit | undefined, pageId: string): Findi
 /** FASE 6A — conexión GSC de UNA auditoría (aislamiento estricto). */
 export function useGscConnection(auditId: string) {
   return useAppState((s) => (s.gsc ?? []).find((g) => g.auditId === auditId));
+}
+
+/** FASE 7B — conexiones de tienda registradas (sin tokens ni secretos). */
+export function useStoreConnections() {
+  return useAppState((s) => s.stores ?? []);
+}
+
+/** FASE 7B — importación de UNA tienda en UNA auditoría (aislamiento estricto). */
+export function useStoreImport(auditId: string, storeId?: string) {
+  return useAppState((s) =>
+    (s.storeImports ?? []).find(
+      (i) => i.auditId === auditId && (storeId ? i.storeId === storeId : true),
+    ),
+  );
+}
+
+/** FASE 7B — todas las importaciones de una auditoría (histórico por tienda). */
+export function useStoreImportsForAudit(auditId: string) {
+  return useAppState((s) => (s.storeImports ?? []).filter((i) => i.auditId === auditId));
 }
