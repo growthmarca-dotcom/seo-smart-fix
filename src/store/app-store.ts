@@ -230,6 +230,12 @@ export const actions = {
       changes: prev.changes.filter((c) => c.auditId !== auditId),
       reviewed: prev.reviewed.filter((k) => !k.startsWith(`${auditId}:`)),
       gsc: (prev.gsc ?? []).filter((g) => g.auditId !== auditId),
+      // FASE 7B: al borrar una auditoría se borran solo SUS importaciones.
+      storeImports: (prev.storeImports ?? []).filter((i) => i.auditId !== auditId),
+      stores: (prev.stores ?? []).map((s) => ({
+        ...s,
+        auditIds: s.auditIds.filter((a) => a !== auditId),
+      })),
     }));
   },
   setChangeStatus(changeId: string, status: ChangeStatus, note?: string) {
