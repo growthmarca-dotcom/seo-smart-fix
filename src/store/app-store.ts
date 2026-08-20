@@ -131,6 +131,8 @@ export function hydrate() {
     ...loaded,
     reviewed: loaded.reviewed ?? [],
     gsc: loaded.gsc ?? [],
+    stores: loaded.stores ?? [],
+    storeImports: loaded.storeImports ?? [],
     settings: { ...initialState.settings, ...(loaded.settings ?? {}) },
     hydrated: true,
   };
