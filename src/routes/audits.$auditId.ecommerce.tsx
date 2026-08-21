@@ -30,9 +30,17 @@ import {
   type EcommerceClass,
   type EcommerceType,
 } from "@/seo/ecommerce";
+import {
+  countImport,
+  matchStoreWithCrawler,
+  summarizeMatches,
+  withStoreData,
+} from "@/seo/commerce";
+import { MatchSummaryPanel, MatchTable, StoreStatusPill } from "@/components/commerce-ui";
 import { SEVERITY_LABELS } from "@/seo/rules";
-import { useAppState } from "@/store/app-store";
+import { useAppState, useStoreConnections, useStoreImport } from "@/store/app-store";
 import type { Severity } from "@/seo/types";
+
 
 export const Route = createFileRoute("/audits/$auditId/ecommerce")({
   head: () => ({
@@ -74,7 +82,37 @@ function EcommerceView() {
   const [klass, setKlass] = useState<EcommerceClass | "all">("all");
   const [severity, setSeverity] = useState<Severity | "all">("all");
 
-  const analysis = useMemo(() => (audit ? analyzeEcommerce(audit) : null), [audit]);
+  // FASE 7B — datos de tienda importados para ESTA auditoría (aislamiento estricto).
+  const connections = useStoreConnections();
+  const storeImport = useStoreImport(auditId);
+  const connection = connections.find((c) => c.storeId === storeImport?.storeId);
+
+  const matches = useMemo(() => {
+    if (!audit || !storeImport) return [];
+    return matchStoreWithCrawler({
+      audit,
+      storeId: storeImport.storeId,
+      products: storeImport.products,
+      categories: storeImport.categories,
+    });
+  }, [audit, storeImport]);
+
+  const augmentation = useMemo(() => {
+    if (!audit || !storeImport) return null;
+    return withStoreData({
+      audit,
+      products: storeImport.products,
+      categories: storeImport.categories,
+      matches,
+    });
+  }, [audit, storeImport, matches]);
+
+  const effectiveAudit = augmentation?.audit ?? audit;
+  const analysis = useMemo(
+    () => (effectiveAudit ? analyzeEcommerce(effectiveAudit) : null),
+    [effectiveAudit],
+  );
+
 
   if (!audit || !analysis) {
     return (
@@ -162,6 +200,48 @@ function EcommerceView() {
           </p>
         </section>
       </div>
+
+      <section className="panel mt-4 p-4">
+        <div className="flex flex-wrap items-center gap-2">
+          <h2 className="font-display text-base font-semibold">Fuente de datos</h2>
+          {connection ? <StoreStatusPill status={connection.status} /> : null}
+          {storeImport?.source === "demo" ? (
+            <span className="rounded-full border border-border bg-muted px-2 py-0.5 text-[11px] font-semibold">
+              Datos demo
+            </span>
+          ) : null}
+        </div>
+        {storeImport ? (
+          <>
+            <p className="mt-1 text-xs text-muted-foreground">
+              {connection?.name ?? storeImport.storeId} · sincronización #{storeImport.syncVersion} ·{" "}
+              {new Date(storeImport.syncedAt).toLocaleString("es-AR")}. Los datos de tienda se leen en
+              modo lectura y solo enriquecen páginas con correspondencia confirmada; el SEO Score y
+              los hallazgos generales no se modifican.
+            </p>
+            <div className="mt-3">
+              <MatchSummaryPanel summary={summarizeMatches(matches)} />
+            </div>
+            <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-4">
+              <Stat label="Productos en tienda" value={countImport(storeImport).products} />
+              <Stat label="Categorías en tienda" value={countImport(storeImport).categories} />
+              <Stat label="Páginas enriquecidas" value={augmentation?.enrichedPages ?? 0} />
+              <Stat label="Entidades no rastreadas" value={augmentation?.addedPages ?? 0} />
+            </div>
+            <div className="mt-4">
+              <MatchTable matches={matches} />
+            </div>
+          </>
+        ) : (
+          <p className="mt-1 text-xs text-muted-foreground">
+            Esta auditoría usa únicamente datos del crawler. Para incorporar precios, stock y
+            variantes reales, conectá la tienda desde Integraciones; la importación queda aislada por
+            auditoría y tienda.
+          </p>
+        )}
+      </section>
+
+
 
       <section className="panel mt-4 p-4">
         <h2 className="font-display text-base font-semibold">Productos detectados</h2>

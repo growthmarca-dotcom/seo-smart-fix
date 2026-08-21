@@ -14,7 +14,7 @@ import type { NormalizedCategory, NormalizedProduct, StoreConnection } from "../
 
 export const DEMO_STORE_ID = "demo-store-1";
 export const DEMO_STORE_NAME = "Tienda Demo Tienda Nube";
-export const DEMO_STORE_ORIGIN = "https://outdoorpatagonia.demo";
+export const DEMO_STORE_ORIGIN = "https://outdoor-patagonia.demo";
 
 const store: TnStore = {
   id: DEMO_STORE_ID,
