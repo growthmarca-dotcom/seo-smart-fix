@@ -202,6 +202,48 @@ function EcommerceView() {
       </div>
 
       <section className="panel mt-4 p-4">
+        <div className="flex flex-wrap items-center gap-2">
+          <h2 className="font-display text-base font-semibold">Fuente de datos</h2>
+          {connection ? <StoreStatusPill status={connection.status} /> : null}
+          {storeImport?.source === "demo" ? (
+            <span className="rounded-full border border-border bg-muted px-2 py-0.5 text-[11px] font-semibold">
+              Datos demo
+            </span>
+          ) : null}
+        </div>
+        {storeImport ? (
+          <>
+            <p className="mt-1 text-xs text-muted-foreground">
+              {connection?.name ?? storeImport.storeId} · sincronización #{storeImport.syncVersion} ·{" "}
+              {new Date(storeImport.syncedAt).toLocaleString("es-AR")}. Los datos de tienda se leen en
+              modo lectura y solo enriquecen páginas con correspondencia confirmada; el SEO Score y
+              los hallazgos generales no se modifican.
+            </p>
+            <div className="mt-3">
+              <MatchSummaryPanel summary={summarizeMatches(matches)} />
+            </div>
+            <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-4">
+              <Stat label="Productos en tienda" value={countImport(storeImport).products} />
+              <Stat label="Categorías en tienda" value={countImport(storeImport).categories} />
+              <Stat label="Páginas enriquecidas" value={augmentation?.enrichedPages ?? 0} />
+              <Stat label="Entidades no rastreadas" value={augmentation?.addedPages ?? 0} />
+            </div>
+            <div className="mt-4">
+              <MatchTable matches={matches} />
+            </div>
+          </>
+        ) : (
+          <p className="mt-1 text-xs text-muted-foreground">
+            Esta auditoría usa únicamente datos del crawler. Para incorporar precios, stock y
+            variantes reales, conectá la tienda desde Integraciones; la importación queda aislada por
+            auditoría y tienda.
+          </p>
+        )}
+      </section>
+
+
+
+      <section className="panel mt-4 p-4">
         <h2 className="font-display text-base font-semibold">Productos detectados</h2>
         <div className="mt-3 overflow-x-auto">
           <table className="w-full text-left">
