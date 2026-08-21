@@ -30,9 +30,17 @@ import {
   type EcommerceClass,
   type EcommerceType,
 } from "@/seo/ecommerce";
+import {
+  countImport,
+  matchStoreWithCrawler,
+  summarizeMatches,
+  withStoreData,
+} from "@/seo/commerce";
+import { MatchSummaryPanel, MatchTable, StoreStatusPill } from "@/components/commerce-ui";
 import { SEVERITY_LABELS } from "@/seo/rules";
-import { useAppState } from "@/store/app-store";
+import { useAppState, useStoreConnections, useStoreImport } from "@/store/app-store";
 import type { Severity } from "@/seo/types";
+
 
 export const Route = createFileRoute("/audits/$auditId/ecommerce")({
   head: () => ({
