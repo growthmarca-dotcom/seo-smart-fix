@@ -47,7 +47,13 @@ describe("adapter Tienda Nube", () => {
         ],
         images: [{ id: 7, src: "https://cdn.example.com/c.jpg", alt: [] }],
       },
-      { storeId: DEMO_STORE_ID, domain: "outdoorpatagonia.com.ar", currency: "ARS" },
+      {
+        auditId: audit.id,
+        storeId: DEMO_STORE_ID,
+        source: "demo",
+        origin: "https://outdoorpatagonia.demo",
+        currency: "ARS",
+      },
     );
     expect(p.name).toBe("Campera de trekking");
     expect(p.sku).toBe("CAM-91");
