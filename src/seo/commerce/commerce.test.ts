@@ -4,16 +4,27 @@ import { mergeCategories, mergeProducts } from "./dedupe";
 import { matchStoreWithCrawler, summarizeMatches } from "./match";
 import { withStoreData } from "./to-snapshots";
 import { countImport } from "./types";
-import { normalizeTiendanubeProduct } from "../tiendanube/adapter";
+import { normalizeProduct } from "../tiendanube/adapter";
 import { buildDemoStoreImport, DEMO_STORE_ID } from "../tiendanube/demo";
-import { buildDemoAudit } from "../demo";
+import { ecommerceFixture } from "../ecommerce/fixtures";
 
-const audit = buildDemoAudit();
-const imported = buildDemoStoreImport(audit.id);
+const audit = ecommerceFixture();
+const demo = buildDemoStoreImport(audit.id);
+const imported = {
+  auditId: audit.id,
+  storeId: DEMO_STORE_ID,
+  source: "demo" as const,
+  syncedAt: new Date().toISOString(),
+  syncVersion: 1,
+  products: demo.products,
+  categories: demo.categories,
+  errors: [],
+  apiPages: 0,
+};
 
 describe("adapter Tienda Nube", () => {
   it("normaliza i18n, SKU y disponibilidad sin inventar campos", () => {
-    const p = normalizeTiendanubeProduct(
+    const p = normalizeProduct(
       {
         id: 91,
         name: { es: "Campera de trekking" },
@@ -51,7 +62,7 @@ describe("deduplicación por clave estable", () => {
     const first = mergeProducts([], imported.products);
     const second = mergeProducts(first.items, imported.products);
     expect(second.items).toHaveLength(first.items.length);
-    expect(second.added).toBe(0);
+    expect(second.created).toBe(0);
   });
 
   it("no borra el histórico de productos ausentes en la nueva sincronización", () => {
@@ -106,9 +117,7 @@ describe("puente al motor 7A", () => {
     expect(result.audit.score).toEqual(audit.score);
     expect(result.audit.findings).toHaveLength(audit.findings.length);
     expect(result.audit.pages.length).toBeGreaterThanOrEqual(audit.pages.length);
-    expect(audit.pages.some((p) => p.source)).toBe(
-      audit.pages.some((p) => p.source), // la original no se muta
-    );
+    expect(audit.pages.length).toBeLessThanOrEqual(result.audit.pages.length);
   });
 
   it("marca con statusCode 0 las entidades no rastreadas", () => {
