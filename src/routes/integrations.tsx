@@ -77,6 +77,9 @@ function Integrations() {
         </div>
       </div>
 
+      <h2 className="mt-8 mb-3 font-display text-lg font-semibold">Tienda Nube (Fase 7B)</h2>
+      <TiendanubePanel />
+
       <h2 className="mt-8 mb-3 font-display text-lg font-semibold">Integraciones de datos</h2>
       <div className="grid gap-4 lg:grid-cols-2">
         {INTEGRATIONS.map((i) => (
