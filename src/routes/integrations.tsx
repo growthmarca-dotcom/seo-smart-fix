@@ -1,13 +1,38 @@
-import { createFileRoute } from "@tanstack/react-router";
-import { CheckCircle2, Clock, KeyRound } from "lucide-react";
+import { createFileRoute, Link } from "@tanstack/react-router";
+import { useEffect, useMemo, useState } from "react";
+import { CheckCircle2, Clock, KeyRound, RefreshCw } from "lucide-react";
 import { toast } from "sonner";
 import { PageHeader } from "@/components/app-shell";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { MatchSummaryPanel, StoreStatusPill, StoreSummary } from "@/components/commerce-ui";
+import { tiendanubeImportFn, tiendanubeStatusFn } from "@/lib/tiendanube.functions";
 import { CONNECTORS } from "@/seo/connectors";
 import { INTEGRATIONS } from "@/seo/integrations";
+import {
+  countImport,
+  matchStoreWithCrawler,
+  summarizeMatches,
+  type CommerceSource,
+  type StoreConnection,
+} from "@/seo/commerce";
+import {
+  buildDemoStoreConnection,
+  buildDemoStoreImport,
+  DEMO_STORE_ID,
+  DEMO_STORE_NAME,
+} from "@/seo/tiendanube/demo";
+import { actions, useAppState, useStoreConnections, useStoreImport } from "@/store/app-store";
 import type { PlatformConnector } from "@/seo/connectors";
+
 
 export const Route = createFileRoute("/integrations")({
   head: () => ({
