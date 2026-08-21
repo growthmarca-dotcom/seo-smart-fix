@@ -82,7 +82,37 @@ function EcommerceView() {
   const [klass, setKlass] = useState<EcommerceClass | "all">("all");
   const [severity, setSeverity] = useState<Severity | "all">("all");
 
-  const analysis = useMemo(() => (audit ? analyzeEcommerce(audit) : null), [audit]);
+  // FASE 7B — datos de tienda importados para ESTA auditoría (aislamiento estricto).
+  const connections = useStoreConnections();
+  const storeImport = useStoreImport(auditId);
+  const connection = connections.find((c) => c.storeId === storeImport?.storeId);
+
+  const matches = useMemo(() => {
+    if (!audit || !storeImport) return [];
+    return matchStoreWithCrawler({
+      audit,
+      storeId: storeImport.storeId,
+      products: storeImport.products,
+      categories: storeImport.categories,
+    });
+  }, [audit, storeImport]);
+
+  const augmentation = useMemo(() => {
+    if (!audit || !storeImport) return null;
+    return withStoreData({
+      audit,
+      products: storeImport.products,
+      categories: storeImport.categories,
+      matches,
+    });
+  }, [audit, storeImport, matches]);
+
+  const effectiveAudit = augmentation?.audit ?? audit;
+  const analysis = useMemo(
+    () => (effectiveAudit ? analyzeEcommerce(effectiveAudit) : null),
+    [effectiveAudit],
+  );
+
 
   if (!audit || !analysis) {
     return (
