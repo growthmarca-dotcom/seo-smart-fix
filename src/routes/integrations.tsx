@@ -210,7 +210,7 @@ function TiendanubePanel() {
     void tiendanubeStatusFn().then(setConfig);
   }, []);
 
-  const selectedAuditId = auditId || audits[0]?.id || "";
+  const selectedAuditId = auditId;
   const audit = audits.find((a) => a.id === selectedAuditId);
   const liveConnection = connections.find((c) => c.source === "tiendanube");
   const demoConnection = connections.find((c) => c.source === "demo");
