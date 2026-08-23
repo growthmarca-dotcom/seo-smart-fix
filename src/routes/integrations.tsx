@@ -347,6 +347,13 @@ function TiendanubePanel() {
         </div>
       </div>
 
+      {!audit ? (
+        <p className="mt-3 text-xs text-important-foreground">
+          Elegí una auditoría del selector para asociar la importación. Sin esa selección no se
+          sincroniza ninguna tienda.
+        </p>
+      ) : null}
+
       {config && !config.configured ? (
         <div className="mt-4 rounded-lg border border-important/40 bg-important-soft/50 p-3 text-xs">
           <p className="font-semibold">Autorización de Tienda Nube pendiente</p>
