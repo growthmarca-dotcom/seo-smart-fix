@@ -5,7 +5,7 @@
 import { useState, type ReactNode } from "react";
 import { Link } from "@tanstack/react-router";
 import { CheckCircle2, Circle, ExternalLink, ScrollText } from "lucide-react";
-import { CategoryBadge, PAGE_TYPE_LABELS, SeverityBadge } from "@/components/seo-ui";
+import { CategoryBadge, PriorityBadge, PAGE_TYPE_LABELS, SeverityBadge } from "@/components/seo-ui";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -44,12 +44,18 @@ export function DiagnosticBody({ diagnostic }: { diagnostic: Diagnostic }) {
     <div className="space-y-4">
       <div className="flex flex-wrap items-center gap-2">
         <SeverityBadge severity={d.severity} />
+        <PriorityBadge label={d.priorityLabel} />
         <CategoryBadge category={d.category} />
         <span className="inline-flex items-center rounded-md border border-border px-2 py-0.5 text-[11px] font-medium text-muted-foreground">
           {KIND_LABELS[d.kind]}
         </span>
         {d.field && <span className="font-mono text-[11px] text-muted-foreground">{d.field}</span>}
       </div>
+
+      <p className="text-xs text-muted-foreground">
+        <span className="font-medium text-foreground">Prioridad: </span>
+        {d.priorityExplanation}
+      </p>
 
       <dl className="grid gap-2 text-xs sm:grid-cols-2">
         <div>
@@ -212,6 +218,7 @@ export function DiagnosticGroupCard({ group }: { group: DiagnosticGroup }) {
     <article className="rounded-lg border border-border p-3">
       <header className="flex flex-wrap items-center gap-2">
         <SeverityBadge severity={group.severity} />
+        <PriorityBadge label={group.priorityLabel} />
         <CategoryBadge category={group.category} />
         <h4 className="text-sm font-semibold">{group.ruleName}</h4>
         <span className="text-xs text-muted-foreground">

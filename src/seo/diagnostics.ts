@@ -9,9 +9,15 @@
  *
  * Todo diagnóstico queda atado a su `auditId` porque se construye siempre a
  * partir de una `Audit` concreta.
+ *
+ * PRIORIDAD POR HALLAZGO (sin GSC): cada Diagnostic lleva `relevance`, `ease`,
+ * `priorityLabel` y `priorityExplanation` derivados SOLO de severity + campo
+ * editable, reutilizando las escalas declaradas en `src/seo/priority/types`
+ * (PRIORITY_SCALES). No depende de datos de Search Console.
  */
 import { RULES } from "./rules";
 import type { Audit, Category, Finding, FindingKind, PageType, Severity } from "./types";
+import { PRIORITY_SCALES, type PriorityLevel } from "@/seo/priority/types";
 
 export function getRule(ruleId: string) {
   return RULES.find((r) => r.id === ruleId);
@@ -50,6 +56,20 @@ export interface Diagnostic {
   /** true cuando la regla no aporta datos suficientes para un diagnóstico fiable. */
   pending: boolean;
   pendingReason?: string | undefined;
+  /**
+   * Relevancia del hallazgo (escala 0–4, misma que PRIORITY_SCALES.relevance).
+   * Sin GSC: deriva únicamente de la severidad.
+   */
+  relevance: number;
+  /**
+   * Facilidad de resolución (escala 0–4, misma que PRIORITY_SCALES.ease).
+   * Sin GSC: deriva únicamente de si el hallazgo tiene un campo editable.
+   */
+  ease: number;
+  /** Etiqueta simple: "alta" / "media" / "baja". Derivada de severity + relevance + ease. */
+  priorityLabel: string;
+  /** Frase corta que explica por qué tiene esa prioridad (sin mencionar GSC). */
+  priorityExplanation: string;
 }
 
 function pathOf(url: string) {
@@ -58,6 +78,82 @@ function pathOf(url: string) {
   } catch {
     return url;
   }
+}
+
+// ---------------------------------------------------------------------------
+// Factores de prioridad SIN GSC — reutilizan las escalas de priority/types.
+// ---------------------------------------------------------------------------
+
+/**
+ * Relevancia del hallazgo (escala 0–4).
+ * Sin GSC: la severidad es la única señal de relevancia disponible por hallazgo.
+ */
+function diagnosticRelevance(severity: Severity): number {
+  switch (severity) {
+    case "critical":
+      return PRIORITY_SCALES.relevance.max;
+    case "important":
+      return 3;
+    case "improvement":
+      return 2;
+    case "ok":
+      return 0;
+  }
+}
+
+/**
+ * Facilidad de resolución (escala 0–4).
+ * Sin GSC: si el hallazgo propone un campo editable es directo (máx);
+ * sin campo, requiere revisión manual (bajo).
+ */
+function diagnosticEase(hasField: boolean): number {
+  return hasField ? PRIORITY_SCALES.ease.max : 1;
+}
+
+const DIAGNOSTIC_PRIORITY_LABELS: Record<PriorityLevel, string> = {
+  high: "alta",
+  medium: "media",
+  low: "baja",
+};
+
+/**
+ * Etiqueta de prioridad derivada SOLO de severity + ease (relevance es función
+ * de severity, así que entra implícitamente). Escala simple y explicable,
+ * sin índice 0-100 ni datos de GSC.
+ *
+ *   critical            → alta  (siempre, independientemente de la facilidad)
+ *   important + campo   → alta
+ *   important sin campo → media
+ *   improvement + campo → media
+ *   improvement s/campo → baja
+ *   ok                  → baja
+ */
+function diagnosticPriorityLevel(severity: Severity, ease: number): PriorityLevel {
+  const easyField = PRIORITY_SCALES.ease.max;
+  if (severity === "critical") return "high";
+  if (severity === "important") return ease >= easyField ? "high" : "medium";
+  if (severity === "improvement") return ease >= easyField ? "medium" : "low";
+  return "low";
+}
+
+const SEVERITY_TEXT: Record<Severity, string> = {
+  critical: "crítica",
+  important: "importante",
+  improvement: "mejora",
+  ok: "ok",
+};
+
+function diagnosticPriorityExplanation(
+  level: PriorityLevel,
+  severity: Severity,
+  relevance: number,
+  ease: number,
+  fieldName?: string,
+): string {
+  const easeNote = fieldName
+    ? `Tiene campo editable (${fieldName}), por lo que es directo de corregir.`
+    : "No tiene campo editable automático, requiere revisión manual.";
+  return `Prioridad ${DIAGNOSTIC_PRIORITY_LABELS[level]}: severidad ${SEVERITY_TEXT[severity]}, relevancia ${relevance}/${PRIORITY_SCALES.relevance.max} y facilidad ${ease}/${PRIORITY_SCALES.ease.max}. ${easeNote}`;
 }
 
 export function buildDiagnostic(audit: Audit, finding: Finding): Diagnostic {
@@ -71,6 +167,19 @@ export function buildDiagnostic(audit: Audit, finding: Finding): Diagnostic {
   if (!why?.trim()) missing.push("explicación de impacto");
   if (!finding.problem?.trim()) missing.push("descripción del problema");
   if (!finding.suggestion?.trim() && !rule?.field) missing.push("recomendación concreta");
+
+  const field = finding.field ?? rule?.field;
+  const relevance = diagnosticRelevance(finding.severity);
+  const ease = diagnosticEase(Boolean(field));
+  const priorityLevel = diagnosticPriorityLevel(finding.severity, ease);
+  const priorityLabel = DIAGNOSTIC_PRIORITY_LABELS[priorityLevel];
+  const priorityExplanation = diagnosticPriorityExplanation(
+    priorityLevel,
+    finding.severity,
+    relevance,
+    ease,
+    field,
+  );
 
   return {
     key: `${audit.id}:${finding.id}`,
@@ -87,7 +196,7 @@ export function buildDiagnostic(audit: Audit, finding: Finding): Diagnostic {
     category: finding.category,
     kind: finding.kind,
     severity: finding.severity,
-    field: finding.field ?? rule?.field,
+    field,
     current: finding.current,
     detected: finding.problem,
     why,
@@ -99,6 +208,10 @@ export function buildDiagnostic(audit: Audit, finding: Finding): Diagnostic {
     pendingReason: missing.length
       ? `Regla pendiente de definición: falta ${missing.join(", ")}.`
       : undefined,
+    relevance,
+    ease,
+    priorityLabel,
+    priorityExplanation,
   };
 }
 
@@ -119,6 +232,12 @@ export interface DiagnosticGroup {
   estimatedPoints?: number | undefined;
   why?: string | undefined;
   items: Diagnostic[];
+  /** Prioridad más alta del grupo ("alta" / "media" / "baja"). */
+  priorityLabel: string;
+  /** Relevancia máxima del grupo (escala 0–4). */
+  relevance: number;
+  /** Facilidad máxima del grupo (escala 0–4). */
+  ease: number;
 }
 
 const SEVERITY_ORDER: Record<Severity, number> = {
@@ -126,6 +245,12 @@ const SEVERITY_ORDER: Record<Severity, number> = {
   important: 1,
   improvement: 2,
   ok: 3,
+};
+
+const PRIORITY_ORDER: Record<string, number> = {
+  alta: 0,
+  media: 1,
+  baja: 2,
 };
 
 /** Agrupa los hallazgos de UNA auditoría por regla, conservando el orden de prioridad ya existente. */
@@ -141,6 +266,12 @@ export function groupDiagnostics(audit: Audit, findings?: Finding[]): Diagnostic
       if (SEVERITY_ORDER[diagnostic.severity] < SEVERITY_ORDER[group.severity]) {
         group.severity = diagnostic.severity;
       }
+      // Agregar prioridad: mantener el máximo (más urgente) del grupo.
+      if ((PRIORITY_ORDER[diagnostic.priorityLabel] ?? 2) < (PRIORITY_ORDER[group.priorityLabel] ?? 2)) {
+        group.priorityLabel = diagnostic.priorityLabel;
+      }
+      group.relevance = Math.max(group.relevance, diagnostic.relevance);
+      group.ease = Math.max(group.ease, diagnostic.ease);
     } else {
       groups.set(finding.ruleId, {
         auditId: audit.id,
@@ -152,6 +283,9 @@ export function groupDiagnostics(audit: Audit, findings?: Finding[]): Diagnostic
         estimatedPoints: diagnostic.estimatedPoints,
         why: diagnostic.why,
         items: [diagnostic],
+        priorityLabel: diagnostic.priorityLabel,
+        relevance: diagnostic.relevance,
+        ease: diagnostic.ease,
       });
     }
   }
@@ -159,6 +293,8 @@ export function groupDiagnostics(audit: Audit, findings?: Finding[]): Diagnostic
   return [...groups.values()].sort(
     (a, b) =>
       SEVERITY_ORDER[a.severity] - SEVERITY_ORDER[b.severity] ||
+      (PRIORITY_ORDER[a.priorityLabel] ?? 2) - (PRIORITY_ORDER[b.priorityLabel] ?? 2) ||
+      b.relevance + b.ease - (a.relevance + a.ease) ||
       (b.estimatedPoints ?? 0) - (a.estimatedPoints ?? 0) ||
       b.items.length - a.items.length,
   );

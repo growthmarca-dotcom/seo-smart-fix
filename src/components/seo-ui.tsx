@@ -33,6 +33,26 @@ export function CategoryBadge({ category }: { category: Category }) {
   );
 }
 
+const PRIORITY_CLASSES: Record<string, string> = {
+  alta: "bg-critical-soft text-critical border-critical/30",
+  media: "bg-important-soft text-important-foreground border-important/40",
+  baja: "bg-improvement-soft text-improvement border-improvement/30",
+};
+
+export function PriorityBadge({ label, className }: { label: string; className?: string }) {
+  return (
+    <span
+      className={cn(
+        "inline-flex items-center rounded-full border px-2 py-0.5 text-[11px] font-semibold",
+        PRIORITY_CLASSES[label] ?? PRIORITY_CLASSES["baja"],
+        className,
+      )}
+    >
+      Prioridad {label}
+    </span>
+  );
+}
+
 export const PAGE_TYPE_LABELS: Record<PageType, string> = {
   home: "Home",
   product: "Producto",
