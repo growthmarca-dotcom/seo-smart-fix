@@ -18,6 +18,7 @@
 import { RULES } from "./rules";
 import type { Audit, Category, Finding, FindingKind, PageType, Severity } from "./types";
 import { PRIORITY_SCALES, type PriorityLevel } from "@/seo/priority/types";
+import { editableFieldEase, severityRelevance } from "@/seo/priority/factors";
 
 export function getRule(ruleId: string) {
   return RULES.find((r) => r.id === ruleId);
@@ -81,34 +82,11 @@ function pathOf(url: string) {
 }
 
 // ---------------------------------------------------------------------------
-// Factores de prioridad SIN GSC — reutilizan las escalas de priority/types.
+// Factores de prioridad SIN GSC — reuso directo del núcleo compartido
+// (src/seo/priority/factors.ts): severityRelevance y editableFieldEase.
+// Sin GSC, la severidad y el campo editable son las únicas señales
+// disponibles por hallazgo.
 // ---------------------------------------------------------------------------
-
-/**
- * Relevancia del hallazgo (escala 0–4).
- * Sin GSC: la severidad es la única señal de relevancia disponible por hallazgo.
- */
-function diagnosticRelevance(severity: Severity): number {
-  switch (severity) {
-    case "critical":
-      return PRIORITY_SCALES.relevance.max;
-    case "important":
-      return 3;
-    case "improvement":
-      return 2;
-    case "ok":
-      return 0;
-  }
-}
-
-/**
- * Facilidad de resolución (escala 0–4).
- * Sin GSC: si el hallazgo propone un campo editable es directo (máx);
- * sin campo, requiere revisión manual (bajo).
- */
-function diagnosticEase(hasField: boolean): number {
-  return hasField ? PRIORITY_SCALES.ease.max : 1;
-}
 
 const DIAGNOSTIC_PRIORITY_LABELS: Record<PriorityLevel, string> = {
   high: "alta",
