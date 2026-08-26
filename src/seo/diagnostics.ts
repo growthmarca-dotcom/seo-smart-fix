@@ -12,8 +12,9 @@
  *
  * PRIORIDAD POR HALLAZGO (sin GSC): cada Diagnostic lleva `relevance`, `ease`,
  * `priorityLabel` y `priorityExplanation` derivados SOLO de severity + campo
- * editable, reutilizando las escalas declaradas en `src/seo/priority/types`
- * (PRIORITY_SCALES). No depende de datos de Search Console.
+ * editable, reusando el núcleo compartido de `src/seo/priority/factors`
+ * (severityRelevance / editableFieldEase) sobre las escalas de
+ * `src/seo/priority/types` (PRIORITY_SCALES). No depende de Search Console.
  */
 import { RULES } from "./rules";
 import type { Audit, Category, Finding, FindingKind, PageType, Severity } from "./types";
