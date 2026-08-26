@@ -147,8 +147,8 @@ export function buildDiagnostic(audit: Audit, finding: Finding): Diagnostic {
   if (!finding.suggestion?.trim() && !rule?.field) missing.push("recomendación concreta");
 
   const field = finding.field ?? rule?.field;
-  const relevance = diagnosticRelevance(finding.severity);
-  const ease = diagnosticEase(Boolean(field));
+  const relevance = severityRelevance(finding.severity);
+  const ease = editableFieldEase(Boolean(field));
   const priorityLevel = diagnosticPriorityLevel(finding.severity, ease);
   const priorityLabel = DIAGNOSTIC_PRIORITY_LABELS[priorityLevel];
   const priorityExplanation = diagnosticPriorityExplanation(
