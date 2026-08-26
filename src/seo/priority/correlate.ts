@@ -15,6 +15,7 @@ import { metricsByPage, metricsByQuery } from "@/seo/gsc/import";
 import type { GscConnection, GscRow } from "@/seo/gsc/types";
 import { buildLinkGraph, type LinkGraph } from "@/seo/link-graph";
 import { analyzeContent, type ContentAnalysis, type ContentItem } from "@/seo/content-analysis";
+import { editableFieldEase, severityRelevance } from "./factors";
 import {
   OPPORTUNITY_TYPE_LABELS,
   PRIORITY_CUTOFFS,
@@ -169,11 +170,11 @@ function relevanceFactor(
     value += 0.5;
     posNote = `posición media ${position.toFixed(1)} (lejana)`;
   }
-  const critical = diagnostics.some((d) => d.severity === "critical");
-  const important = diagnostics.some((d) => d.severity === "important");
-  if (critical) value += 2;
-  else if (important) value += 1.5;
-  else if (diagnostics.length > 0) value += 1;
+  // Sub-criterio de severidad: mitad de severityRelevance (núcleo compartido).
+  // critical → 2 · important → 1.5 · improvement/ok → 1 · sin hallazgos → 0.
+  if (diagnostics.length > 0) {
+    value += Math.max(1, ...diagnostics.map((d) => severityRelevance(d.severity) / 2));
+  }
   return factor(
     "relevance",
     value,
@@ -213,7 +214,10 @@ function easeFactor(
 ): PriorityFactor {
   const base = EASE_BY_TYPE[type];
   const editable = diagnostics.some((d) => d.field);
-  const value = editable ? Math.min(4, base.value + 1) : base.value;
+  // El tope es la facilidad máxima declarada en el núcleo compartido (= 4).
+  const value = editable
+    ? Math.min(editableFieldEase(true), base.value + 1)
+    : base.value;
   return factor(
     "ease",
     value,
