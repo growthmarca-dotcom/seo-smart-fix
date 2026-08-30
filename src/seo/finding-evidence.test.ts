@@ -94,3 +94,117 @@ describe("Finding.evidence — contrato EvidenceItem (Fase 1.1)", () => {
     expect(RULES.some((r) => r.id === "thin-content")).toBe(true);
   });
 });
+
+describe("Evidence estructurada — Fase 1.2: reglas contextuales", () => {
+  it("ctx-product-description-short produce evidencia estructurada esperada", () => {
+    const p = page({
+      id: "pds",
+      url: "https://demo.test/producto/mochila",
+      pageType: "product",
+      wordCount: 120,
+      depth: 2,
+    });
+    const { findings } = runAudit(site([p]));
+    const f = findings.find((x) => x.ruleId === "ctx-product-description-short");
+    expect(f).toBeDefined();
+    const items = f?.evidence ?? [];
+    expect(items).toHaveLength(1);
+    const item = items[0]!;
+    expect(isStructuredEvidence(item)).toBe(true);
+    expect(item).toMatchObject({ kind: "expected" });
+    expect(item).toMatchObject({ label: "Referencia para fichas de producto" });
+    expect(item).toMatchObject({ expected: expect.stringMatching(/palabras o más$/) });
+    // No incluye value (no enriquecer).
+    expect((item as any).value).toBeUndefined();
+  });
+
+  it("ctx-category-listing-links produce evidencia estructurada esperada", () => {
+    const p = page({
+      id: "cll",
+      url: "https://demo.test/categoria/carpa",
+      pageType: "category",
+      wordCount: 300,
+      depth: 1,
+      internalLinks: [],
+    });
+    const { findings } = runAudit(site([p]));
+    const f = findings.find((x) => x.ruleId === "ctx-category-listing-links");
+    expect(f).toBeDefined();
+    const items = f?.evidence ?? [];
+    expect(items).toHaveLength(1);
+    const item = items[0]!;
+    expect(isStructuredEvidence(item)).toBe(true);
+    expect(item).toMatchObject({ kind: "expected" });
+    expect(item).toMatchObject({ label: "Referencia para categorías" });
+    expect(item).toMatchObject({ expected: expect.stringMatching(/^al menos \d+ enlaces internos$/) });
+    // No incluye value (no enriquecer).
+    expect((item as any).value).toBeUndefined();
+  });
+
+  it("ctx-product-description-short conserva su comportamiento de detección", () => {
+    const tooShort = page({
+      id: "ts",
+      url: "https://demo.test/producto/a",
+      pageType: "product",
+      wordCount: 5,
+      depth: 2,
+    });
+    const ok = page({
+      id: "ok",
+      url: "https://demo.test/producto/b",
+      pageType: "product",
+      wordCount: 600,
+      depth: 2,
+    });
+    const inRange = page({
+      id: "ir",
+      url: "https://demo.test/producto/c",
+      pageType: "product",
+      wordCount: 120,
+      depth: 2,
+    });
+    const { findings } = runAudit(site([tooShort, ok, inRange]));
+    const ids = findings
+      .filter((f) => f.ruleId === "ctx-product-description-short")
+      .map((f) => f.pageId);
+    // tooShort (wordCount < min*0.4) lo descarta thin-content; inRange sí dispara; ok no dispara.
+    expect(ids).toContain("ir");
+    expect(ids).not.toContain("ok");
+  });
+
+  it("ctx-category-listing-links conserva su comportamiento de detección", () => {
+    const empty = page({
+      id: "empty",
+      url: "https://demo.test/categoria/a",
+      pageType: "category",
+      wordCount: 300,
+      depth: 1,
+      internalLinks: [],
+    });
+    const { findings } = runAudit(site([empty]));
+    const f = findings.find((x) => x.ruleId === "ctx-category-listing-links");
+    expect(f).toBeDefined();
+    expect(f?.current).toBe("0 enlaces internos en el listado");
+  });
+
+  it("la evidencia legacy de las demás reglas continúa siendo string", () => {
+    const p = page({
+      id: "dup",
+      url: "https://demo.test/dup",
+      pageType: "other",
+      wordCount: 300,
+      depth: 1,
+    });
+    const { findings } = runAudit(site([p]));
+    const migrated = new Set([
+      "thin-content",
+      "ctx-product-description-short",
+      "ctx-category-listing-links",
+    ]);
+    for (const f of findings.filter((x) => !migrated.has(x.ruleId))) {
+      for (const item of f.evidence ?? []) {
+        expect(typeof item).toBe("string");
+      }
+    }
+  });
+});
