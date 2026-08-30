@@ -236,7 +236,7 @@ export const RULES: SeoRule[] = [
         current: `${p.wordCount} palabras (referencia para ${ctx.profile.label}: ${min})`,
         evidence: [
           evidence.value("Tipo de página", ctx.profile.label),
-          evidence.expected("Umbral contextual", `${min} palabras`, `${p.wordCount} palabras`),
+          evidence.expected("Umbral contextual", `${min} palabras`),
         ],
         problem: `Contenido posiblemente insuficiente para una página de tipo ${ctx.profile.label}.`,
         suggestion:
