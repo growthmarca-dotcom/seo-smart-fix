@@ -1101,7 +1101,7 @@ export const RULES: SeoRule[] = [
       return {
         severity: p.internalLinks.length === 0 ? "important" : "improvement",
         current: `${p.internalLinks.length} enlaces internos en el listado`,
-        evidence: [`Referencia para categorías: al menos ${min} enlaces internos`],
+        evidence: [evidence.expected("Referencia para categorías", `al menos ${min} enlaces internos`)],
         problem: "El listado no enlaza suficientes productos o subcategorías.",
         suggestion: "Mostrar y enlazar el inventario de la categoría y sus subcategorías.",
       };
@@ -1150,7 +1150,7 @@ export const RULES: SeoRule[] = [
       if (p.wordCount < min * 0.4 || p.wordCount >= min * 2) return null;
       return {
         current: `${p.wordCount} palabras de descripción`,
-        evidence: [`Referencia para fichas de producto: ${min * 2} palabras o más`],
+        evidence: [evidence.expected("Referencia para fichas de producto", `${min * 2} palabras o más`)],
         problem: "La ficha describe el producto de forma escueta.",
         suggestion:
           "Ampliar con materiales, medidas, usos recomendados, cuidados y preguntas frecuentes del producto.",
