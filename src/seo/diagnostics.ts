@@ -1,3 +1,4 @@
+import { evidenceToStrings } from "./evidence";
 /**
  * Capa de DIAGNÓSTICO (derivada, solo lectura).
  *
@@ -180,7 +181,7 @@ export function buildDiagnostic(audit: Audit, finding: Finding): Diagnostic {
     detected: finding.problem,
     why,
     recommendation: finding.suggestion,
-    evidence: finding.evidence,
+    evidence: evidenceToStrings(finding.evidence),
     estimatedPoints: driver?.points,
     occurrences,
     pending: missing.length > 0,
@@ -246,7 +247,9 @@ export function groupDiagnostics(audit: Audit, findings?: Finding[]): Diagnostic
         group.severity = diagnostic.severity;
       }
       // Agregar prioridad: mantener el máximo (más urgente) del grupo.
-      if ((PRIORITY_ORDER[diagnostic.priorityLabel] ?? 2) < (PRIORITY_ORDER[group.priorityLabel] ?? 2)) {
+      if (
+        (PRIORITY_ORDER[diagnostic.priorityLabel] ?? 2) < (PRIORITY_ORDER[group.priorityLabel] ?? 2)
+      ) {
         group.priorityLabel = diagnostic.priorityLabel;
       }
       group.relevance = Math.max(group.relevance, diagnostic.relevance);

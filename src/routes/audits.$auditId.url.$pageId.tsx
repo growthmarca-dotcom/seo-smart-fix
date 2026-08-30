@@ -1,14 +1,10 @@
+import { evidenceToStrings } from "@/seo/evidence";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { ArrowLeft, Check, Pencil, X } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 import { PageHeader } from "@/components/app-shell";
-import {
-  CategoryBadge,
-  EmptyState,
-  PAGE_TYPE_LABELS,
-  SeverityBadge,
-} from "@/components/seo-ui";
+import { CategoryBadge, EmptyState, PAGE_TYPE_LABELS, SeverityBadge } from "@/components/seo-ui";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { getConnector } from "@/seo/connectors";
@@ -38,7 +34,9 @@ export const Route = createFileRoute("/audits/$auditId/url/$pageId")({
 function UrlDetail() {
   const { auditId, pageId } = Route.useParams();
   const audit = useAppState((s) => s.audits.find((a) => a.id === auditId));
-  const changes = useAppState((s) => s.changes.filter((c) => c.pageId === pageId && c.auditId === auditId));
+  const changes = useAppState((s) =>
+    s.changes.filter((c) => c.pageId === pageId && c.auditId === auditId),
+  );
   const page = audit?.pages.find((p) => p.id === pageId);
   const findings = (audit?.findings ?? []).filter((f) => f.pageId === pageId);
 
@@ -97,7 +95,10 @@ function UrlDetail() {
             <Row label="Canonical" value={page.canonical ?? "—"} />
             <Row label="Meta robots" value={page.robotsMeta ?? "(por defecto)"} />
             <Row label="Schema" value={page.schemaTypes.join(", ") || "—"} />
-            <Row label="Imágenes" value={`${page.images.length} (${page.images.filter((i) => !i.alt).length} sin ALT)`} />
+            <Row
+              label="Imágenes"
+              value={`${page.images.length} (${page.images.filter((i) => !i.alt).length} sin ALT)`}
+            />
             <Row label="Enlaces internos" value={String(page.internalLinks.length)} />
             <Row label="Viewport móvil" value={page.hasViewport ? "Sí" : "No"} />
             <Row label="Peso HTML" value={`${page.htmlSizeKb ?? 0} KB`} />
@@ -214,16 +215,20 @@ function FindingCard({
         onOpenChange={setShowDiagnostic}
       />
 
-      <p className="mt-2 break-all font-mono text-[11px] text-muted-foreground">{finding.pageUrl}</p>
+      <p className="mt-2 break-all font-mono text-[11px] text-muted-foreground">
+        {finding.pageUrl}
+      </p>
       <p className="mt-3 text-sm font-medium">{finding.problem}</p>
       <p className="mt-1 text-xs text-muted-foreground">{finding.explanation}</p>
       {finding.evidence && finding.evidence.length > 0 && (
         <ul className="mt-3 space-y-1 rounded-lg border border-border bg-muted/40 p-3 text-[11px] font-mono">
-          {finding.evidence.slice(0, 10).map((e) => (
-            <li key={e} className="truncate">
-              {e}
-            </li>
-          ))}
+          {evidenceToStrings(finding.evidence)
+            .slice(0, 10)
+            .map((e) => (
+              <li key={e} className="truncate">
+                {e}
+              </li>
+            ))}
         </ul>
       )}
 
