@@ -1,3 +1,4 @@
+import { evidence, type EvidenceItem } from "./evidence";
 /**
  * Rule Engine — reglas SEO universales + reglas etiquetadas por plataforma.
  * Agregar una regla nueva = agregar un objeto a este array. El motor
@@ -20,7 +21,7 @@ export interface RuleResult {
   problem: string;
   suggestion?: string | undefined;
   /** Evidencia concreta: URLs, imágenes o enlaces afectados. */
-  evidence?: string[] | undefined;
+  evidence?: EvidenceItem[] | undefined;
 }
 
 export interface SeoRule {
@@ -233,7 +234,10 @@ export const RULES: SeoRule[] = [
       return {
         severity: p.wordCount < min * 0.4 ? "important" : "improvement",
         current: `${p.wordCount} palabras (referencia para ${ctx.profile.label}: ${min})`,
-        evidence: [`Tipo de página: ${ctx.profile.label}`, `Umbral contextual: ${min} palabras`],
+        evidence: [
+          evidence.value("Tipo de página", ctx.profile.label),
+          evidence.expected("Umbral contextual", `${min} palabras`, `${p.wordCount} palabras`),
+        ],
         problem: `Contenido posiblemente insuficiente para una página de tipo ${ctx.profile.label}.`,
         suggestion:
           "Ampliar con información útil y específica del tipo de página: características, usos, materiales, preguntas frecuentes.",

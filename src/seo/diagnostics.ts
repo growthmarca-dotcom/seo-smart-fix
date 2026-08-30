@@ -1,3 +1,4 @@
+import { evidenceToStrings } from "./evidence";
 /**
  * Capa de DIAGNÓSTICO (derivada, solo lectura).
  *
@@ -180,7 +181,7 @@ export function buildDiagnostic(audit: Audit, finding: Finding): Diagnostic {
     detected: finding.problem,
     why,
     recommendation: finding.suggestion,
-    evidence: finding.evidence,
+    evidence: evidenceToStrings(finding.evidence),
     estimatedPoints: driver?.points,
     occurrences,
     pending: missing.length > 0,

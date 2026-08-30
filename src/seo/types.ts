@@ -1,3 +1,5 @@
+import type { EvidenceItem } from "./evidence";
+
 /**
  * SEO Fixer — Modelos y tipos del núcleo.
  * Este archivo es agnóstico de plataforma: el motor universal trabaja
@@ -302,7 +304,7 @@ export interface Finding {
   explanation: string;
   suggestion?: string | undefined;
   /** Evidencia adicional (enlaces rotos, URLs duplicadas, imágenes afectadas). */
-  evidence?: string[] | undefined;
+  evidence?: EvidenceItem[] | undefined;
 }
 
 export type ChangeStatus = "pending" | "approved" | "rejected" | "applied";
