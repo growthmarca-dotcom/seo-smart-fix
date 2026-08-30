@@ -1,7 +1,12 @@
 import { describe, expect, it } from "vitest";
 
 import { runAudit } from "./engine";
-import { evidenceText, evidenceToStrings, isStructuredEvidence, type EvidenceItem } from "./evidence";
+import {
+  evidenceText,
+  evidenceToStrings,
+  isStructuredEvidence,
+  type EvidenceItem,
+} from "./evidence";
 import { RULES } from "./rules";
 import type { Finding, PageSnapshot, SiteContext } from "./types";
 

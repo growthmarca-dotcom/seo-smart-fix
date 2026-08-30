@@ -51,9 +51,7 @@ export interface SeoRule {
   check: (page: PageSnapshot, site: SiteContext) => RuleResult | null;
 }
 
-
 const has = (v?: string) => Boolean(v && v.trim().length);
-
 
 export const RULES: SeoRule[] = [
   // ---------- ON-PAGE ----------
@@ -504,7 +502,8 @@ export const RULES: SeoRule[] = [
         const c = new URL(p.canonical!, p.url);
         const self = new URL(p.url);
         const same =
-          c.origin === self.origin && c.pathname.replace(/\/$/, "") === self.pathname.replace(/\/$/, "");
+          c.origin === self.origin &&
+          c.pathname.replace(/\/$/, "") === self.pathname.replace(/\/$/, "");
         if (same) return null;
         const target = site.pages.find(
           (o) => o.url.replace(/\/$/, "") === c.toString().replace(/\/$/, ""),
@@ -1073,7 +1072,9 @@ export const RULES: SeoRule[] = [
       if (p.internalLinks.length >= min) return null;
       return {
         current: `${p.internalLinks.length} enlaces internos en la home`,
-        evidence: p.internalLinks.slice(0, 8).map((l) => `${l.anchor || "(sin anchor)"} → ${l.href}`),
+        evidence: p.internalLinks
+          .slice(0, 8)
+          .map((l) => `${l.anchor || "(sin anchor)"} → ${l.href}`),
         problem: "La home enlaza a muy pocas secciones del sitio.",
         suggestion:
           "Enlazar desde la home las categorías y páginas principales con anchors descriptivos.",
@@ -1176,7 +1177,8 @@ export const RULES: SeoRule[] = [
         ? {
             current: `${p.internalLinks.length} enlaces internos salientes`,
             problem: "La ficha casi no enlaza a su categoría ni a productos relacionados.",
-            suggestion: "Agregar enlaces a la categoría del producto y a productos complementarios.",
+            suggestion:
+              "Agregar enlaces a la categoría del producto y a productos complementarios.",
           }
         : null;
     },
@@ -1250,17 +1252,17 @@ export const RULES: SeoRule[] = [
       if (!weakTitle && !weakH1) return null;
       return {
         current: `Title: ${p.title ?? "(sin title)"} · H1: ${p.h1[0] ?? "(sin H1)"}`,
-        problem: weakTitle && weakH1
-          ? "La página no identifica con claridad su propósito ni en el title ni en el H1."
-          : weakTitle
-            ? "El title no identifica con claridad la página."
-            : "La página no tiene H1 que la identifique.",
-        suggestion: "Usar un title y un H1 explícitos, por ejemplo \"Contacto\" o \"Sobre nosotros\".",
+        problem:
+          weakTitle && weakH1
+            ? "La página no identifica con claridad su propósito ni en el title ni en el H1."
+            : weakTitle
+              ? "El title no identifica con claridad la página."
+              : "La página no tiene H1 que la identifique.",
+        suggestion: 'Usar un title y un H1 explícitos, por ejemplo "Contacto" o "Sobre nosotros".',
       };
     },
   },
 ];
-
 
 export const RECOMMENDED_SCHEMA: Record<string, string[]> = {
   home: ["WebSite", "Organization"],

@@ -10,13 +10,7 @@ import type { EvidenceItem } from "./evidence";
 export type Severity = "critical" | "important" | "improvement" | "ok";
 
 export type Category =
-  | "onpage"
-  | "technical"
-  | "structured-data"
-  | "performance"
-  | "local"
-  | "content"
-  | "authority";
+  "onpage" | "technical" | "structured-data" | "performance" | "local" | "content" | "authority";
 
 /**
  * Naturaleza del hallazgo. Permite separar hechos verificables de
@@ -43,17 +37,10 @@ export type FindingKind =
 export type PlatformId = "generic-web" | "tiendanube" | "mercadolibre";
 
 export type PageType =
-  | "home"
-  | "product"
-  | "category"
-  | "article"
-  | "landing"
-  | "contact"
-  | "other";
+  "home" | "product" | "category" | "article" | "landing" | "contact" | "other";
 
 /** Cómo se descubrió una URL durante el rastreo. */
 export type DiscoverySource = "seed" | "sitemap" | "internal-link" | "both";
-
 
 /** Representación normalizada de una página / publicación / producto. */
 export interface PageSnapshot {
@@ -99,12 +86,7 @@ export interface PageSnapshot {
 
 /** Estado de robots.txt detectado en el rastreo. */
 export type RobotsState =
-  | "missing"
-  | "empty"
-  | "valid"
-  | "invalid"
-  | "fetch-error"
-  | "disallow-all";
+  "missing" | "empty" | "valid" | "invalid" | "fetch-error" | "disallow-all";
 
 export const ROBOTS_STATE_LABELS: Record<RobotsState, string> = {
   missing: "robots.txt inexistente (HTTP 404)",
@@ -251,7 +233,6 @@ export interface CrawlCoverage {
   errors: Array<{ url: string; reason: string }>;
   redirects: Array<{ from: string; to: string; status: number }>;
 }
-
 
 /** Contexto del sitio: lo que solo se sabe mirando todas las páginas. */
 export interface SiteContext {
@@ -407,7 +388,6 @@ export interface Audit {
   robotsFound?: boolean | undefined;
   coverage?: CrawlCoverage | undefined;
 }
-
 
 export interface HistoryEntry {
   id: string;

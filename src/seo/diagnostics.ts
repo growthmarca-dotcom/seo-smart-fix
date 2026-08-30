@@ -247,7 +247,9 @@ export function groupDiagnostics(audit: Audit, findings?: Finding[]): Diagnostic
         group.severity = diagnostic.severity;
       }
       // Agregar prioridad: mantener el máximo (más urgente) del grupo.
-      if ((PRIORITY_ORDER[diagnostic.priorityLabel] ?? 2) < (PRIORITY_ORDER[group.priorityLabel] ?? 2)) {
+      if (
+        (PRIORITY_ORDER[diagnostic.priorityLabel] ?? 2) < (PRIORITY_ORDER[group.priorityLabel] ?? 2)
+      ) {
         group.priorityLabel = diagnostic.priorityLabel;
       }
       group.relevance = Math.max(group.relevance, diagnostic.relevance);
