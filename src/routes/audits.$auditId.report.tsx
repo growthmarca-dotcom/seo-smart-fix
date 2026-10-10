@@ -113,7 +113,7 @@ function ReportBody({ audit }: { audit: Audit }) {
             <Meta label="Páginas analizadas" value={String(audit.pages.length)} />
           </dl>
           {audit.isDemo && (
-            <p className="mt-4 rounded-md border border-warning/40 bg-warning/10 p-3 text-sm font-medium">
+            <p className="mt-4 rounded-md border border-important/40 bg-important-soft p-3 text-sm font-medium">
               Auditoría de DEMOSTRACIÓN: los datos corresponden a un sitio ficticio y no representan un
               sitio real.
             </p>
