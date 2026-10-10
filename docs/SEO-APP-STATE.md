@@ -1,4 +1,7 @@
-# Estado del proyecto — SEO Fixer
+# Estado del proyecto — SEO Fixer (base de MarCa Audit)
+
+> Producto confirmado: **MarCa Audit**, mercado inicial turismo y alojamientos.
+> Estado del MVP y backlog: `docs/MARCA-AUDIT-PRODUCT.md`.
 
 > Snapshot de arquitectura y estado por fase.Documento de referencia vivo;
 > actualizar al cerrar cada fase. Fecha de esta revisión: corresponde al estado
@@ -41,7 +44,7 @@ en sitios de terceros en el MVP genérico.
 | 7A | Motor SEO e-commerce agnóstico de plataforma | ✅ Completa |
 | 7B | Tienda Nube (lectura) | ✅ Completa |
 | 7C | Mercado Libre (lectura) | 🔶 Solo código preparatorio/mock (estado C) |
-| —  | Evidence Engine (evidencia estructurada) | ⛔ No iniciada (pausada por instrucción) |
+| —  | Evidence Engine (evidencia estructurada) | 🔶 Fases 1, 1.1, 1.2 completas (3 reglas migradas) |
 | —  | Persistencia/autenticación real (Lovable Cloud) | ⛔ No iniciada |
 | —  | GA4, PageSpeed/Core Web Vitals, Google Business Profile | ⛔ No iniciadas |
 | —  | IA / sugerencias generativas | ⛔ No iniciada |
@@ -118,8 +121,8 @@ Próximo paso recomendado: Fase 7C (lectura) siguiendo el patrón de Tienda Nube
 
 ## Gaps conocidos (no bloqueantes para demo)
 
-- **Evidence Engine** pausado por instrucción: `finding.evidence` hoy es
-  `string[]` de texto libre con baja cobertura (~25% de reglas) y sin formato
+- **Evidence Engine** en progreso: `finding.evidence` es `EvidenceItem[]`;
+  solo 3 reglas estructuradas, el resto texto libre con baja cobertura (~25% de reglas) y sin formato
   estructurado común. Propuesta aprobada (no implementada): tipo unión
   `EvidenceItem` estructurado con render uniforme.
 - Sin backend de persistencia/autenticación (store en `localStorage`).

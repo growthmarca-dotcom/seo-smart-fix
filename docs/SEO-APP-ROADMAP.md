@@ -75,43 +75,49 @@ credenciales/autorización.
 
 ## No iniciado (priorizado)
 
-### Evidence Engine ⛔ (pausado por instrucción)
-Evidencia estructurada común por hallazgo. Propuesta aprobada: tipo unión
-`EvidenceItem` (`{ kind, label, value, url? }`) con render uniforme y migración
-gradual sin romper `string[]` existente. **No implementar hasta instrucción
-explícita.**
+### Evidence Engine 🔶 (en progreso)
+Fase 1 (contrato `EvidenceItem`), 1.1 (`thin-content`) y 1.2 (2 reglas
+contextuales) completas. Resto de reglas en texto libre; migrar según lo que
+necesite el informe (ver `MARCA-AUDIT-PRODUCT.md`, P5).
 
 ### Backend real (persistencia + autenticación) ⛔
 Reemplazar el store `localStorage` por Lovable Cloud: PostgreSQL con RLS,
 auth (login/Google/Apple), storage. Migrar el modelo existente sin cambiar
 las acciones del store (las UI ya consumen `actions`, no el storage directo).
 
-### PageSpeed / Core Web Vitals ⛛
+### PageSpeed / Core Web Vitals ⛔
 Integración preparada: el crawler ya guarda `htmlSizeKb`, `responseMs`,
 `hasViewport`; falta el conector real a PageSpeed para métricas LCP/CLS/INP.
 
-### Google Business Profile ⛛
+### Google Business Profile ⛔
 SEO local: hoy detecta NAP y `LocalBusiness`. Falta conector GBP para
 gestión de ficha y reseñas.
 
-### GA4 ⛛
+### GA4 ⛔
 Analítica de tráfico para cruzar con oportunidades (no inicio de sesión, solo
 datos agregados).
 
-### Autoridad / backlinks / competencia ⛛
+### Autoridad / backlinks / competencia ⛔
 Módulo preparado en el roadmap original, sin implementar.
 
-### IA / sugerencias generativas ⛛
+### IA / sugerencias generativas ⛔
 Generación de title/meta/ALT sugeridos. No iniciado.
 
-## Orden sugerido
+## Orden sugerido (actualizado para MarCa Audit)
 
-1. Fase 7C (Mercado Libre lectura) — cierra el set de conectores e-commerce.
-2. Backend real (Lovable Cloud) — habilita multiusuario y persistencia.
-3. Evidence Engine — consistencia de evidencia entre reglas.
-4. PageSpeed / Core Web Vitals — métricas de rendimiento reales.
-5. Google Business Profile + GA4 + autoridad — profundización.
-6. IA generativa — aceleración de sugerencias.
+El producto pasa a ser **MarCa Audit** (turismo y alojamientos). El backlog
+priorizado del MVP vive en `docs/MARCA-AUDIT-PRODUCT.md`. Resumen:
+
+1. P1 Prueba end-to-end con sitio real de alojamiento.
+2. P2 Informe profesional.
+3. P3 Persistencia + acceso protegido (Lovable Cloud).
+4. P4 Perfil y reglas de turismo/alojamiento.
+5. P5 Evidence Engine (reglas del informe).
+6. Opcionales: dividir pantallas grandes, Core Web Vitals.
+
+Fuera del MVP (se conservan, no se eliminan): 7C Mercado Libre, GBP, GA4,
+autoridad, IA generativa. Orden anterior: 7C → backend → evidencia → PageSpeed
+→ GBP/GA4 → IA (reemplazado por el foco MarCa Audit).
 
 ## Control de cambios
 
