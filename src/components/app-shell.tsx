@@ -85,15 +85,15 @@ export function AppShell({ children }: { children: ReactNode }) {
   const [open, setOpen] = useState(false);
 
   return (
-    <div className="min-h-screen bg-background lg:grid lg:grid-cols-[260px_1fr]">
-      <aside className="hidden border-r border-sidebar-border lg:block">
+    <div className="min-h-screen bg-background lg:grid lg:grid-cols-[260px_1fr] print:block">
+      <aside className="hidden border-r border-sidebar-border lg:block print:hidden">
         <div className="sticky top-0 h-screen">
           <SidebarContent />
         </div>
       </aside>
 
       <div className="flex min-h-screen flex-col">
-        <header className="flex items-center gap-3 border-b border-border bg-card/80 px-4 py-3 backdrop-blur lg:hidden">
+        <header className="flex items-center gap-3 border-b border-border bg-card/80 px-4 py-3 backdrop-blur lg:hidden print:hidden">
           <Button variant="ghost" size="icon" onClick={() => setOpen((v) => !v)} aria-label="Menú">
             <Menu className="size-5" />
           </Button>
@@ -104,7 +104,7 @@ export function AppShell({ children }: { children: ReactNode }) {
             <SidebarContent onNavigate={() => setOpen(false)} />
           </div>
         )}
-        <main className="flex-1 px-4 py-6 sm:px-6 lg:px-8 lg:py-8">{children}</main>
+        <main className="flex-1 px-4 py-6 sm:px-6 lg:px-8 lg:py-8 print:p-0">{children}</main>
       </div>
     </div>
   );
