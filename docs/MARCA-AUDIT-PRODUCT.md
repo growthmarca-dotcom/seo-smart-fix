@@ -49,7 +49,7 @@ pantalla se considera verificada solo por compilar o figurar en la documentació
 | Evidencia | Pendiente de desarrollo (parcial) | Evidence Engine fases 1, 1.1 y 1.2 hechas: 3 reglas estructuradas, ~45 en texto libre. |
 | Priorización | Completado y verificado (núcleo) | Prioridad por hallazgo (sin GSC) + índice 0–100 con GSC. |
 | Criterios turismo/alojamiento | Pendiente de desarrollo | No existe perfil de página ni reglas de alojamiento (habitaciones, tarifas, reservas directas, `LodgingBusiness`/`Hotel`, mapas, reseñas). |
-| Informe profesional | Pendiente de desarrollo | No hay exportación ni vista imprimible. **Bloquea la entrega al cliente.** |
+| Informe profesional | Implementado, pendiente de prueba con cliente real | Ruta `/audits/$auditId/report` (botón "Ver informe"): resumen, puntuación, cobertura, hallazgos con evidencia, oportunidades, plan por prioridad, metodología. PDF vía impresión del navegador. Marca las auditorías demo. |
 | Persistencia | Bloqueante de uso real | Datos solo en el navegador; riesgo de pérdida y límite de tamaño con sitios grandes. |
 | Acceso protegido | Pendiente de desarrollo | El rastreo es público si se publica la app. Necesario antes de uso con clientes. |
 
@@ -69,7 +69,7 @@ Fases 1, 2, 2.1, 2.3 (incl. prioridad por hallazgo y núcleo `priority/factors.t
 | # | Tarea | Tipo |
 |---|---|---|
 | P1 | Prueba end-to-end con un sitio real de alojamiento y registro de errores | Bloqueante (valida todo lo demás) |
-| P2 | Informe profesional (vista imprimible/PDF con resumen, score, hallazgos priorizados, evidencia) | Bloqueante para entrega |
+| P2 | ~~Informe profesional~~ — implementado; falta validar con un sitio real | Hecho (pendiente de prueba) |
 | P3 | Persistencia real + acceso protegido (Lovable Cloud) | Bloqueante para uso con clientes reales |
 | P4 | Perfil y reglas de turismo/alojamiento | Diferencial del mercado inicial |
 | P5 | Completar migración de evidencia en reglas que aparezcan en el informe | Calidad del informe |
@@ -106,3 +106,10 @@ de saber qué funciona de verdad (nada de la UI está verificado con un sitio
 real), no requiere cambiar código, y define los requisitos concretos de P2
 (informe) y P4 (reglas de turismo). Necesita: 1–3 URLs reales de alojamientos
 elegidas por MarCa Growth.
+
+## 8. Estado real de conectores (verificado en código)
+
+- Web genérica: funcional real.
+- Google Search Console: código de API real vía conector, **sin conexión vinculada** → no verificado; CSV y demo funcionan.
+- Tienda Nube: lectura implementada, credenciales globales no configuradas, sin ruta de callback OAuth → parcial.
+- GA4, PageSpeed: solo tarjeta informativa. Google Business Profile: planificado. Mercado Libre: preparatorio (estado C). WordPress/WooCommerce/Shopify: solo mencionados.

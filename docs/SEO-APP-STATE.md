@@ -45,6 +45,7 @@ en sitios de terceros en el MVP genérico.
 | 7B | Tienda Nube (lectura) | ✅ Completa |
 | 7C | Mercado Libre (lectura) | 🔶 Solo código preparatorio/mock (estado C) |
 | —  | Evidence Engine (evidencia estructurada) | 🔶 Fases 1, 1.1, 1.2 completas (3 reglas migradas) |
+| MVP-1 | Informe profesional imprimible/PDF (`audits.$auditId.report.tsx`) | ✅ Implementado (pendiente de prueba con cliente real) |
 | —  | Persistencia/autenticación real (Lovable Cloud) | ⛔ No iniciada |
 | —  | GA4, PageSpeed/Core Web Vitals, Google Business Profile | ⛔ No iniciadas |
 | —  | IA / sugerencias generativas | ⛔ No iniciada |
