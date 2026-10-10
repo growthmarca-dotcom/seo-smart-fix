@@ -146,6 +146,11 @@ function AuditResults() {
         actions={
           <>
             {audit.isDemo && <DemoBadge />}
+            <Button asChild>
+              <Link to="/audits/$auditId/report" params={{ auditId: audit.id }}>
+                Ver informe
+              </Link>
+            </Button>
             <Button variant="outline" asChild>
               <Link to="/changes" search={{ auditId: audit.id }}>
                 Ver cambios pendientes
