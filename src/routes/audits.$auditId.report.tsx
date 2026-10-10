@@ -246,7 +246,7 @@ function ReportBody({ audit }: { audit: Audit }) {
                 <ol className="ml-5 list-decimal text-sm">
                   {items.map((g) => (
                     <li key={g.ruleId}>
-                      {g.items[0]?.recommendation ?? g.ruleName}{" "}
+                      <span className="font-medium">{g.ruleName}</span>{" "}
                       <span className="text-muted-foreground">
                         ({g.items.length} {g.items.length === 1 ? "URL" : "URLs"})
                       </span>
@@ -319,7 +319,7 @@ function FindingGroup({ g }: { g: DiagnosticGroup }) {
       )}
       {first.recommendation && (
         <p className="mt-2 text-sm">
-          <span className="font-medium">Recomendación: </span>
+          <span className="font-medium">Sugerencia: </span>
           {first.recommendation}
         </p>
       )}
