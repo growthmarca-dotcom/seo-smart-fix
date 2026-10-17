@@ -69,6 +69,8 @@ export interface PageSnapshot {
   externalLinks: number;
   canonical?: string | undefined;
   robotsMeta?: string | undefined;
+  /** Encabezado HTTP X-Robots-Tag, si la respuesta lo trae. */
+  xRobotsTag?: string | undefined;
   schemaTypes: string[];
   depth: number;
   hasViewport: boolean;
@@ -111,7 +113,18 @@ export interface RobotsReport {
   parseWarnings: string[];
   /** true si el crawler aplicó realmente las reglas. */
   applied: boolean;
+  /** Política efectiva usada en el rastreo (auditorías antiguas: ausente). */
+  policy?: RobotsPolicy | undefined;
 }
+
+export type RobotsPolicy = "apply" | "no-rules" | "ignored" | "restricted-unverified";
+
+export const ROBOTS_POLICY_LABELS: Record<RobotsPolicy, string> = {
+  apply: "Se respetaron las reglas de robots.txt para el agente SEOFixerBot",
+  "no-rules": "Sin reglas aplicables (archivo inexistente o vacío): se rastreó sin restricciones",
+  ignored: "El usuario desactivó el respeto de robots.txt para esta auditoría",
+  "restricted-unverified": "robots.txt no se pudo leer o interpretar: por precaución solo se analizó la página de inicio",
+};
 
 /** Tipo de documento sitemap procesado. */
 export type SitemapKind = "sitemap" | "index" | "child" | "inaccessible" | "invalid";
@@ -183,6 +196,7 @@ export interface NormalizationRecord {
 export type ExclusionReason =
   | "limit-reached"
   | "robots-disallow"
+  | "robots-unverified"
   | "non-html"
   | "external-host"
   | "duplicate-normalized"
@@ -192,6 +206,7 @@ export type ExclusionReason =
 export const EXCLUSION_LABELS: Record<ExclusionReason, string> = {
   "limit-reached": "Fuera del límite de rastreo",
   "robots-disallow": "Bloqueada por robots.txt",
+  "robots-unverified": "No rastreada: robots.txt no verificable",
   "non-html": "Recurso no HTML",
   "external-host": "Fuera del dominio",
   "duplicate-normalized": "Duplicada tras normalizar",
