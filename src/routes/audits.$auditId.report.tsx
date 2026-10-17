@@ -9,7 +9,7 @@ import { analyzeContent } from "@/seo/content-analysis";
 import { CATEGORY_LABELS, SEVERITY_LABELS } from "@/seo/rules";
 import { countBySeverity, scoreLabel } from "@/seo/engine";
 import { getConnector } from "@/seo/connectors";
-import type { Audit } from "@/seo/types";
+import { EXCLUSION_LABELS, ROBOTS_POLICY_LABELS, ROBOTS_STATE_LABELS, type Audit, type ExclusionReason } from "@/seo/types";
 
 export const Route = createFileRoute("/audits/$auditId/report")({
   head: () => ({
@@ -193,7 +193,9 @@ function ReportBody({ audit }: { audit: Audit }) {
               {cov.blocked != null && <Meta label="Bloqueadas por robots" value={String(cov.blocked)} />}
               {cov.pending != null && <Meta label="Pendientes por límite" value={String(cov.pending)} />}
             </dl>
-          ) : (
+          ) : null}
+          {cov && <RobotsAndExclusions cov={cov} respect={audit.respectRobots} />}
+          {!cov && (
             <p className="text-sm text-muted-foreground">
               Detalle de cobertura no disponible. Páginas analizadas: {audit.pages.length}.
             </p>
@@ -277,6 +279,11 @@ function ReportBody({ audit }: { audit: Audit }) {
               construcción) y requieren validación en contexto antes de actuar.
             </li>
             <li>Las URLs no analizadas por el límite o bloqueadas no están incluidas en el diagnóstico.</li>
+            <li>
+              Los hallazgos de indexación (noindex) se basan en la meta robots y el encabezado X-Robots-Tag
+              de páginas efectivamente descargadas. Las páginas sin enlaces entrantes se calculan sobre los
+              enlaces HTML visibles sin JavaScript y requieren validación manual.
+            </li>
           </ul>
         </Section>
 
@@ -350,6 +357,72 @@ function Meta({ label, value }: { label: string; value: string }) {
     <div>
       <dt className="text-xs text-muted-foreground">{label}</dt>
       <dd className="break-all font-medium">{value}</dd>
+    </div>
+  );
+}
+
+function RobotsAndExclusions({
+  cov,
+  respect,
+}: {
+  cov: NonNullable<Audit["coverage"]>;
+  respect: boolean | undefined;
+}) {
+  const robots = cov.robots;
+  const policyText = robots?.policy
+    ? ROBOTS_POLICY_LABELS[robots.policy]
+    : respect
+      ? "Se solicitó respetar robots.txt (detalle de política no registrado en esta auditoría)"
+      : "No se respetó robots.txt en esta auditoría";
+  const byReason = new Map<ExclusionReason, typeof cov.excluded>();
+  for (const e of cov.excluded ?? []) {
+    const list = byReason.get(e.reason) ?? [];
+    list.push(e);
+    byReason.set(e.reason, list);
+  }
+  return (
+    <div className="mt-4 space-y-3 text-sm">
+      <div className="break-inside-avoid">
+        <h3 className="font-semibold">robots.txt</h3>
+        <p>{policyText}.</p>
+        {robots && (
+          <p className="text-xs text-muted-foreground">
+            Estado: {ROBOTS_STATE_LABELS[robots.state]}
+            {robots.userAgentGroup ? ` · Grupo aplicado: User-agent ${robots.userAgentGroup}` : ""}
+            {robots.disallow.length ? ` · Disallow: ${robots.disallow.slice(0, 6).join(", ")}` : ""}
+          </p>
+        )}
+      </div>
+      <div className="break-inside-avoid">
+        <h3 className="font-semibold">URLs no analizadas</h3>
+        {byReason.size === 0 ? (
+          <p className="text-muted-foreground">Todas las URLs descubiertas fueron analizadas.</p>
+        ) : (
+          <ul className="space-y-2">
+            {[...byReason.entries()].map(([reason, list]) => (
+              <li key={reason}>
+                <span className="font-medium">{EXCLUSION_LABELS[reason] ?? reason}</span>{" "}
+                <span className="text-muted-foreground">({list.length})</span>
+                {(reason === "robots-disallow" || reason === "robots-unverified") && (
+                  <p className="text-xs text-muted-foreground">
+                    No se descargaron: su indexación (noindex) no fue verificada. Bloquear el rastreo
+                    no equivale a noindex.
+                  </p>
+                )}
+                <ul className="ml-4 list-disc text-xs">
+                  {list.slice(0, 10).map((e) => (
+                    <li key={e.url} className="break-all">
+                      {e.url}
+                      {e.detail ? ` — ${e.detail}` : ""}
+                    </li>
+                  ))}
+                  {list.length > 10 && <li>y {list.length - 10} más.</li>}
+                </ul>
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
     </div>
   );
 }
