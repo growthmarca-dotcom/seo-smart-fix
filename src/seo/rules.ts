@@ -436,14 +436,21 @@ export const RULES: SeoRule[] = [
     tags: ["universal"],
     explanation:
       "Una etiqueta noindex excluye la página del índice de Google. Si es una página comercial, no puede recibir tráfico orgánico.",
-    check: (p) =>
-      /noindex/i.test(p.robotsMeta ?? "")
-        ? {
-            current: p.robotsMeta!,
-            problem: "La página se está excluyendo del índice.",
-            suggestion: "index, follow",
-          }
-        : null,
+    check: (p) => {
+      const inMeta = /noindex/i.test(p.robotsMeta ?? "");
+      const inHeader = /noindex/i.test(p.xRobotsTag ?? "");
+      if (!inMeta && !inHeader) return null;
+      return {
+        current: inMeta ? p.robotsMeta! : `X-Robots-Tag: ${p.xRobotsTag}`,
+        problem: "La página se está excluyendo del índice.",
+        suggestion: "index, follow",
+        evidence: [
+          ...(inMeta ? [`Meta robots en el HTML: "${p.robotsMeta}"`] : []),
+          ...(inHeader ? [`Encabezado HTTP X-Robots-Tag: "${p.xRobotsTag}"`] : []),
+          "Verificado en la respuesta descargada (HTTP " + p.statusCode + ")",
+        ],
+      };
+    },
   },
   {
     id: "nofollow-meta",
