@@ -129,3 +129,11 @@ Próximo paso recomendado: Fase 7C (lectura) siguiendo el patrón de Tienda Nube
 - Sin backend de persistencia/autenticación (store en `localStorage`).
 - Sin métricas de rendimiento reales (PageSpeed/Core Web Vitals).
 - Crawler sin render JS.
+
+## robots.txt y fiabilidad del rastreo (oct 2026)
+
+- Política explícita: apply / no-rules (404 o vacío) / ignored (desactivado) / restricted-unverified (ilegible → solo home).
+- "Disallow: /" con Allow que reabre rutas ya no detiene la auditoría.
+- noindex se detecta por meta robots y X-Robots-Tag solo en páginas descargadas; las bloqueadas figuran como "no verificadas".
+- El informe lista la política aplicada y las URLs no analizadas por causa.
+- Tests: src/lib/crawl.server.test.ts.

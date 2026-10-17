@@ -246,7 +246,8 @@ function NewAudit() {
                   <div>
                     <p className="text-sm font-medium">Respetar robots.txt</p>
                     <p className="text-xs text-muted-foreground">
-                      Si el sitio bloquea el rastreo, la auditoría se detiene y se informa.
+                      Las rutas bloqueadas se omiten y se informan; solo se detiene si bloquea todo el sitio.
+                      Si robots.txt no se puede leer, solo se analiza la página de inicio.
                     </p>
                   </div>
                   <Switch checked={respectRobots} onCheckedChange={setRespectRobots} />

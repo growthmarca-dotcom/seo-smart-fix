@@ -20,6 +20,7 @@ import type {
   LinkStatusClass,
   NormalizationRecord,
   PageSnapshot,
+  RobotsPolicy,
   RobotsReport,
   RobotsState,
   SitemapDoc,
@@ -63,6 +64,7 @@ interface FetchOutcome {
   ms: number;
   finalUrl: string;
   contentType?: string | undefined;
+  xRobotsTag?: string | undefined;
   redirected: boolean;
 }
 
@@ -84,6 +86,7 @@ async function get(url: string, method: "GET" | "HEAD" = "GET"): Promise<FetchOu
       ms: Date.now() - started,
       finalUrl: res.url || url,
       contentType: res.headers.get("content-type") ?? undefined,
+      xRobotsTag: res.headers.get("x-robots-tag") ?? undefined,
       redirected: res.redirected,
     };
   } finally {
@@ -245,8 +248,17 @@ export async function readRobots(origin: string): Promise<RobotsReport> {
     // Muchos hostings devuelven la página 404 con estado 200.
     return { ...base, state: "invalid", parseWarnings: ["La respuesta era HTML, no robots.txt"] };
   }
-  const rawLines = res.body.split(/\r?\n/);
-  if (!res.body.trim()) return { ...base, found: true, state: "empty" };
+  return parseRobotsTxt(res.body);
+}
+
+/** Interpreta el contenido de robots.txt (puro, testeable). */
+export function parseRobotsTxt(text: string): RobotsReport {
+  const base: RobotsReport = {
+    state: "missing", found: true, groupsFound: 0, disallow: [], allow: [],
+    sitemaps: [], parseWarnings: [], applied: false,
+  };
+  const rawLines = text.split(/\r?\n/);
+  if (!text.trim()) return { ...base, found: true, state: "empty" };
 
   const sitemaps: string[] = [];
   const parseWarnings: string[] = [];
@@ -300,7 +312,8 @@ export async function readRobots(origin: string): Promise<RobotsReport> {
   const specific = groups.find((g) => g.agents.some((a) => a.includes("seofixerbot")));
   const wildcard = groups.find((g) => g.agents.includes("*"));
   const group = specific ?? wildcard;
-  const state: RobotsState = group?.disallow.includes("/")
+  // Bloqueo total solo si "Disallow: /" no tiene ningún Allow que reabra rutas.
+  const state: RobotsState = group?.disallow.includes("/") && !(group?.allow.some((a) => a !== "") ?? false)
     ? "disallow-all"
     : groups.length === 0 && sitemaps.length === 0
       ? "empty"
@@ -330,6 +343,20 @@ function matchesRobotsPath(pathWithQuery: string, pattern: string) {
   } catch {
     return pathWithQuery.startsWith(pattern);
   }
+}
+
+/**
+ * Política explícita de robots.txt:
+ * - "ignored": el usuario desactivó el respeto (no se eluden autenticaciones ni bloqueos de acceso).
+ * - "apply": reglas leídas y aplicadas por URL.
+ * - "no-rules": archivo inexistente (404/410) o vacío → sin restricciones según el estándar.
+ * - "restricted-unverified": no se pudo leer o interpretar → modo seguro (solo home).
+ */
+export function resolveRobotsPolicy(report: RobotsReport, respect: boolean): RobotsPolicy {
+  if (!respect) return "ignored";
+  if (report.state === "fetch-error" || report.state === "invalid") return "restricted-unverified";
+  if (!report.found || report.state === "empty" || report.state === "missing") return "no-rules";
+  return "apply";
 }
 
 /** Devuelve el patrón Disallow que bloquea la URL, o null si está permitida. */
@@ -464,8 +491,11 @@ export async function crawlSite(input: {
   const linkChecks: LinkCheck[] = [];
 
   const robotsReport = await readRobots(origin);
-  const robotsActive = input.respectRobots && robotsReport.found && robotsReport.state !== "empty";
-  const robots: RobotsReport = { ...robotsReport, applied: robotsActive };
+  const policy = resolveRobotsPolicy(robotsReport, input.respectRobots);
+  const robotsActive = policy === "apply";
+  /** robots.txt ilegible: modo seguro, solo se analiza la home. */
+  const restricted = policy === "restricted-unverified";
+  const robots: RobotsReport = { ...robotsReport, applied: robotsActive || restricted, policy };
   const disallowsAll = robots.state === "disallow-all";
   let blocked = 0;
 
@@ -512,6 +542,17 @@ export async function crawlSite(input: {
     if (NON_HTML_EXT.test(target.pathname)) {
       if (!queued.has(normalized) && !excluded.some((e) => e.url === normalized)) {
         excluded.push({ url: normalized, reason: "non-html", detail: from });
+      }
+      return;
+    }
+    if (restricted && source !== "seed") {
+      if (!queued.has(normalized) && !excluded.some((e) => e.url === normalized)) {
+        excluded.push({
+          url: normalized,
+          reason: "robots-unverified",
+          detail: `robots.txt ${robots.state === "invalid" ? "no interpretable" : "inaccesible"}: no se rastreó por precaución`,
+        });
+        blocked += 1;
       }
       return;
     }
@@ -579,6 +620,11 @@ export async function crawlSite(input: {
     };
   }
 
+  if (restricted) {
+    errors.push(
+      `robots.txt ${robots.state === "invalid" ? "no se pudo interpretar" : "no se pudo leer"}: por precaución solo se analizó la página de inicio. Desactivá "Respetar robots.txt" solo si tenés autorización del sitio.`,
+    );
+  }
   const rootNormalized = normalizeUrl(root.toString()) ?? root.toString();
   enqueue(rootNormalized, 0, "seed");
   for (const u of sitemapUrls) enqueue(u, 1, "sitemap");
@@ -624,6 +670,7 @@ export async function crawlSite(input: {
         responseMs: res.ms,
         contentType: res.contentType,
       });
+      if (res.xRobotsTag) snapshot.xRobotsTag = res.xRobotsTag;
       snapshot.discoveredVia = via.get(next.url) ?? next.via;
       if (finalNormalized !== next.url) snapshot.redirectedFrom = [next.url];
       analyzed.set(next.url, snapshot);
@@ -679,6 +726,7 @@ export async function crawlSite(input: {
       }
       if (!sameSite(targetUrl, root) || NON_HTML_EXT.test(targetUrl.pathname)) continue;
       if (robotsActive && robotsBlockedBy(robots, target)) continue;
+      if (restricted) continue;
 
       const cached = cache.get(target);
       if (cached) {
@@ -804,6 +852,7 @@ export async function analyzeSingleUrl(url: string): Promise<PageSnapshot | null
     responseMs: res.ms,
     contentType: res.contentType,
   });
+  if (res.xRobotsTag) snapshot.xRobotsTag = res.xRobotsTag;
   snapshot.discoveredVia = "seed";
   return snapshot;
 }
