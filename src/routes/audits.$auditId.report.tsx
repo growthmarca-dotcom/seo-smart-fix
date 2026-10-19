@@ -295,11 +295,35 @@ function ReportBody({ audit }: { audit: Audit }) {
   );
 }
 
-function FindingGroup({ g }: { g: DiagnosticGroup }) {
+function FindingGroup({
+  g,
+  audit,
+  orphan,
+  template,
+}: {
+  g: DiagnosticGroup;
+  audit: Audit;
+  orphan: Record<string, OrphanState>;
+  template: Set<string>;
+}) {
   const first = g.items[0]!;
-  const evidence = g.items.flatMap((d) => d.evidence ?? []).slice(0, 4);
+  const isOrphanRule = g.ruleId === "orphan-page";
+  const allPotential = isOrphanRule && g.items.every((d) => orphan[d.pageId] === "potentially-orphan");
+  const title = allPotential ? "Posible página huérfana" : g.ruleName;
+  const recs = g.items.map((d) => {
+    const page = audit.pages.find((p) => p.id === d.pageId);
+    return reportRecommendation(d, page, template.has(d.pageId) && TEMPLATE_RULES.has(d.ruleId));
+  });
+  const distinctRecs = [
+    ...new Map(
+      recs
+        .map((r, i) => r ?? (g.items[i]!.recommendation ? { text: g.items[i]!.recommendation!, basis: null } : null))
+        .filter((r): r is { text: string; basis: RecommendationBasis | null } => r !== null)
+        .map((r) => [r.text, r]),
+    ).values(),
+  ];
   return (
-    <div className="break-inside-avoid rounded-lg border border-border p-4">
+    <div className="rounded-lg border border-border p-4">
       <div className="flex flex-wrap items-center gap-2 text-xs">
         <span className="rounded bg-primary/10 px-2 py-0.5 font-semibold text-primary">
           {PRIORITY_TITLES[g.priorityLabel] ?? g.priorityLabel}
@@ -309,39 +333,52 @@ function FindingGroup({ g }: { g: DiagnosticGroup }) {
         {g.estimatedPoints != null && g.estimatedPoints > 0 && (
           <span className="text-muted-foreground">· Impacto estimado: {g.estimatedPoints} pts</span>
         )}
-        {g.kind === "heuristic" && <span className="text-muted-foreground">· Requiere validación</span>}
+        {(g.kind === "heuristic" || allPotential) && (
+          <span className="text-muted-foreground">· Inferencia: requiere validación</span>
+        )}
       </div>
-      <h3 className="mt-2 font-semibold">{g.ruleName}</h3>
-      <p className="mt-1 text-sm">{first.detected}</p>
+      <h3 className="mt-2 font-semibold">{title}</h3>
+      <p className="mt-1 text-sm">{allPotential ? "No se detectaron enlaces internos hacia estas URLs; solo se descubrieron por el sitemap." : first.detected}</p>
       {g.why && <p className="mt-1 text-sm text-muted-foreground">{g.why}</p>}
-      {evidence.length > 0 && (
+      {distinctRecs.length > 0 && (
         <div className="mt-2 text-sm">
-          <p className="font-medium">Evidencia:</p>
-          <ul className="ml-5 list-disc break-all text-muted-foreground">
-            {evidence.map((e, i) => (
-              <li key={i}>{e}</li>
-            ))}
-          </ul>
+          <span className="font-medium">Recomendación: </span>
+          {distinctRecs.map((r, i) => (
+            <p key={i} className={i ? "mt-1" : "inline"}>
+              {r.text}
+              {r.basis && (
+                <span className="text-xs text-muted-foreground"> ({RECOMMENDATION_BASIS_LABELS[r.basis]})</span>
+              )}
+            </p>
+          ))}
         </div>
       )}
-      {first.recommendation && (
-        <p className="mt-2 text-sm">
-          <span className="font-medium">Sugerencia: </span>
-          {first.recommendation}
-        </p>
-      )}
-      <div className="mt-2 text-xs">
-        <p className="font-medium">URLs afectadas ({g.items.length}):</p>
-        <ul className="break-all text-muted-foreground">
+      <div className="mt-2 text-sm">
+        <p className="font-medium">Evidencia por URL ({g.items.length}):</p>
+        <ul className="mt-1 space-y-1.5">
           {g.items.slice(0, MAX_URLS_PER_GROUP).map((d) => (
-            <li key={d.key}>{d.pageUrl}</li>
+            <li key={d.key} className="break-inside-avoid">
+              <span className="break-all font-mono text-xs">{d.pageUrl}</span>
+              <ul className="ml-5 list-disc break-words text-muted-foreground">
+                {reportEvidence(d, audit, orphan).map((e, i) => (
+                  <li key={i}>{e}</li>
+                ))}
+              </ul>
+            </li>
           ))}
-          {g.items.length > MAX_URLS_PER_GROUP && <li>y {g.items.length - MAX_URLS_PER_GROUP} más.</li>}
+          {g.items.length > MAX_URLS_PER_GROUP && (
+            <li className="text-xs text-muted-foreground">
+              y {g.items.length - MAX_URLS_PER_GROUP} URLs más con el mismo hallazgo (detalle en la aplicación).
+            </li>
+          )}
         </ul>
       </div>
     </div>
   );
 }
+
+/** Reglas cuya causa común es una publicación vacía o de plantilla. */
+const TEMPLATE_RULES = new Set(["thin-content", "duplicate-title", "duplicate-content"]);
 
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
