@@ -43,7 +43,7 @@ function thinContentAdvice(page?: PageSnapshot): string {
   if (isBookingOrContact(page))
     return "Verificar que la página explique claramente cómo reservar o contactar (datos, condiciones y próximos pasos); no requiere texto extenso.";
   const ctx = resolvePageContext(page);
-  switch (ctx.profile.id ?? page.pageType) {
+  switch (ctx.contextKey) {
     case "article":
       return "Si la publicación debe conservarse, desarrollar el tema con contenido propio (subtítulos, ejemplos, información local) o unificarla con otra publicación relacionada.";
     case "product":
