@@ -9,6 +9,16 @@ import { analyzeContent } from "@/seo/content-analysis";
 import { CATEGORY_LABELS, SEVERITY_LABELS } from "@/seo/rules";
 import { countBySeverity, scoreLabel } from "@/seo/engine";
 import { getConnector } from "@/seo/connectors";
+import {
+  RECOMMENDATION_BASIS_LABELS,
+  groupOpportunities,
+  orphanStates,
+  reportEvidence,
+  reportRecommendation,
+  templateCluster,
+  type RecommendationBasis,
+} from "@/seo/report-presentation";
+import type { OrphanState } from "@/seo/link-graph";
 import { EXCLUSION_LABELS, ROBOTS_POLICY_LABELS, ROBOTS_STATE_LABELS, type Audit, type ExclusionReason } from "@/seo/types";
 
 export const Route = createFileRoute("/audits/$auditId/report")({
@@ -75,6 +85,10 @@ function ReportBody({ audit }: { audit: Audit }) {
       return null;
     }
   }, [audit]);
+  const orphan = useMemo(() => orphanStates(audit), [audit]);
+  const tpl = useMemo(() => templateCluster(audit), [audit]);
+  const tplSet = useMemo(() => new Set(tpl?.pageIds ?? []), [tpl]);
+  const oppGroups = useMemo(() => (content ? groupOpportunities(content.opportunities) : []), [content]);
   const counts = countBySeverity(audit.findings);
   const cov = audit.coverage;
   const score = audit.score;
@@ -209,7 +223,7 @@ function ReportBody({ audit }: { audit: Audit }) {
           ) : (
             <div className="space-y-4">
               {groups.map((g) => (
-                <FindingGroup key={g.ruleId} g={g} />
+                <FindingGroup key={g.ruleId} g={g} audit={audit} orphan={orphan} template={tplSet} />
               ))}
             </div>
           )}
@@ -217,20 +231,29 @@ function ReportBody({ audit }: { audit: Audit }) {
 
         {/* Oportunidades */}
         <Section title="5. Oportunidades">
-          {content && content.opportunities.length > 0 ? (
-            <ul className="space-y-2 text-sm">
-              {content.opportunities.slice(0, 12).map((o) => (
+          {oppGroups.length > 0 ? (
+            <ul className="space-y-3 text-sm">
+              {oppGroups.slice(0, 12).map((o) => (
                 <li key={o.key} className="break-inside-avoid">
-                  <span className="font-medium">{o.signalName}</span> —{" "}
-                  <span className="break-all text-muted-foreground">{o.pagePath}</span>
+                  <span className="font-medium">{o.signalName}</span>{" "}
+                  <span className="text-muted-foreground">
+                    ({o.pages.length} {o.pages.length === 1 ? "página" : "páginas"})
+                  </span>
                   <p>{o.recommendation}</p>
+                  <p className="break-all text-xs text-muted-foreground">
+                    {o.pages.slice(0, 8).map((p) => p.path || "/").join(", ")}
+                    {o.pages.length > 8 ? ` y ${o.pages.length - 8} más` : ""}
+                  </p>
                 </li>
               ))}
-              {content.opportunities.length > 12 && (
+              {oppGroups.length > 12 && (
                 <li className="text-xs text-muted-foreground">
-                  y {content.opportunities.length - 12} oportunidades más en la aplicación.
+                  y {oppGroups.length - 12} oportunidades más en la aplicación.
                 </li>
               )}
+              <li className="text-xs text-muted-foreground">
+                Las páginas de reserva y contacto se excluyen de las oportunidades genéricas de contenido.
+              </li>
             </ul>
           ) : (
             <p className="text-sm text-muted-foreground">
@@ -241,6 +264,25 @@ function ReportBody({ audit }: { audit: Audit }) {
 
         {/* Plan de acción */}
         <Section title="6. Plan de acción">
+          {tpl && (
+            <div className="mb-4 break-inside-avoid rounded-lg border border-border p-3">
+              <h3 className="font-semibold">Acción principal: publicaciones vacías o de plantilla</h3>
+              <p className="text-sm">
+                {tpl.pageIds.length} URLs tienen contenido insuficiente y comparten title o contenido con
+                otras páginas, lo que indica una causa común (plantillas sin completar). Decidir con el
+                propietario si se eliminan/despublican o se completan con contenido propio.
+              </p>
+              <p className="mt-1 text-xs text-muted-foreground">
+                Problemas asociados: {tpl.ruleNames.join(", ")}. Los hallazgos individuales se mantienen en
+                la sección 4.
+              </p>
+              <ul className="ml-5 list-disc break-all text-xs text-muted-foreground">
+                {tpl.urls.map((u) => (
+                  <li key={u}>{u}</li>
+                ))}
+              </ul>
+            </div>
+          )}
           {byPriority.map(({ p, items }) =>
             items.length === 0 ? null : (
               <div key={p} className="mb-4 break-inside-avoid">
@@ -250,7 +292,12 @@ function ReportBody({ audit }: { audit: Audit }) {
                     <li key={g.ruleId}>
                       <span className="font-medium">{g.ruleName}</span>{" "}
                       <span className="text-muted-foreground">
-                        ({g.items.length} {g.items.length === 1 ? "URL" : "URLs"})
+                        ({g.items.length} {g.items.length === 1 ? "URL" : "URLs"}
+                        {tpl && g.items.some((d) => tplSet.has(d.pageId)) &&
+                        ["thin-content", "duplicate-title", "duplicate-content"].includes(g.ruleId)
+                          ? `; ${g.items.filter((d) => tplSet.has(d.pageId)).length} se resuelven con la acción principal`
+                          : ""}
+                        )
                       </span>
                     </li>
                   ))}
@@ -281,8 +328,16 @@ function ReportBody({ audit }: { audit: Audit }) {
             <li>Las URLs no analizadas por el límite o bloqueadas no están incluidas en el diagnóstico.</li>
             <li>
               Los hallazgos de indexación (noindex) se basan en la meta robots y el encabezado X-Robots-Tag
-              de páginas efectivamente descargadas. Las páginas sin enlaces entrantes se calculan sobre los
-              enlaces HTML visibles sin JavaScript y requieren validación manual.
+              de páginas efectivamente descargadas; las bloqueadas por robots.txt no se marcan como noindex.
+            </li>
+            <li>
+              Las páginas sin enlaces entrantes se calculan sobre los enlaces HTML visibles sin JavaScript.
+              Las descubiertas solo por el sitemap se informan como «Posible página huérfana» y requieren
+              validación manual.
+            </li>
+            <li>
+              Las recomendaciones indican si se basan en un hecho confirmado, en una inferencia o si
+              requieren validación del propietario del sitio.
             </li>
           </ul>
         </Section>
