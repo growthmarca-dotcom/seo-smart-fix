@@ -116,6 +116,11 @@ export function reportRecommendation(
     }
     case "thin-content":
       return { text: thinContentAdvice(page), basis: "inferencia" };
+    case "image-filenames":
+      return {
+        text: "Renombrar las imágenes con nombres que describan su contenido real (qué muestra la foto y, si corresponde, el lugar), en minúsculas, con guiones y sin números de cámara. Hacerlo al subir imágenes nuevas o al actualizar las existentes.",
+        basis: "inferencia",
+      };
     case "orphan-page":
       return {
         text: "Si la página es relevante, enlazarla desde el menú, la portada o contenidos relacionados. Si no debe existir, retirarla del sitemap. Validar manualmente: el rastreador no ejecuta JavaScript.",
@@ -219,6 +224,50 @@ export function templateCluster(audit: Audit): TemplateCluster | null {
     ruleIds: [...ruleIds],
     ruleNames: [...ruleIds].map((r) => names.get(r) ?? r),
   };
+}
+
+/** Reglas cuyo hallazgo es un valor compartido entre varias URLs. */
+export const SHARED_VALUE_RULES = new Set(["duplicate-title", "duplicate-meta-description"]);
+
+export const TEMPLATE_RECOMMENDATION_TEXT =
+  "Si esta página no se utilizará, eliminala o despublicala; si debe conservarse, retirala del sitemap cuando corresponda y evitá mantener una página indexable sin contenido útil.";
+
+export interface SharedValueCluster {
+  value: string;
+  items: Diagnostic[];
+  allTemplate: boolean;
+  recommendation: ReportRecommendation;
+}
+
+/**
+ * Agrupa diagnósticos de valor compartido (title/meta description) por el
+ * valor repetido: cada valor y su lista de URLs se muestran una sola vez.
+ * Si todas las páginas del grupo son plantillas vacías, la única
+ * recomendación es evaluar su retiro (no optimizarlas).
+ */
+export function sharedValueClusters(
+  items: Diagnostic[],
+  audit: Audit,
+  template: Set<string>,
+): SharedValueCluster[] {
+  const map = new Map<string, Diagnostic[]>();
+  for (const d of items) {
+    const list = map.get(d.current) ?? [];
+    list.push(d);
+    map.set(d.current, list);
+  }
+  return [...map.entries()].map(([value, list]) => {
+    const allTemplate = list.every((d) => template.has(d.pageId));
+    const first = list[0]!;
+    const page = audit.pages.find((p) => p.id === first.pageId);
+    const recommendation = allTemplate
+      ? { text: TEMPLATE_RECOMMENDATION_TEXT, basis: "validacion" as const }
+      : (reportRecommendation(first, page, false) ?? {
+          text: "Redactar un texto único y descriptivo para cada URL.",
+          basis: "hecho" as const,
+        });
+    return { value, items: list, allTemplate, recommendation };
+  });
 }
 
 export interface OpportunityGroup {
