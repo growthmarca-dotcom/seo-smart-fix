@@ -59,6 +59,20 @@ function thinContentAdvice(page?: PageSnapshot): string {
   }
 }
 
+/** true solo si la meta description es más corta de lo recomendado (no confundir con "recortarse"). */
+export function isShortMetaDescription(d: Diagnostic, page: PageSnapshot | undefined): boolean {
+  const len = page?.metaDescription?.trim().length;
+  if (typeof len === "number" && len > 0) return len < 70;
+  if (/\bsupera\b/i.test(d.detected)) return false;
+  return /\bm[aá]s corta\b/i.test(d.detected);
+}
+
+/** Inferencias que requieren validación manual: se separan de los problemas confirmados en el plan. */
+export const MANUAL_VALIDATION_RULES = new Set(["orphan-page"]);
+export const MANUAL_VALIDATION_LABELS: Record<string, string> = {
+  "orphan-page": "Validación manual: posibles páginas huérfanas",
+};
+
 /** Recomendación específica para el informe. null = usar la del motor. */
 export function reportRecommendation(
   d: Diagnostic,
@@ -78,7 +92,7 @@ export function reportRecommendation(
       };
     case "duplicate-title":
       return {
-        text: "Redactar un title único para cada URL que describa su contenido real (tema, servicio o lugar). No reutilizar el texto de plantilla ni repetir el mismo title en otras páginas.",
+        text: "Redactar un title único para cada URL que refleje su contenido real (tema, servicio o lugar), de modo que cada página se distinga en los resultados de búsqueda.",
         basis: "hecho",
       };
     case "duplicate-content":
@@ -106,19 +120,38 @@ export function reportRecommendation(
       };
     }
     case "meta-description-length": {
-      const short = /corta/i.test(d.detected);
       return {
-        text: short
+        text: isShortMetaDescription(d, page)
           ? "Ampliar la meta description hasta 70–160 caracteres agregando qué encuentra el visitante en la página y por qué visitarla."
           : "Reescribir la meta description en 160 caracteres o menos, priorizando el mensaje principal al comienzo. No basta con recortarla.",
         basis: "inferencia",
       };
     }
+    case "h1-missing":
+      return {
+        text: "Agregar un encabezado principal (H1) visible al comienzo de la página, que describa en pocas palabras su tema central y sea coherente con el contenido. Usar un solo H1 por página.",
+        basis: "hecho",
+      };
+    case "images-alt":
+      return {
+        text: "Completar el texto alternativo (ALT) de cada imagen describiendo su contenido o la función que cumple en la página (por ejemplo, qué muestra la foto o a dónde lleva un botón con imagen). Si la imagen es solo decorativa, puede corresponder un ALT vacío.",
+        basis: "hecho",
+      };
+    case "local-nap":
+      return {
+        text: "Si el negocio atiende al público en un lugar físico, mostrar en texto (no solo en imagen) el nombre, la dirección, el teléfono y, si corresponde, los horarios, de forma consistente en todo el sitio. Si trabaja de forma remota o con zona de servicio, alcanza con publicar de forma clara el nombre, los medios de contacto y la zona que atiende. Validar con el propietario qué datos corresponde publicar.",
+        basis: "validacion",
+      };
+    case "local-business-schema":
+      return {
+        text: "Agregar datos estructurados (JSON-LD) que describan al negocio con la información que realmente sea pública: nombre, sitio, teléfono o contacto y, solo si existen y se publican, dirección, horarios o ubicación. Un negocio sin local abierto al público también puede declararse como organización o con su zona de servicio. No incluir datos que no estén confirmados.",
+        basis: "validacion",
+      };
     case "thin-content":
       return { text: thinContentAdvice(page), basis: "inferencia" };
     case "image-filenames":
       return {
-        text: "Renombrar las imágenes con nombres que describan su contenido real (qué muestra la foto y, si corresponde, el lugar), en minúsculas, con guiones y sin números de cámara. Hacerlo al subir imágenes nuevas o al actualizar las existentes.",
+        text: "Cuando la plataforma lo permita, usar nombres de archivo que describan el contenido de la imagen, en minúsculas y con guiones, al subir imágenes nuevas o reemplazar las existentes. Si el nombre lo genera la plataforma o el servicio de imágenes y no puede editarse, priorizar un texto alternativo (ALT) descriptivo y un texto cercano que dé contexto a la imagen.",
         basis: "inferencia",
       };
     case "orphan-page":
