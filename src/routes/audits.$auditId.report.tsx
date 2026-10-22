@@ -44,7 +44,6 @@ export const Route = createFileRoute("/audits/$auditId/report")({
   component: AuditReport,
 });
 
-const MAX_URLS_PER_GROUP = 5;
 const PRIORITY_TITLES: Record<string, string> = {
   alta: "Prioridad alta",
   media: "Prioridad media",
@@ -498,7 +497,7 @@ function RobotsAndExclusions({
           <p className="text-xs text-muted-foreground">
             Estado: {ROBOTS_STATE_LABELS[robots.state]}
             {robots.userAgentGroup ? ` · Grupo aplicado: User-agent ${robots.userAgentGroup}` : ""}
-            {robots.disallow.length ? ` · Disallow: ${robots.disallow.slice(0, 6).join(", ")}` : ""}
+            {robots.disallow.length ? ` · Disallow: ${robots.disallow.join(", ")}` : ""}
           </p>
         )}
       </div>
