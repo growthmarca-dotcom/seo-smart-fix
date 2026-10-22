@@ -389,7 +389,7 @@ function FindingGroup({
         )}
       </div>
       <h3 className="mt-2 font-semibold">{title}</h3>
-      <p className="mt-1 text-sm">{allPotential ? "No se detectaron enlaces internos hacia estas URLs; solo se descubrieron por el sitemap." : first.detected}</p>
+      <p className="mt-1 text-sm">{allPotential ? "No se detectaron enlaces internos hacia estas URLs; solo se descubrieron por el sitemap." : clusters ? `${g.items.length} URLs comparten ${clusters.length === 1 ? "el mismo texto" : `${clusters.length} textos repetidos`}.` : first.detected}</p>
       {g.why && <p className="mt-1 text-sm text-muted-foreground">{g.why}</p>}
       {!clusters && distinctRecs.length > 0 && (
         <div className="mt-2 text-sm">
