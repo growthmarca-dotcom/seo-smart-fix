@@ -4,6 +4,8 @@ import type { ContentItem } from "./content-analysis";
 import {
   SITEMAP_ONLY_EVIDENCE,
   groupOpportunities,
+  sharedValueClusters,
+  TEMPLATE_RECOMMENDATION_TEXT,
   orphanReportLabel,
   reportEvidence,
   reportRecommendation,
@@ -54,5 +56,18 @@ describe("report-presentation", () => {
     const g = groupOpportunities([o("1", "/a"), o("2", "/b"), o("3", "/reservas")]);
     expect(g).toHaveLength(1);
     expect(g[0]!.pages).toHaveLength(2);
+  });
+  it("image-filenames: recomendación general sin ejemplos de plantilla", () => {
+    const r = reportRecommendation(diag({ ruleId: "image-filenames" }), audit.pages[0], false)!;
+    expect(r.text).not.toMatch(/una-publicacion|\.webp/);
+  });
+  it("valor compartido: un grupo por valor; plantillas solo con recomendación de retiro", () => {
+    const items = ["p1", "p2", "p3"].map((id) => diag({ key: id, pageId: id, ruleId: "duplicate-title", current: "Una publicación" }));
+    const tpl = sharedValueClusters(items, audit, new Set(["p1", "p2", "p3"]));
+    expect(tpl).toHaveLength(1);
+    expect(tpl[0]!.items).toHaveLength(3);
+    expect(tpl[0]!.recommendation.text).toBe(TEMPLATE_RECOMMENDATION_TEXT);
+    const mixed = sharedValueClusters(items, audit, new Set(["p1"]));
+    expect(mixed[0]!.recommendation.text).toMatch(/title único/);
   });
 });

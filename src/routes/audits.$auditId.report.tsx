@@ -11,10 +11,12 @@ import { countBySeverity, scoreLabel } from "@/seo/engine";
 import { getConnector } from "@/seo/connectors";
 import {
   RECOMMENDATION_BASIS_LABELS,
+  SHARED_VALUE_RULES,
   groupOpportunities,
   orphanStates,
   reportEvidence,
   reportRecommendation,
+  sharedValueClusters,
   templateCluster,
   type RecommendationBasis,
 } from "@/seo/report-presentation";
@@ -42,7 +44,6 @@ export const Route = createFileRoute("/audits/$auditId/report")({
   component: AuditReport,
 });
 
-const MAX_URLS_PER_GROUP = 5;
 const PRIORITY_TITLES: Record<string, string> = {
   alta: "Prioridad alta",
   media: "Prioridad media",
@@ -233,7 +234,7 @@ function ReportBody({ audit }: { audit: Audit }) {
         <Section title="5. Oportunidades">
           {oppGroups.length > 0 ? (
             <ul className="space-y-3 text-sm">
-              {oppGroups.slice(0, 12).map((o) => (
+              {oppGroups.map((o) => (
                 <li key={o.key} className="break-inside-avoid">
                   <span className="font-medium">{o.signalName}</span>{" "}
                   <span className="text-muted-foreground">
@@ -241,16 +242,10 @@ function ReportBody({ audit }: { audit: Audit }) {
                   </span>
                   <p>{o.recommendation}</p>
                   <p className="break-all text-xs text-muted-foreground">
-                    {o.pages.slice(0, 8).map((p) => p.path || "/").join(", ")}
-                    {o.pages.length > 8 ? ` y ${o.pages.length - 8} más` : ""}
+                    {o.pages.map((p) => p.path || "/").join(", ")}
                   </p>
                 </li>
               ))}
-              {oppGroups.length > 12 && (
-                <li className="text-xs text-muted-foreground">
-                  y {oppGroups.length - 12} oportunidades más en la aplicación.
-                </li>
-              )}
               <li className="text-xs text-muted-foreground">
                 Las páginas de reserva y contacto se excluyen de las oportunidades genéricas de contenido.
               </li>
@@ -362,6 +357,7 @@ function FindingGroup({
   template: Set<string>;
 }) {
   const first = g.items[0]!;
+  const clusters = SHARED_VALUE_RULES.has(g.ruleId) ? sharedValueClusters(g.items, audit, template) : null;
   const isOrphanRule = g.ruleId === "orphan-page";
   const allPotential = isOrphanRule && g.items.every((d) => orphan[d.pageId] === "potentially-orphan");
   const title = allPotential ? "Posible página huérfana" : g.ruleName;
@@ -393,9 +389,9 @@ function FindingGroup({
         )}
       </div>
       <h3 className="mt-2 font-semibold">{title}</h3>
-      <p className="mt-1 text-sm">{allPotential ? "No se detectaron enlaces internos hacia estas URLs; solo se descubrieron por el sitemap." : first.detected}</p>
+      <p className="mt-1 text-sm">{allPotential ? "No se detectaron enlaces internos hacia estas URLs; solo se descubrieron por el sitemap." : clusters ? `${g.items.length} URLs comparten ${clusters.length === 1 ? "el mismo texto" : `${clusters.length} textos repetidos`}.` : first.detected}</p>
       {g.why && <p className="mt-1 text-sm text-muted-foreground">{g.why}</p>}
-      {distinctRecs.length > 0 && (
+      {!clusters && distinctRecs.length > 0 && (
         <div className="mt-2 text-sm">
           <span className="font-medium">Recomendación: </span>
           {distinctRecs.map((r, i) => (
@@ -408,10 +404,34 @@ function FindingGroup({
           ))}
         </div>
       )}
+      {clusters ? (
+        <div className="mt-2 space-y-3 text-sm">
+          {clusters.map((c, ci) => (
+            <div key={ci} className="rounded-md border border-border/60 p-3">
+              <p>
+                <span className="font-medium">Texto compartido: </span>"{c.value}"
+              </p>
+              <p className="mt-1">
+                <span className="font-medium">Recomendación: </span>
+                {c.recommendation.text}{" "}
+                <span className="text-xs text-muted-foreground">
+                  ({RECOMMENDATION_BASIS_LABELS[c.recommendation.basis]})
+                </span>
+              </p>
+              <p className="mt-1 font-medium">URLs afectadas ({c.items.length}):</p>
+              <ul className="ml-5 list-disc">
+                {c.items.map((d) => (
+                  <li key={d.key} className="break-all font-mono text-xs">{d.pageUrl}</li>
+                ))}
+              </ul>
+            </div>
+          ))}
+        </div>
+      ) : (
       <div className="mt-2 text-sm">
         <p className="font-medium">Evidencia por URL ({g.items.length}):</p>
         <ul className="mt-1 space-y-1.5">
-          {g.items.slice(0, MAX_URLS_PER_GROUP).map((d) => (
+          {g.items.map((d) => (
             <li key={d.key} className="break-inside-avoid">
               <span className="break-all font-mono text-xs">{d.pageUrl}</span>
               <ul className="ml-5 list-disc break-words text-muted-foreground">
@@ -421,13 +441,9 @@ function FindingGroup({
               </ul>
             </li>
           ))}
-          {g.items.length > MAX_URLS_PER_GROUP && (
-            <li className="text-xs text-muted-foreground">
-              y {g.items.length - MAX_URLS_PER_GROUP} URLs más con el mismo hallazgo (detalle en la aplicación).
-            </li>
-          )}
         </ul>
       </div>
+      )}
     </div>
   );
 }
@@ -481,7 +497,7 @@ function RobotsAndExclusions({
           <p className="text-xs text-muted-foreground">
             Estado: {ROBOTS_STATE_LABELS[robots.state]}
             {robots.userAgentGroup ? ` · Grupo aplicado: User-agent ${robots.userAgentGroup}` : ""}
-            {robots.disallow.length ? ` · Disallow: ${robots.disallow.slice(0, 6).join(", ")}` : ""}
+            {robots.disallow.length ? ` · Disallow: ${robots.disallow.join(", ")}` : ""}
           </p>
         )}
       </div>
