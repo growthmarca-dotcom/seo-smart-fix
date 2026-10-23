@@ -11,6 +11,8 @@ import { countBySeverity, scoreLabel } from "@/seo/engine";
 import { getConnector } from "@/seo/connectors";
 import {
   RECOMMENDATION_BASIS_LABELS,
+  MANUAL_VALIDATION_LABELS,
+  MANUAL_VALIDATION_RULES,
   SHARED_VALUE_RULES,
   groupOpportunities,
   orphanStates,
@@ -95,8 +97,9 @@ function ReportBody({ audit }: { audit: Audit }) {
   const score = audit.score;
   const byPriority = (["alta", "media", "baja"] as const).map((p) => ({
     p,
-    items: groups.filter((g) => g.priorityLabel === p),
+    items: groups.filter((g) => g.priorityLabel === p && !MANUAL_VALIDATION_RULES.has(g.ruleId)),
   }));
+  const manualGroups = groups.filter((g) => MANUAL_VALIDATION_RULES.has(g.ruleId));
 
   return (
     <div className="report mx-auto max-w-4xl">
