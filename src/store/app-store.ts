@@ -9,6 +9,7 @@ import { buildDemoSite, DEMO_ROOT_URL, DEMO_STORE_NAME } from "@/seo/demo";
 import { getConnector } from "@/seo/connectors";
 import { proposalFromFinding } from "@/seo/suggestions";
 import { mergeRows } from "@/seo/gsc/import";
+import { emptyReview, updateControl, type CommercialReview, type CommercialStatus } from "@/seo/tourism/commercial-review";
 import type { GscConnection, GscRow } from "@/seo/gsc/types";
 import { mergeCategories, mergeProducts } from "@/seo/commerce/dedupe";
 import type {
@@ -62,6 +63,8 @@ export interface AppState {
    */
   stores: StoreConnection[];
   storeImports: StoreImport[];
+  /** Aditivo: evaluación comercial manual de alojamientos, una por auditId. */
+  commercialReviews: CommercialReview[];
   settings: Settings;
 }
 
@@ -76,6 +79,7 @@ const initialState: AppState = {
   gsc: [],
   stores: [],
   storeImports: [],
+  commercialReviews: [],
   settings: {
     defaultCrawlLimit: 100,
     respectRobots: true,
@@ -133,6 +137,7 @@ export function hydrate() {
     gsc: loaded.gsc ?? [],
     stores: loaded.stores ?? [],
     storeImports: loaded.storeImports ?? [],
+    commercialReviews: loaded.commercialReviews ?? [],
     settings: { ...initialState.settings, ...(loaded.settings ?? {}) },
     hydrated: true,
   };
@@ -232,6 +237,7 @@ export const actions = {
       gsc: (prev.gsc ?? []).filter((g) => g.auditId !== auditId),
       // FASE 7B: al borrar una auditoría se borran solo SUS importaciones.
       storeImports: (prev.storeImports ?? []).filter((i) => i.auditId !== auditId),
+      commercialReviews: (prev.commercialReviews ?? []).filter((r) => r.auditId !== auditId),
       stores: (prev.stores ?? []).map((s) => ({
         ...s,
         auditIds: s.auditIds.filter((a) => a !== auditId),
@@ -301,6 +307,19 @@ export const actions = {
           : [...prev.settings.disabledRules, ruleId],
       },
     }));
+  },
+  /** Evaluación comercial (manual): actualiza un control de UNA auditoría. */
+  setCommercialControl(
+    auditId: string,
+    controlId: string,
+    patch: { status?: CommercialStatus | null; notes?: string },
+  ) {
+    set((prev) => {
+      const list = prev.commercialReviews ?? [];
+      const current = list.find((r) => r.auditId === auditId) ?? emptyReview(auditId);
+      const next = updateControl(current, controlId, patch);
+      return { ...prev, commercialReviews: [...list.filter((r) => r.auditId !== auditId), next] };
+    });
   },
   toggleReviewed(auditId: string, findingId: string) {
     const key = `${auditId}:${findingId}`;
@@ -559,4 +578,9 @@ export function useStoreImport(auditId: string, storeId?: string) {
 /** FASE 7B — todas las importaciones de una auditoría (histórico por tienda). */
 export function useStoreImportsForAudit(auditId: string) {
   return useAppState((s) => (s.storeImports ?? []).filter((i) => i.auditId === auditId));
+}
+
+/** Evaluación comercial de UNA auditoría (aislamiento estricto). */
+export function useCommercialReview(auditId: string) {
+  return useAppState((s) => (s.commercialReviews ?? []).find((r) => r.auditId === auditId));
 }
