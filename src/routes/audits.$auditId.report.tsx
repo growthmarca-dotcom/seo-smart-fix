@@ -11,6 +11,8 @@ import { countBySeverity, scoreLabel } from "@/seo/engine";
 import { getConnector } from "@/seo/connectors";
 import {
   RECOMMENDATION_BASIS_LABELS,
+  MANUAL_VALIDATION_LABELS,
+  MANUAL_VALIDATION_RULES,
   SHARED_VALUE_RULES,
   groupOpportunities,
   orphanStates,
@@ -95,8 +97,9 @@ function ReportBody({ audit }: { audit: Audit }) {
   const score = audit.score;
   const byPriority = (["alta", "media", "baja"] as const).map((p) => ({
     p,
-    items: groups.filter((g) => g.priorityLabel === p),
+    items: groups.filter((g) => g.priorityLabel === p && !MANUAL_VALIDATION_RULES.has(g.ruleId)),
   }));
+  const manualGroups = groups.filter((g) => MANUAL_VALIDATION_RULES.has(g.ruleId));
 
   return (
     <div className="report mx-auto max-w-4xl">
@@ -299,6 +302,24 @@ function ReportBody({ audit }: { audit: Audit }) {
                 </ol>
               </div>
             ),
+          )}
+          {manualGroups.length > 0 && (
+            <div className="mb-4 break-inside-avoid rounded-lg border border-dashed border-border p-3">
+              <h3 className="font-semibold">Requiere validación manual (no son errores confirmados)</h3>
+              <p className="text-xs text-muted-foreground">
+                Estos puntos surgen de una inferencia del rastreo y deben comprobarse antes de actuar.
+              </p>
+              <ul className="ml-5 list-disc text-sm">
+                {manualGroups.map((g) => (
+                  <li key={g.ruleId}>
+                    <span className="font-medium">{MANUAL_VALIDATION_LABELS[g.ruleId] ?? g.ruleName}</span>{" "}
+                    <span className="text-muted-foreground">
+                      ({g.items.length} {g.items.length === 1 ? "URL" : "URLs"})
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            </div>
           )}
           {groups.length === 0 && <p className="text-sm text-muted-foreground">Sin acciones pendientes.</p>}
         </Section>
