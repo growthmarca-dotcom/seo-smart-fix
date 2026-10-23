@@ -303,6 +303,24 @@ function ReportBody({ audit }: { audit: Audit }) {
               </div>
             ),
           )}
+          {manualGroups.length > 0 && (
+            <div className="mb-4 break-inside-avoid rounded-lg border border-dashed border-border p-3">
+              <h3 className="font-semibold">Requiere validación manual (no son errores confirmados)</h3>
+              <p className="text-xs text-muted-foreground">
+                Estos puntos surgen de una inferencia del rastreo y deben comprobarse antes de actuar.
+              </p>
+              <ul className="ml-5 list-disc text-sm">
+                {manualGroups.map((g) => (
+                  <li key={g.ruleId}>
+                    <span className="font-medium">{MANUAL_VALIDATION_LABELS[g.ruleId] ?? g.ruleName}</span>{" "}
+                    <span className="text-muted-foreground">
+                      ({g.items.length} {g.items.length === 1 ? "URL" : "URLs"})
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
           {groups.length === 0 && <p className="text-sm text-muted-foreground">Sin acciones pendientes.</p>}
         </Section>
 
