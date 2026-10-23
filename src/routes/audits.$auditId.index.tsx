@@ -378,6 +378,21 @@ function AuditResults() {
       </section>
 
 
+      <section className="panel mt-4 flex flex-wrap items-center justify-between gap-3 p-4">
+        <div>
+          <h2 className="font-display text-base font-semibold">Evaluación comercial del alojamiento</h2>
+          <p className="mt-1 text-xs text-muted-foreground">
+            Controles manuales (reservas, contacto, tarifas, confianza…). Separada de los hallazgos
+            SEO automáticos: no modifica la puntuación.
+          </p>
+        </div>
+        <Button asChild size="sm" variant="outline">
+          <Link to="/audits/$auditId/commercial" params={{ auditId: audit.id }}>
+            Abrir evaluación comercial
+          </Link>
+        </Button>
+      </section>
+
       {ecommerceDetection.isEcommerce ? (
         <section className="panel mt-4 flex flex-wrap items-center justify-between gap-3 p-4">
           <div>

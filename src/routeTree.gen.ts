@@ -20,6 +20,7 @@ import { Route as AuditsAuditIdRouteImport } from './routes/audits.$auditId'
 import { Route as AuditsNewRouteImport } from './routes/audits.new'
 import { Route as AuditsAuditIdIndexRouteImport } from './routes/audits.$auditId.index'
 import { Route as AuditsAuditIdArchitectureRouteImport } from './routes/audits.$auditId.architecture'
+import { Route as AuditsAuditIdCommercialRouteImport } from './routes/audits.$auditId.commercial'
 import { Route as AuditsAuditIdContentRouteImport } from './routes/audits.$auditId.content'
 import { Route as AuditsAuditIdEcommerceRouteImport } from './routes/audits.$auditId.ecommerce'
 import { Route as AuditsAuditIdGscRouteImport } from './routes/audits.$auditId.gsc'
@@ -83,6 +84,11 @@ const AuditsAuditIdArchitectureRoute =
     path: '/architecture',
     getParentRoute: () => AuditsAuditIdRoute,
   } as any)
+const AuditsAuditIdCommercialRoute = AuditsAuditIdCommercialRouteImport.update({
+  id: '/commercial',
+  path: '/commercial',
+  getParentRoute: () => AuditsAuditIdRoute,
+} as any)
 const AuditsAuditIdContentRoute = AuditsAuditIdContentRouteImport.update({
   id: '/content',
   path: '/content',
@@ -125,6 +131,7 @@ export interface FileRoutesByFullPath {
   '/audits/new': typeof AuditsNewRoute
   '/audits/': typeof AuditsIndexRoute
   '/audits/$auditId/architecture': typeof AuditsAuditIdArchitectureRoute
+  '/audits/$auditId/commercial': typeof AuditsAuditIdCommercialRoute
   '/audits/$auditId/content': typeof AuditsAuditIdContentRoute
   '/audits/$auditId/ecommerce': typeof AuditsAuditIdEcommerceRoute
   '/audits/$auditId/gsc': typeof AuditsAuditIdGscRoute
@@ -143,6 +150,7 @@ export interface FileRoutesByTo {
   '/audits/new': typeof AuditsNewRoute
   '/audits': typeof AuditsIndexRoute
   '/audits/$auditId/architecture': typeof AuditsAuditIdArchitectureRoute
+  '/audits/$auditId/commercial': typeof AuditsAuditIdCommercialRoute
   '/audits/$auditId/content': typeof AuditsAuditIdContentRoute
   '/audits/$auditId/ecommerce': typeof AuditsAuditIdEcommerceRoute
   '/audits/$auditId/gsc': typeof AuditsAuditIdGscRoute
@@ -163,6 +171,7 @@ export interface FileRoutesById {
   '/audits/new': typeof AuditsNewRoute
   '/audits/': typeof AuditsIndexRoute
   '/audits/$auditId/architecture': typeof AuditsAuditIdArchitectureRoute
+  '/audits/$auditId/commercial': typeof AuditsAuditIdCommercialRoute
   '/audits/$auditId/content': typeof AuditsAuditIdContentRoute
   '/audits/$auditId/ecommerce': typeof AuditsAuditIdEcommerceRoute
   '/audits/$auditId/gsc': typeof AuditsAuditIdGscRoute
@@ -184,6 +193,7 @@ export interface FileRouteTypes {
     | '/audits/new'
     | '/audits/'
     | '/audits/$auditId/architecture'
+    | '/audits/$auditId/commercial'
     | '/audits/$auditId/content'
     | '/audits/$auditId/ecommerce'
     | '/audits/$auditId/gsc'
@@ -202,6 +212,7 @@ export interface FileRouteTypes {
     | '/audits/new'
     | '/audits'
     | '/audits/$auditId/architecture'
+    | '/audits/$auditId/commercial'
     | '/audits/$auditId/content'
     | '/audits/$auditId/ecommerce'
     | '/audits/$auditId/gsc'
@@ -221,6 +232,7 @@ export interface FileRouteTypes {
     | '/audits/new'
     | '/audits/'
     | '/audits/$auditId/architecture'
+    | '/audits/$auditId/commercial'
     | '/audits/$auditId/content'
     | '/audits/$auditId/ecommerce'
     | '/audits/$auditId/gsc'
@@ -321,6 +333,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuditsAuditIdArchitectureRouteImport
       parentRoute: typeof AuditsAuditIdRoute
     }
+    '/audits/$auditId/commercial': {
+      id: '/audits/$auditId/commercial'
+      path: '/commercial'
+      fullPath: '/audits/$auditId/commercial'
+      preLoaderRoute: typeof AuditsAuditIdCommercialRouteImport
+      parentRoute: typeof AuditsAuditIdRoute
+    }
     '/audits/$auditId/content': {
       id: '/audits/$auditId/content'
       path: '/content'
@@ -368,6 +387,7 @@ declare module '@tanstack/react-router' {
 
 interface AuditsAuditIdRouteChildren {
   AuditsAuditIdArchitectureRoute: typeof AuditsAuditIdArchitectureRoute
+  AuditsAuditIdCommercialRoute: typeof AuditsAuditIdCommercialRoute
   AuditsAuditIdContentRoute: typeof AuditsAuditIdContentRoute
   AuditsAuditIdEcommerceRoute: typeof AuditsAuditIdEcommerceRoute
   AuditsAuditIdGscRoute: typeof AuditsAuditIdGscRoute
@@ -379,6 +399,7 @@ interface AuditsAuditIdRouteChildren {
 
 const AuditsAuditIdRouteChildren: AuditsAuditIdRouteChildren = {
   AuditsAuditIdArchitectureRoute: AuditsAuditIdArchitectureRoute,
+  AuditsAuditIdCommercialRoute: AuditsAuditIdCommercialRoute,
   AuditsAuditIdContentRoute: AuditsAuditIdContentRoute,
   AuditsAuditIdEcommerceRoute: AuditsAuditIdEcommerceRoute,
   AuditsAuditIdGscRoute: AuditsAuditIdGscRoute,

@@ -3,7 +3,8 @@ import { useMemo } from "react";
 import { ArrowLeft, Printer } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/seo-ui";
-import { useAppState } from "@/store/app-store";
+import { useAppState, useCommercialReview } from "@/store/app-store";
+import { hasAnyEvaluation, reviewRows, reviewSummary } from "@/seo/tourism/commercial-review";
 import { groupDiagnostics, type DiagnosticGroup } from "@/seo/diagnostics";
 import { analyzeContent } from "@/seo/content-analysis";
 import { CATEGORY_LABELS, SEVERITY_LABELS } from "@/seo/rules";
@@ -88,6 +89,7 @@ function ReportBody({ audit }: { audit: Audit }) {
       return null;
     }
   }, [audit]);
+  const commercial = useCommercialReview(audit.id);
   const orphan = useMemo(() => orphanStates(audit), [audit]);
   const tpl = useMemo(() => templateCluster(audit), [audit]);
   const tplSet = useMemo(() => new Set(tpl?.pageIds ?? []), [tpl]);
@@ -323,6 +325,26 @@ function ReportBody({ audit }: { audit: Audit }) {
           )}
           {groups.length === 0 && <p className="text-sm text-muted-foreground">Sin acciones pendientes.</p>}
         </Section>
+
+        {hasAnyEvaluation(commercial) && (
+          <Section title="Anexo. Evaluación comercial del alojamiento (manual)">
+            <p className="mb-2 text-xs text-muted-foreground">
+              Evaluación asistida realizada por el equipo auditor. No surge del rastreo automático ni
+              modifica la puntuación SEO. Resumen: {reviewSummary(commercial).verified} verificados,{" "}
+              {reviewSummary(commercial).needsReview} requieren revisión, {reviewSummary(commercial).notApplicable} no
+              aplican, {reviewSummary(commercial).unevaluated} sin evaluar.
+            </p>
+            <ul className="space-y-2 text-sm">
+              {reviewRows(commercial).map((r) => (
+                <li key={r.id} className="break-inside-avoid">
+                  <span className="font-medium">{r.title}</span> —{" "}
+                  <span className="text-muted-foreground">{r.statusLabel}</span>
+                  {r.notes.trim() && <p className="whitespace-pre-wrap text-xs">{r.notes}</p>}
+                </li>
+              ))}
+            </ul>
+          </Section>
+        )}
 
         {/* Metodología */}
         <Section title="7. Metodología y limitaciones">
