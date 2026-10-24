@@ -10,6 +10,8 @@ import { getConnector } from "@/seo/connectors";
 import { proposalFromFinding } from "@/seo/suggestions";
 import { mergeRows } from "@/seo/gsc/import";
 import { emptyReview, updateControl, type CommercialReview, type CommercialStatus } from "@/seo/tourism/commercial-review";
+import * as cm from "@/companies/model";
+import type { Company, CompanyInput, Roadmap, TaskPatch, TaskPriority } from "@/companies/model";
 import type { GscConnection, GscRow } from "@/seo/gsc/types";
 import { mergeCategories, mergeProducts } from "@/seo/commerce/dedupe";
 import type {
@@ -65,6 +67,9 @@ export interface AppState {
   storeImports: StoreImport[];
   /** Aditivo: evaluación comercial manual de alojamientos, una por auditId. */
   commercialReviews: CommercialReview[];
+  /** Aditivo: empresas y su roadmap propio (uno por empresa). */
+  companies: Company[];
+  roadmaps: Roadmap[];
   settings: Settings;
 }
 
@@ -80,6 +85,8 @@ const initialState: AppState = {
   stores: [],
   storeImports: [],
   commercialReviews: [],
+  companies: [],
+  roadmaps: [],
   settings: {
     defaultCrawlLimit: 100,
     respectRobots: true,
@@ -114,7 +121,10 @@ function subscribe(listener: () => void) {
   return () => listeners.delete(listener);
 }
 
-const id = () => Math.random().toString(36).slice(2, 10);
+const id = () =>
+  typeof crypto !== "undefined" && "randomUUID" in crypto
+    ? crypto.randomUUID()
+    : `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;
 const now = () => new Date().toISOString();
 
 function log(entry: Omit<HistoryEntry, "id" | "at">) {
@@ -138,6 +148,7 @@ export function hydrate() {
     stores: loaded.stores ?? [],
     storeImports: loaded.storeImports ?? [],
     commercialReviews: loaded.commercialReviews ?? [],
+    ...cm.migrateCompanies(loaded, (loaded.audits ?? []).map((a) => a.id)),
     settings: { ...initialState.settings, ...(loaded.settings ?? {}) },
     hydrated: true,
   };
@@ -211,6 +222,99 @@ export function buildProposals(audit: Audit): ChangeProposal[] {
     .filter((c): c is ChangeProposal => Boolean(c));
 }
 
+const ctx: cm.Ctx = { now, newId: id };
+
+function detachAuditFromCompanies(prev: AppState, auditId: string) {
+  const roadmaps = [...prev.roadmaps];
+  const companies = prev.companies.map((c) => {
+    if (!c.auditIds.includes(auditId)) return c;
+    const idx = roadmaps.findIndex((r) => r.companyId === c.id);
+    const res = cm.unlinkAudit(c, roadmaps[idx], auditId, ctx, "Auditoría SEO eliminada");
+    if (idx !== -1 && res.roadmap) roadmaps[idx] = res.roadmap;
+    return res.company;
+  });
+  return { companies, roadmaps };
+}
+
+function setRoadmap(companyId: string, fn: (r: Roadmap) => Roadmap) {
+  set((prev) => ({
+    ...prev,
+    roadmaps: prev.roadmaps.map((r) => (r.companyId === companyId ? fn(r) : r)),
+  }));
+}
+
+/** Acciones de Empresas + Roadmap. Toda la lógica vive en src/companies/model.ts. */
+export const companyActions = {
+  create(input: CompanyInput): Company {
+    const { company, roadmap } = cm.createCompany(input, ctx);
+    set((prev) => ({
+      ...prev,
+      companies: [company, ...prev.companies],
+      roadmaps: [...prev.roadmaps, roadmap],
+    }));
+    return company;
+  },
+  update(companyId: string, input: CompanyInput) {
+    set((prev) => ({
+      ...prev,
+      companies: prev.companies.map((c) => (c.id === companyId ? cm.updateCompany(c, input, ctx) : c)),
+    }));
+  },
+  remove(companyId: string) {
+    // Solo borra la empresa y su roadmap; las auditorías asociadas se conservan.
+    set((prev) => ({
+      ...prev,
+      companies: prev.companies.filter((c) => c.id !== companyId),
+      roadmaps: prev.roadmaps.filter((r) => r.companyId !== companyId),
+    }));
+  },
+  linkAudit(companyId: string, auditId: string) {
+    set((prev) => {
+      const audit = prev.audits.find((a) => a.id === auditId);
+      const company = prev.companies.find((c) => c.id === companyId);
+      if (!audit || !company) return prev;
+      const roadmap = prev.roadmaps.find((r) => r.companyId === companyId);
+      const res = cm.linkAudit(company, roadmap, auditId, `${audit.name} (${audit.rootUrl})`, ctx);
+      return {
+        ...prev,
+        companies: prev.companies.map((c) => (c.id === companyId ? res.company : c)),
+        roadmaps: prev.roadmaps.map((r) => (r.companyId === companyId && res.roadmap ? res.roadmap : r)),
+      };
+    });
+  },
+  unlinkAudit(companyId: string, auditId: string) {
+    set((prev) => {
+      const company = prev.companies.find((c) => c.id === companyId);
+      if (!company) return prev;
+      const roadmap = prev.roadmaps.find((r) => r.companyId === companyId);
+      const res = cm.unlinkAudit(company, roadmap, auditId, ctx);
+      return {
+        ...prev,
+        companies: prev.companies.map((c) => (c.id === companyId ? res.company : c)),
+        roadmaps: prev.roadmaps.map((r) => (r.companyId === companyId && res.roadmap ? res.roadmap : r)),
+      };
+    });
+  },
+  updateTask(companyId: string, taskId: string, patch: TaskPatch, statusNote?: string) {
+    setRoadmap(companyId, (r) => cm.updateTask(r, taskId, patch, ctx, statusNote));
+  },
+  addEvidence(companyId: string, taskId: string, ev: { url?: string; note: string }) {
+    setRoadmap(companyId, (r) => cm.addEvidence(r, taskId, ev, ctx));
+  },
+  addTask(companyId: string, phaseId: string, input: { title: string; description?: string; priority?: TaskPriority }) {
+    setRoadmap(companyId, (r) => cm.addTask(r, phaseId, input, ctx));
+  },
+  addPhase(companyId: string, title: string) {
+    setRoadmap(companyId, (r) => cm.addPhase(r, title, ctx));
+  },
+  moveTask(companyId: string, taskId: string, dir: -1 | 1) {
+    setRoadmap(companyId, (r) => cm.moveTask(r, taskId, dir, ctx));
+  },
+  movePhase(companyId: string, phaseId: string, dir: -1 | 1) {
+    setRoadmap(companyId, (r) => cm.movePhase(r, phaseId, dir, ctx));
+  },
+};
+
 export const actions = {
   addAudit(audit: Audit) {
     set((prev) => ({
@@ -238,6 +342,7 @@ export const actions = {
       // FASE 7B: al borrar una auditoría se borran solo SUS importaciones.
       storeImports: (prev.storeImports ?? []).filter((i) => i.auditId !== auditId),
       commercialReviews: (prev.commercialReviews ?? []).filter((r) => r.auditId !== auditId),
+      ...detachAuditFromCompanies(prev, auditId),
       stores: (prev.stores ?? []).map((s) => ({
         ...s,
         auditIds: s.auditIds.filter((a) => a !== auditId),
@@ -583,4 +688,12 @@ export function useStoreImportsForAudit(auditId: string) {
 /** Evaluación comercial de UNA auditoría (aislamiento estricto). */
 export function useCommercialReview(auditId: string) {
   return useAppState((s) => (s.commercialReviews ?? []).find((r) => r.auditId === auditId));
+}
+
+export function useCompany(companyId: string) {
+  return useAppState((s) => s.companies.find((c) => c.id === companyId));
+}
+
+export function useRoadmap(companyId: string) {
+  return useAppState((s) => s.roadmaps.find((r) => r.companyId === companyId));
 }
