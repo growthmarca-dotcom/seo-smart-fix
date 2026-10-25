@@ -96,7 +96,7 @@ export const GENERIC_TEMPLATE: RoadmapTemplate = {
     title: p.title,
     tasks:
       p.key === "C"
-        ? [p.tasks[0]]
+        ? p.tasks.slice(0, 1)
         : [{ title: "Definir tareas de esta fase", description: "Este rubro todavía no tiene plantilla específica. Agregá las tareas que correspondan.", priority: "medium" as TaskPriority }],
   })),
 };
