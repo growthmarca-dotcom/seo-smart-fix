@@ -44,14 +44,14 @@ export const COMPANY_STATUS_LABELS: Record<CompanyStatus, string> = {
 export interface Company {
   id: string;
   tradeName: string;
-  legalName?: string;
-  website?: string;
+  legalName?: string | undefined;
+  website?: string | undefined;
   industry: Industry;
-  contactName?: string;
-  email?: string;
-  phone?: string;
-  location?: string;
-  notes?: string;
+  contactName?: string | undefined;
+  email?: string | undefined;
+  phone?: string | undefined;
+  location?: string | undefined;
+  notes?: string | undefined;
   status: CompanyStatus;
   createdAt: string;
   updatedAt: string;
@@ -79,14 +79,14 @@ export const TASK_PRIORITY_LABELS: Record<TaskPriority, string> = {
 export interface TaskEvidence {
   id: string;
   at: string;
-  url?: string;
+  url?: string | undefined;
   note: string;
 }
 export interface TaskLogEntry {
   at: string;
   detail: string;
-  from?: TaskStatus;
-  to?: TaskStatus;
+  from?: TaskStatus | undefined;
+  to?: TaskStatus | undefined;
 }
 export interface RoadmapTask {
   id: string;
@@ -94,13 +94,13 @@ export interface RoadmapTask {
   description: string;
   priority: TaskPriority;
   status: TaskStatus;
-  owner?: string;
-  dueDate?: string; // YYYY-MM-DD
+  owner?: string | undefined;
+  dueDate?: string | undefined; // YYYY-MM-DD
   notes: string;
   evidence: TaskEvidence[];
   /** Marca la tarea que se vincula con auditorías SEO existentes. */
-  kind?: "seo-audit";
-  linkedAuditIds?: string[];
+  kind?: "seo-audit" | undefined;
+  linkedAuditIds?: string[] | undefined;
   updatedAt: string;
   log: TaskLogEntry[];
 }
@@ -136,21 +136,21 @@ export function normalizeWebsite(raw: string | undefined): string | undefined {
 
 export function validateCompanyInput(input: Partial<CompanyInput>): Record<string, string> {
   const errors: Record<string, string> = {};
-  if (!input.tradeName?.trim()) errors.tradeName = "Ingresá el nombre comercial.";
-  else if (input.tradeName.trim().length > 120) errors.tradeName = "Máximo 120 caracteres.";
-  if (!input.industry || !(input.industry in INDUSTRY_LABELS)) errors.industry = "Elegí un rubro.";
-  if (input.email?.trim() && !EMAIL_RE.test(input.email.trim())) errors.email = "El email no parece válido.";
+  if (!input.tradeName?.trim()) errors["tradeName"] = "Ingresá el nombre comercial.";
+  else if (input.tradeName.trim().length > 120) errors["tradeName"] = "Máximo 120 caracteres.";
+  if (!input.industry || !(input.industry in INDUSTRY_LABELS)) errors["industry"] = "Elegí un rubro.";
+  if (input.email?.trim() && !EMAIL_RE.test(input.email.trim())) errors["email"] = "El email no parece válido.";
   const web = normalizeWebsite(input.website);
   if (web) {
     try {
       const u = new URL(web);
-      if (!u.hostname.includes(".")) errors.website = "La dirección del sitio no parece válida.";
+      if (!u.hostname.includes(".")) errors["website"] = "La dirección del sitio no parece válida.";
     } catch {
-      errors.website = "La dirección del sitio no parece válida.";
+      errors["website"] = "La dirección del sitio no parece válida.";
     }
   }
   if (input.phone?.trim() && !/^[\d\s()+\-.]{6,}$/.test(input.phone.trim()))
-    errors.phone = "El teléfono solo puede tener números, espacios y + ( ) -.";
+    errors["phone"] = "El teléfono solo puede tener números, espacios y + ( ) -.";
   return errors;
 }
 
@@ -325,7 +325,7 @@ export function addPhase(r: Roadmap, title: string, ctx: Ctx): Roadmap {
 function swap<T>(arr: T[], i: number, j: number): T[] {
   if (i < 0 || j < 0 || i >= arr.length || j >= arr.length) return arr;
   const next = [...arr];
-  [next[i], next[j]] = [next[j], next[i]];
+  [next[i], next[j]] = [next[j] as T, next[i] as T];
   return next;
 }
 
@@ -413,7 +413,7 @@ export interface RoadmapProgress {
   blocked: number;
   notApplicable: number;
   /** Siguiente acción sugerida: NO implica que se haya ejecutado nada. */
-  nextAction?: { phaseTitle: string; task: RoadmapTask };
+  nextAction?: { phaseTitle: string | undefined; task: RoadmapTask };
 }
 
 const PRIORITY_RANK: Record<TaskPriority, number> = { high: 0, medium: 1, low: 2 };
