@@ -137,3 +137,16 @@ Próximo paso recomendado: Fase 7C (lectura) siguiendo el patrón de Tienda Nube
 - noindex se detecta por meta robots y X-Robots-Tag solo en páginas descargadas; las bloqueadas figuran como "no verificadas".
 - El informe lista la política aplicada y las URLs no analizadas por causa.
 - Tests: src/lib/crawl.server.test.ts.
+
+## Empresas + Roadmap de seguimiento (implementado, oct 2026)
+
+- Menú «Empresas»: listado con búsqueda (nombre, sitio, localidad, contacto) y filtros por rubro y estado.
+- Alta y edición de empresa (`/companies/new`, `/companies/$companyId/edit`); solo nombre comercial y rubro son obligatorios.
+- Ficha (`/companies/$companyId`): datos, auditorías SEO asociadas (asociar/quitar) y roadmap.
+- Roadmap generado al registrar: plantilla turismo/alojamiento para rubros turísticos; plantilla general para el resto. Cada empresa tiene su propia copia.
+- Tareas: estados pendiente / en curso / bloqueada / completada / no aplica; responsable, vencimiento, prioridad, notas, evidencias (nota + enlace), historial, reordenar, agregar tareas y fases.
+- Progreso = completadas / aplicables («no aplica» no cuenta). Tareas vencidas = fecha pasada y no cerrada.
+- Vincular una auditoría NO marca como completada la tarea SEO.
+- Panel principal: empresas, roadmaps activos, vencidas, bloqueadas y próximas acciones.
+- Verificado en navegador: crear empresa → roadmap de 19 tareas → completar tarea (5%) → evidencia → asociar auditoría → recargar: todo persiste.
+- Limitación: datos solo en este navegador (localStorage); sin usuarios ni guardado compartido. Eliminar una auditoría la desvincula de las empresas.

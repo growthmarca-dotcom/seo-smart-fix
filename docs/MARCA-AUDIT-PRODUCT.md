@@ -113,3 +113,7 @@ elegidas por MarCa Growth.
 - Google Search Console: código de API real vía conector, **sin conexión vinculada** → no verificado; CSV y demo funcionan.
 - Tienda Nube: lectura implementada, credenciales globales no configuradas, sin ruta de callback OAuth → parcial.
 - GA4, PageSpeed: solo tarjeta informativa. Google Business Profile: planificado. Mercado Libre: preparatorio (estado C). WordPress/WooCommerce/Shopify: solo mencionados.
+
+## Estado: Empresas + Roadmap (implementado)
+
+Ficha de empresa con roadmap editable y seguimiento de progreso, vencimientos, bloqueos y evidencias. Detalle en `docs/SEO-APP-STATE.md`. Pendiente: guardado multiusuario (P3).
