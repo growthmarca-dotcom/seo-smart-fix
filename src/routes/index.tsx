@@ -12,6 +12,7 @@ import {
 import { PageHeader } from "@/components/app-shell";
 import { DemoBadge, ScoreRing, SeverityBadge, StatCard, EmptyState } from "@/components/seo-ui";
 import { Button } from "@/components/ui/button";
+import { CompaniesOverview } from "@/components/companies-overview";
 import { CATEGORY_LABELS } from "@/seo/rules";
 import { countBySeverity } from "@/seo/engine";
 import { useAppState } from "@/store/app-store";
@@ -51,6 +52,7 @@ function Dashboard() {
     return (
       <>
         <PageHeader title="Dashboard" description="Todavía no hay auditorías." />
+        <CompaniesOverview />
         <EmptyState
           title="Empezá tu primera auditoría"
           description="Ingresá una URL raíz y SEO Fixer descubrirá el sitemap, rastreará URLs internas y analizará cada página."
@@ -77,6 +79,7 @@ function Dashboard() {
           </Button>
         }
       />
+      <CompaniesOverview />
 
       <div className="grid gap-4 lg:grid-cols-3">
         <div className="panel flex flex-col items-center gap-4 p-6 sm:flex-row sm:items-center">

@@ -126,3 +126,6 @@ Cada fase cerrada debe:
 - No acoplar el núcleo a una plataforma.
 - Mantener aislamiento por `auditId`.
 - Documentar el estado en `docs/SEO-APP-STATE.md`.
+
+- [x] Empresas + Roadmap de seguimiento (local, en este navegador).
+- [ ] Persistencia multiusuario y acceso protegido para Empresas y auditorías.
