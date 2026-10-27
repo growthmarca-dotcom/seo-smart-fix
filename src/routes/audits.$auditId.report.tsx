@@ -4,7 +4,7 @@ import { ArrowLeft, Printer } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/seo-ui";
 import { useAppState, useCommercialReview } from "@/store/app-store";
-import { hasAnyEvaluation, reviewRows, reviewSummary } from "@/seo/tourism/commercial-review";
+import { commercialIssues, hasAnyEvaluation, reviewRows, reviewSummary } from "@/seo/tourism/commercial-review";
 import { groupDiagnostics, type DiagnosticGroup } from "@/seo/diagnostics";
 import { analyzeContent } from "@/seo/content-analysis";
 import { CATEGORY_LABELS, SEVERITY_LABELS } from "@/seo/rules";
@@ -101,6 +101,8 @@ function ReportBody({ audit }: { audit: Audit }) {
     p,
     items: groups.filter((g) => g.priorityLabel === p && !MANUAL_VALIDATION_RULES.has(g.ruleId)),
   }));
+  const commercialOn = hasAnyEvaluation(commercial);
+  const cIssues = commercialOn ? commercialIssues(commercial) : [];
   const manualGroups = groups.filter((g) => MANUAL_VALIDATION_RULES.has(g.ruleId));
 
   return (
@@ -160,6 +162,30 @@ function ReportBody({ audit }: { audit: Audit }) {
                   </li>
                 ))}
               </ul>
+            </div>
+          )}
+          {commercialOn && (
+            <div className="mt-4 break-inside-avoid rounded-lg border border-border p-3 text-sm">
+              <p className="font-semibold">Diagnóstico comercial de venta directa</p>
+              <p className="text-xs text-muted-foreground">
+                Surge de la evaluación manual del equipo auditor ({reviewSummary(commercial).verified} verificados,{" "}
+                {reviewSummary(commercial).needsReview} requieren revisión, {reviewSummary(commercial).notApplicable} no
+                aplican, {reviewSummary(commercial).unevaluated} sin evaluar). No modifica la puntuación SEO.
+              </p>
+              {cIssues.length === 0 ? (
+                <p className="mt-2">No se registraron controles comerciales que requieran revisión.</p>
+              ) : (
+                <ul className="mt-2 space-y-2">
+                  {cIssues.map((i) => (
+                    <li key={i.id}>
+                      <span className="font-medium">{i.title}</span>{" "}
+                      <span className="text-xs text-muted-foreground">(prioridad {i.priority})</span>
+                      <p className="text-xs">Posible consecuencia: {i.consequence}</p>
+                      <p className="text-xs">Acción recomendada: {i.action}</p>
+                    </li>
+                  ))}
+                </ul>
+              )}
             </div>
           )}
         </Section>
@@ -283,8 +309,9 @@ function ReportBody({ audit }: { audit: Audit }) {
               </ul>
             </div>
           )}
-          {byPriority.map(({ p, items }) =>
-            items.length === 0 ? null : (
+          {byPriority.map(({ p, items }) => {
+            const ci = cIssues.filter((i) => i.priority === p);
+            return items.length === 0 && ci.length === 0 ? null : (
               <div key={p} className="mb-4 break-inside-avoid">
                 <h3 className="font-semibold">{PRIORITY_TITLES[p]}</h3>
                 <ol className="ml-5 list-decimal text-sm">
@@ -301,10 +328,18 @@ function ReportBody({ audit }: { audit: Audit }) {
                       </span>
                     </li>
                   ))}
+                  {ci.map((i) => (
+                    <li key={`c-${i.id}`}>
+                      <span className="font-medium">{i.title}</span>{" "}
+                      <span className="text-xs text-muted-foreground">(Comercial / venta directa)</span>
+                      <p className="text-xs">{i.action}</p>
+                      {i.notes.trim() && <p className="whitespace-pre-wrap text-xs text-muted-foreground">Nota: {i.notes}</p>}
+                    </li>
+                  ))}
                 </ol>
               </div>
-            ),
-          )}
+            );
+          })}
           {manualGroups.length > 0 && (
             <div className="mb-4 break-inside-avoid rounded-lg border border-dashed border-border p-3">
               <h3 className="font-semibold">Requiere validación manual (no son errores confirmados)</h3>
