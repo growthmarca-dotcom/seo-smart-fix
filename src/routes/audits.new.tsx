@@ -182,6 +182,10 @@ function NewAudit() {
               </SelectContent>
             </Select>
             <p className="text-xs text-muted-foreground">{connector?.description}</p>
+            <p className="text-xs text-muted-foreground">
+              Para alojamientos y sitios turísticos, seleccioná Web genérica. Después podés completar la
+              evaluación comercial de venta directa.
+            </p>
           </div>
 
           {connector?.status !== "available" ? (
