@@ -4,7 +4,7 @@ import { ArrowLeft, Printer } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/seo-ui";
 import { useAppState, useCommercialReview } from "@/store/app-store";
-import { commercialIssues, hasAnyEvaluation, reviewRows, reviewSummary } from "@/seo/tourism/commercial-review";
+import { commercialIssues, hasAnyEvaluation, isValidEvidenceUrl, reviewRows, reviewSummary } from "@/seo/tourism/commercial-review";
 import { groupDiagnostics, type DiagnosticGroup } from "@/seo/diagnostics";
 import { analyzeContent } from "@/seo/content-analysis";
 import { CATEGORY_LABELS, SEVERITY_LABELS } from "@/seo/rules";
@@ -383,6 +383,14 @@ function ReportBody({ audit }: { audit: Audit }) {
                   <span className="font-medium">{r.title}</span> —{" "}
                   <span className="text-muted-foreground">{r.statusLabel}</span>
                   {r.notes.trim() && <p className="whitespace-pre-wrap text-xs">{r.notes}</p>}
+                  {isValidEvidenceUrl(r.evidenceUrl) && (
+                    <p className="text-xs break-all">
+                      Evidencia:{" "}
+                      <a href={r.evidenceUrl.trim()} target="_blank" rel="noopener noreferrer" className="text-primary underline">
+                        {r.evidenceUrl.trim()}
+                      </a>
+                    </p>
+                  )}
                 </li>
               ))}
             </ul>

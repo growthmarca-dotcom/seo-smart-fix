@@ -3,9 +3,11 @@ import { PageHeader } from "@/components/app-shell";
 import { DemoBadge, EmptyState } from "@/components/seo-ui";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
+import { Input } from "@/components/ui/input";
 import { actions, useAudit, useCommercialReview } from "@/store/app-store";
 import {
   COMMERCIAL_STATUS_LABELS,
+  isValidEvidenceUrl,
   reviewRows,
   reviewSummary,
   type CommercialStatus,
@@ -72,10 +74,29 @@ function CommercialPage() {
             </div>
             <Textarea
               className="mt-2"
-              placeholder="Notas y evidencia (qué se revisó, URL, captura, fecha)"
+              placeholder="Notas (qué se revisó, cómo y en qué fecha)"
+              aria-label={`Notas: ${r.title}`}
               value={r.notes}
               onChange={(e) => actions.setCommercialControl(auditId, r.id, { notes: e.target.value })}
             />
+            <label className="mt-2 block text-xs font-medium" htmlFor={`ev-${r.id}`}>
+              URL de evidencia
+            </label>
+            <Input
+              id={`ev-${r.id}`}
+              type="url"
+              inputMode="url"
+              className="mt-1"
+              placeholder="https://… (captura en Drive, página revisada, ficha en OTA)"
+              value={r.evidenceUrl}
+              aria-invalid={!!r.evidenceUrl.trim() && !isValidEvidenceUrl(r.evidenceUrl)}
+              onChange={(e) => actions.setCommercialControl(auditId, r.id, { evidenceUrl: e.target.value })}
+            />
+            {r.evidenceUrl.trim() && !isValidEvidenceUrl(r.evidenceUrl) && (
+              <p className="mt-1 text-xs text-destructive" role="alert">
+                Formato no válido: la URL debe empezar con http:// o https://. No se mostrará en el informe.
+              </p>
+            )}
           </section>
         ))}
       </div>
