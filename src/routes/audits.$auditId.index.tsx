@@ -152,6 +152,11 @@ function AuditResults() {
               </Link>
             </Button>
             <Button variant="outline" asChild>
+              <Link to="/audits/$auditId/commercial" params={{ auditId: audit.id }}>
+                Evaluación comercial
+              </Link>
+            </Button>
+            <Button variant="outline" asChild>
               <Link to="/changes" search={{ auditId: audit.id }}>
                 Ver cambios pendientes
               </Link>

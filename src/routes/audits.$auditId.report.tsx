@@ -122,6 +122,14 @@ function ReportBody({ audit }: { audit: Audit }) {
           </Button>
         </div>
       </div>
+      {!commercialOn && (
+        <p className="mb-4 rounded-md border border-dashed border-border p-3 text-sm text-muted-foreground print:hidden">
+          Este informe no incluye todavía el diagnóstico comercial de venta directa.{" "}
+          <Link to="/audits/$auditId/commercial" params={{ auditId: audit.id }} className="font-medium text-primary underline">
+            Completar la evaluación comercial
+          </Link>
+        </p>
+      )}
 
       <article className="space-y-8 rounded-xl border border-border bg-card p-8 text-card-foreground print:border-0 print:p-0">
         {/* Portada */}
