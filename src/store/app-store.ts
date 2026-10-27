@@ -417,7 +417,7 @@ export const actions = {
   setCommercialControl(
     auditId: string,
     controlId: string,
-    patch: { status?: CommercialStatus | null; notes?: string },
+    patch: { status?: CommercialStatus | null; notes?: string; evidenceUrl?: string },
   ) {
     set((prev) => {
       const list = prev.commercialReviews ?? [];

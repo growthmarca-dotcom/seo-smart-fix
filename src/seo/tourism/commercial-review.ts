@@ -37,6 +37,8 @@ export const COMMERCIAL_CONTROLS: CommercialControlDef[] = [
 export interface CommercialControlState {
   status?: CommercialStatus | undefined;
   notes: string;
+  /** Enlace opcional a la evidencia (captura en Drive, página, OTA). Solo http/https. */
+  evidenceUrl?: string | undefined;
   updatedAt?: string | undefined;
 }
 
@@ -49,6 +51,18 @@ export interface CommercialReview {
 
 const STATUSES = new Set<CommercialStatus>(["verified", "needs-review", "not-applicable"]);
 
+/** true si el texto es una URL absoluta http:// o https://. */
+export function isValidEvidenceUrl(value: string | undefined): boolean {
+  const v = (value ?? "").trim();
+  if (!v) return false;
+  try {
+    const u = new URL(v);
+    return (u.protocol === "http:" || u.protocol === "https:") && !!u.hostname;
+  } catch {
+    return false;
+  }
+}
+
 export function emptyReview(auditId: string, at = new Date().toISOString()): CommercialReview {
   return { auditId, controls: {}, updatedAt: at };
 }
@@ -57,7 +71,7 @@ export function emptyReview(auditId: string, at = new Date().toISOString()): Com
 export function updateControl(
   review: CommercialReview,
   controlId: string,
-  patch: { status?: CommercialStatus | null; notes?: string },
+  patch: { status?: CommercialStatus | null; notes?: string; evidenceUrl?: string },
   at = new Date().toISOString(),
 ): CommercialReview {
   if (!COMMERCIAL_CONTROLS.some((c) => c.id === controlId)) return review;
@@ -68,6 +82,8 @@ export function updateControl(
     notes: patch.notes ?? prev.notes,
     updatedAt: at,
   };
+  const url = patch.evidenceUrl !== undefined ? patch.evidenceUrl : prev.evidenceUrl;
+  if (url) next.evidenceUrl = url;
   return { ...review, controls: { ...review.controls, [controlId]: next }, updatedAt: at };
 }
 
@@ -75,6 +91,8 @@ export interface CommercialRow extends CommercialControlDef {
   status?: CommercialStatus | undefined;
   statusLabel: string;
   notes: string;
+  /** Texto tal como se cargó (puede ser inválido mientras se escribe). */
+  evidenceUrl: string;
 }
 
 /** Filas en el orden de los controles; los no evaluados quedan "Sin evaluar". */
@@ -82,7 +100,13 @@ export function reviewRows(review: CommercialReview | undefined): CommercialRow[
   return COMMERCIAL_CONTROLS.map((c) => {
     const s = review?.controls[c.id];
     const status = s?.status && STATUSES.has(s.status) ? s.status : undefined;
-    return { ...c, status, statusLabel: status ? COMMERCIAL_STATUS_LABELS[status] : UNEVALUATED_LABEL, notes: s?.notes ?? "" };
+    return {
+      ...c,
+      status,
+      statusLabel: status ? COMMERCIAL_STATUS_LABELS[status] : UNEVALUATED_LABEL,
+      notes: s?.notes ?? "",
+      evidenceUrl: typeof s?.evidenceUrl === "string" ? s.evidenceUrl : "",
+    };
   });
 }
 
