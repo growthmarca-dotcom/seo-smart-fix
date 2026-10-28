@@ -4,7 +4,14 @@ import { DemoBadge, EmptyState } from "@/components/seo-ui";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
-import { actions, useAudit, useCommercialReview } from "@/store/app-store";
+import { useState } from "react";
+import { actions, useAudit, useCommercialReview, useGscConnection } from "@/store/app-store";
+import {
+  appendSuggestionToNotes,
+  EVIDENCE_LEVEL_LABELS,
+  generateCommercialSuggestions,
+  type CommercialSuggestion,
+} from "@/seo/tourism/commercial-suggestions";
 import {
   COMMERCIAL_STATUS_LABELS,
   isValidEvidenceUrl,
@@ -29,10 +36,46 @@ export const Route = createFileRoute("/audits/$auditId/commercial")({
 
 const STATUSES: CommercialStatus[] = ["verified", "needs-review", "not-applicable"];
 
+function SuggestionBox({ s, currentUrl, onCopy, onUseUrl, onDismiss }: {
+  s: CommercialSuggestion;
+  currentUrl: string;
+  onCopy: () => void;
+  onUseUrl: (u: string) => void;
+  onDismiss: () => void;
+}) {
+  const [confirmUrl, setConfirmUrl] = useState(false);
+  const tone = s.evidenceLevel === "full" ? "border-primary" : s.evidenceLevel === "partial" ? "border-accent" : "border-border";
+  return (
+    <div className={`mt-3 rounded-md border border-dashed ${tone} bg-muted/40 p-3 text-sm`} aria-label="Sugerencia">
+      <p className="text-xs font-semibold">Sugerencia · {EVIDENCE_LEVEL_LABELS[s.evidenceLevel]}</p>
+      {s.suggestedNote ? <p className="mt-1">{s.suggestedNote}</p> : <p className="mt-1 text-muted-foreground">No hay datos del rastreo para proponer una observación.</p>}
+      <p className="mt-1 text-xs text-muted-foreground">Limitación: {s.limitation}</p>
+      {s.evidenceUrl && <p className="mt-1 text-xs break-all">URL propuesta: {s.evidenceUrl}</p>}
+      <div className="mt-2 flex flex-wrap gap-2">
+        {s.suggestedNote && <Button size="sm" variant="outline" onClick={onCopy}>Copiar a notas</Button>}
+        {s.evidenceUrl && !confirmUrl && (
+          <Button size="sm" variant="outline" onClick={() => setConfirmUrl(true)}>Usar como URL de evidencia</Button>
+        )}
+        {s.evidenceUrl && confirmUrl && (
+          <>
+            <span className="self-center text-xs">{currentUrl.trim() ? "Reemplaza la URL actual. ¿Confirmar?" : "¿Confirmar?"}</span>
+            <Button size="sm" onClick={() => { onUseUrl(s.evidenceUrl!); setConfirmUrl(false); }}>Confirmar</Button>
+            <Button size="sm" variant="ghost" onClick={() => setConfirmUrl(false)}>Cancelar</Button>
+          </>
+        )}
+        <Button size="sm" variant="ghost" onClick={onDismiss}>Descartar</Button>
+      </div>
+    </div>
+  );
+}
+
 function CommercialPage() {
   const { auditId } = Route.useParams();
   const audit = useAudit(auditId);
   const review = useCommercialReview(auditId);
+  const gsc = useGscConnection(auditId);
+  const [suggestions, setSuggestions] = useState<Record<string, CommercialSuggestion> | null>(null);
+  const [dismissed, setDismissed] = useState<Set<string>>(new Set());
   if (!audit) return <EmptyState title="Auditoría no encontrada" description="No existe una auditoría con ese identificador." />;
   const rows = reviewRows(review);
   const sum = reviewSummary(review);
@@ -53,6 +96,16 @@ function CommercialPage() {
       <p className="mb-4 text-sm text-muted-foreground">
         Verificados: {sum.verified} · Requieren revisión: {sum.needsReview} · No aplica: {sum.notApplicable} · Sin evaluar: {sum.unevaluated}. Los cambios se guardan automáticamente.
       </p>
+      <div className="mb-4 flex flex-wrap items-center gap-3">
+        <Button variant="secondary" onClick={() => { setSuggestions(generateCommercialSuggestions(audit, gsc)); setDismissed(new Set()); }}>
+          Sugerir observaciones desde la auditoría
+        </Button>
+        {suggestions && (
+          <span className="text-xs text-muted-foreground">
+            Sugerencias basadas solo en el rastreo de esta auditoría. No se guardan ni cambian estados hasta que las aceptes.
+          </span>
+        )}
+      </div>
       <div className="space-y-3">
         {rows.map((r) => (
           <section key={r.id} className="panel p-4" aria-label={r.title}>
@@ -96,6 +149,15 @@ function CommercialPage() {
               <p className="mt-1 text-xs text-destructive" role="alert">
                 Formato no válido: la URL debe empezar con http:// o https://. No se mostrará en el informe.
               </p>
+            )}
+            {suggestions && suggestions[r.id] && !dismissed.has(r.id) && (
+              <SuggestionBox
+                s={suggestions[r.id]!}
+                currentUrl={r.evidenceUrl}
+                onCopy={() => actions.setCommercialControl(auditId, r.id, { notes: appendSuggestionToNotes(r.notes, suggestions[r.id]!.suggestedNote) })}
+                onUseUrl={(u) => actions.setCommercialControl(auditId, r.id, { evidenceUrl: u })}
+                onDismiss={() => setDismissed((d) => new Set(d).add(r.id))}
+              />
             )}
           </section>
         ))}
