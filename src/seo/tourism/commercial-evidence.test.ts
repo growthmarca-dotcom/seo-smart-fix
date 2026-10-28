@@ -18,7 +18,7 @@ describe("URL de evidencia en la evaluación comercial", () => {
   it("vaciar la URL la elimina", () => {
     let r = updateControl(base(), "trust", { evidenceUrl: "https://x.com" });
     r = updateControl(r, "trust", { evidenceUrl: "" });
-    expect(r.controls.trust!.evidenceUrl).toBeUndefined();
+    expect(r.controls["trust"]!.evidenceUrl).toBeUndefined();
     expect(row(r, "trust").evidenceUrl).toBe("");
   });
 
@@ -31,7 +31,7 @@ describe("URL de evidencia en la evaluación comercial", () => {
     const legacy = { auditId: "a1", updatedAt: "x", controls: { trust: { status: "verified", notes: "ok" } } } as CommercialReview;
     expect(row(legacy, "trust")).toMatchObject({ status: "verified", notes: "ok", evidenceUrl: "" });
     const r = updateControl(legacy, "trust", { notes: "ok2" });
-    expect(r.controls.trust!.evidenceUrl).toBeUndefined();
+    expect(r.controls["trust"]!.evidenceUrl).toBeUndefined();
   });
 
   it("solo acepta http y https para mostrar en el anexo", () => {
