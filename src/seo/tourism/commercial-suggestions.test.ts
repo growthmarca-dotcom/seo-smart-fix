@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import type { Audit, PageSnapshot } from "@/seo/types";
 import type { GscConnection } from "@/seo/gsc/types";
-import { COMMERCIAL_CONTROLS, emptyReview, updateControl } from "./commercial-review";
+import { COMMERCIAL_CONTROLS, emptyReview, isValidEvidenceUrl, updateControl } from "./commercial-review";
 import { appendSuggestionToNotes, generateCommercialSuggestions } from "./commercial-suggestions";
 
 const page = (o: Partial<PageSnapshot>): PageSnapshot => ({
@@ -55,6 +55,17 @@ describe("precarga de observaciones comerciales", () => {
     const urls = new Set(a.pages.map((p) => p.url));
     for (const s of Object.values(generateCommercialSuggestions(a))) if (s.evidenceUrl) expect(urls.has(s.evidenceUrl)).toBe(true);
     expect(generateCommercialSuggestions(a)["booking-engine"]!.evidenceUrl).toBe("https://a.com/reservar");
+  });
+  it("no propone como evidenceUrl una URL sin http:// ni https://", () => {
+    const bad = "ftp://a.com/reservar";
+    const a = audit("a1", [
+      page({ url: "https://a.com/", pageType: "home", depth: 0, title: "X", internalLinks: [{ href: "/reservar", anchor: "Reservar" }] }),
+      page({ url: bad, path: "/reservar" }),
+    ]);
+    for (const s of Object.values(generateCommercialSuggestions(a))) {
+      expect(s.evidenceUrl).not.toBe(bad);
+      if (s.evidenceUrl) expect(isValidEvidenceUrl(s.evidenceUrl)).toBe(true);
+    }
   });
   it("aislamiento: GSC de otra auditoría se ignora; la propia se usa", () => {
     const g = (auditId: string): GscConnection => ({ auditId, property: { siteUrl: "sc-domain:a.com", type: "domain" }, source: "live", status: "connected", connectedAt: "x", rows: [] });
