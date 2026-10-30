@@ -82,10 +82,10 @@ describe("Finding.evidence — contrato EvidenceItem (Fase 1.1)", () => {
       expect.stringContaining("Umbral contextual"),
     ]);
 
-    // Ninguna otra regla fue migrada: el resto sigue produciendo strings.
-    for (const f of findings.filter((f) => f.ruleId !== "thin-content")) {
+    // Fase 2.3: todas las reglas con evidencia emiten objetos estructurados.
+    for (const f of findings) {
       for (const item of f.evidence ?? []) {
-        expect(typeof item).toBe("string");
+        expect(isStructuredEvidence(item)).toBe(true);
       }
     }
   });
@@ -187,24 +187,4 @@ describe("Evidence estructurada — Fase 1.2: reglas contextuales", () => {
     expect(f?.current).toBe("0 enlaces internos en el listado");
   });
 
-  it("la evidencia legacy de las demás reglas continúa siendo string", () => {
-    const p = page({
-      id: "dup",
-      url: "https://demo.test/dup",
-      pageType: "other",
-      wordCount: 300,
-      depth: 1,
-    });
-    const { findings } = runAudit(site([p]));
-    const migrated = new Set([
-      "thin-content",
-      "ctx-product-description-short",
-      "ctx-category-listing-links",
-    ]);
-    for (const f of findings.filter((x) => !migrated.has(x.ruleId))) {
-      for (const item of f.evidence ?? []) {
-        expect(typeof item).toBe("string");
-      }
-    }
-  });
 });
