@@ -74,8 +74,13 @@ function CommercialPage() {
   const audit = useAudit(auditId);
   const review = useCommercialReview(auditId);
   const gsc = useGscConnection(auditId);
-  const [suggestions, setSuggestions] = useState<Record<string, CommercialSuggestion> | null>(null);
-  const [dismissed, setDismissed] = useState<Set<string>>(new Set());
+  // Sugerencias asociadas a la auditoría que las generó: si cambia auditId, no se muestran.
+  const [suggestionState, setSuggestionState] = useState<{ auditId: string; items: Record<string, CommercialSuggestion> } | null>(null);
+  const [dismissedState, setDismissedState] = useState<{ auditId: string; ids: Set<string> }>({ auditId, ids: new Set() });
+  const suggestions = suggestionState && suggestionState.auditId === auditId ? suggestionState.items : null;
+  const dismissed = dismissedState.auditId === auditId ? dismissedState.ids : new Set<string>();
+  const setSuggestions = (items: Record<string, CommercialSuggestion>) => setSuggestionState({ auditId, items });
+  const setDismissed = (fn: (d: Set<string>) => Set<string>) => setDismissedState({ auditId, ids: fn(dismissed) });
   if (!audit) return <EmptyState title="Auditoría no encontrada" description="No existe una auditoría con ese identificador." />;
   const rows = reviewRows(review);
   const sum = reviewSummary(review);
@@ -97,7 +102,7 @@ function CommercialPage() {
         Verificados: {sum.verified} · Requieren revisión: {sum.needsReview} · No aplica: {sum.notApplicable} · Sin evaluar: {sum.unevaluated}. Los cambios se guardan automáticamente.
       </p>
       <div className="mb-4 flex flex-wrap items-center gap-3">
-        <Button variant="secondary" onClick={() => { setSuggestions(generateCommercialSuggestions(audit, gsc)); setDismissed(new Set()); }}>
+        <Button variant="secondary" onClick={() => { setSuggestions(generateCommercialSuggestions(audit, gsc)); setDismissed(() => new Set()); }}>
           Sugerir observaciones desde la auditoría
         </Button>
         {suggestions && (
