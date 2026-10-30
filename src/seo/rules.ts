@@ -262,7 +262,7 @@ export const RULES: SeoRule[] = [
               .slice(0, 3)
               .map((t) => t.path)
               .join(", ")}`,
-            evidence: twins.map((t) => t.url),
+            evidence: twins.map((t) => evidence.url("URL con el mismo contenido", t.url)),
             problem: "El contenido principal se repite en otras URLs.",
             suggestion:
               "Diferenciar el texto o consolidar con canonical hacia la versión preferida.",
@@ -287,7 +287,7 @@ export const RULES: SeoRule[] = [
       return twins.length
         ? {
             current: p.title!,
-            evidence: twins.map((t) => t.url),
+            evidence: twins.map((t) => evidence.url("URL con el mismo title", t.url)),
             problem: `El mismo title se usa en ${twins.length} URL(s) más.`,
             suggestion: `${p.title} — ${p.h1[0] ?? p.path}`,
           }
@@ -314,7 +314,7 @@ export const RULES: SeoRule[] = [
       return {
         severity: missing.length >= 5 && ratio > 0.6 ? "important" : "improvement",
         current: `${missing.length} de ${p.images.length} imágenes sin ALT`,
-        evidence: missing.slice(0, 8).map((i) => i.fileName ?? i.src),
+        evidence: missing.slice(0, 8).map((i) => evidence.value("Imagen sin ALT", i.fileName ?? i.src)),
         problem: "Hay imágenes sin texto alternativo.",
         suggestion: `Describir cada imagen, ej: "${p.h1[0] ?? "producto"} — vista frontal".`,
       };
@@ -445,9 +445,9 @@ export const RULES: SeoRule[] = [
         problem: "La página se está excluyendo del índice.",
         suggestion: "index, follow",
         evidence: [
-          ...(inMeta ? [`Meta robots en el HTML: "${p.robotsMeta}"`] : []),
-          ...(inHeader ? [`Encabezado HTTP X-Robots-Tag: "${p.xRobotsTag}"`] : []),
-          "Verificado en la respuesta descargada (HTTP " + p.statusCode + ")",
+          ...(inMeta ? [evidence.value("Meta robots en el HTML", `"${p.robotsMeta}"`)] : []),
+          ...(inHeader ? [evidence.value("Encabezado HTTP X-Robots-Tag", `"${p.xRobotsTag}"`)] : []),
+          evidence.value("Verificado en la respuesta descargada", `HTTP ${p.statusCode}`),
         ],
       };
     },
@@ -522,7 +522,9 @@ export const RULES: SeoRule[] = [
           // Si el destino existe y es indexable puede tratarse de una consolidación deliberada.
           severity: targetOk === true ? "improvement" : "important",
           current: p.canonical!,
-          evidence: target ? [`Destino ${target.url}: HTTP ${target.statusCode}`] : undefined,
+          evidence: target
+            ? [{ ...evidence.url("Destino del canonical", target.url), value: `HTTP ${target.statusCode}` }]
+            : undefined,
           problem:
             targetOk === false
               ? "El canonical apunta a una URL con error o marcada como noindex."
@@ -945,7 +947,9 @@ export const RULES: SeoRule[] = [
       return {
         severity: broken.length > 3 ? "critical" : "important",
         current: `${broken.length} enlace(s) roto(s)`,
-        evidence: broken.slice(0, 10).map((b) => `${b.to} → HTTP ${b.status}`),
+        evidence: broken
+          .slice(0, 10)
+          .map((b) => ({ ...evidence.url("Enlace roto", b.to), value: `HTTP ${b.status}` })),
         problem: "La página enlaza a URLs que responden con error definitivo (404/410).",
         suggestion:
           "Actualizar el destino del enlace o redirigir 301 la URL antigua a la equivalente vigente.",
@@ -970,7 +974,10 @@ export const RULES: SeoRule[] = [
         current: `${unstable.length} enlace(s) sin respuesta concluyente`,
         evidence: unstable
           .slice(0, 10)
-          .map((b) => `${b.to} → ${b.status > 0 ? `HTTP ${b.status}` : "sin respuesta"}`),
+          .map((b) => ({
+            ...evidence.url("Enlace sin respuesta concluyente", b.to),
+            value: b.status > 0 ? `HTTP ${b.status}` : "sin respuesta",
+          })),
         problem: "Algunos enlaces internos respondieron con un estado temporal o no concluyente.",
         suggestion:
           "Reverificar estas URLs: si el fallo persiste, corregir el enlace o el servidor de destino.",
@@ -997,7 +1004,7 @@ export const RULES: SeoRule[] = [
       if (!hits.length) return null;
       return {
         current: `${hits.length} enlace(s) hacia URLs que redirigen`,
-        evidence: hits.slice(0, 10).map((h) => h.href),
+        evidence: hits.slice(0, 10).map((h) => evidence.url("Enlace que redirige", h.href)),
         problem: "Hay enlaces internos que pasan por una redirección.",
         suggestion: "Reemplazar el href por la URL final para evitar saltos intermedios.",
       };
@@ -1022,7 +1029,7 @@ export const RULES: SeoRule[] = [
       return twins.length
         ? {
             current: p.metaDescription!,
-            evidence: twins.slice(0, 8).map((t) => t.url),
+            evidence: twins.slice(0, 8).map((t) => evidence.url("URL con la misma descripción", t.url)),
             problem: `La misma descripción se repite en ${twins.length} URL(s).`,
             suggestion: "Escribir una descripción propia que resuma el contenido de esta URL.",
           }
@@ -1081,7 +1088,7 @@ export const RULES: SeoRule[] = [
         current: `${p.internalLinks.length} enlaces internos en la home`,
         evidence: p.internalLinks
           .slice(0, 8)
-          .map((l) => `${l.anchor || "(sin anchor)"} → ${l.href}`),
+          .map((l) => ({ ...evidence.url("Enlace interno", l.href), value: l.anchor || "(sin anchor)" })),
         problem: "La home enlaza a muy pocas secciones del sitio.",
         suggestion:
           "Enlazar desde la home las categorías y páginas principales con anchors descriptivos.",

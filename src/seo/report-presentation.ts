@@ -188,7 +188,9 @@ export function reportEvidence(
 ): string[] {
   const out: string[] = [];
   const page = audit.pages.find((p) => p.id === d.pageId);
-  const pathOf = (u: string) => {
+  const pathOf = (raw: string) => {
+    // Evidencia estructurada proyectada a texto: tomar la URL real del texto.
+    const u = raw.match(/https?:\/\/\S+$/)?.[0] ?? raw;
     try {
       return new URL(u).pathname || "/";
     } catch {
