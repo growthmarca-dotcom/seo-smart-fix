@@ -221,15 +221,9 @@ function FindingCard({
       <p className="mt-3 text-sm font-medium">{finding.problem}</p>
       <p className="mt-1 text-xs text-muted-foreground">{finding.explanation}</p>
       {finding.evidence && finding.evidence.length > 0 && (
-        <ul className="mt-3 space-y-1 rounded-lg border border-border bg-muted/40 p-3 text-[11px] font-mono">
-          {evidenceToStrings(finding.evidence)
-            .slice(0, 10)
-            .map((e) => (
-              <li key={e} className="truncate">
-                {e}
-              </li>
-            ))}
-        </ul>
+        <div className="mt-3 rounded-lg border border-border bg-muted/40 p-3">
+          <EvidenceList items={finding.evidence} max={10} />
+        </div>
       )}
 
       <div className="mt-4 grid gap-3 sm:grid-cols-2">

@@ -217,7 +217,7 @@ export function reportEvidence(
     if (page) out.push(`Palabras en esta URL: ${page.wordCount}`);
     return out;
   }
-  out.push(...(d.evidence ?? []));
+  out.push(...pickEvidence(d).map(evidenceLine));
   if (d.current && !out.some((e) => e.includes(d.current))) out.push(`Valor observado: ${d.current}`);
   const rule = getRule(d.ruleId);
   if (rule?.requiresEvidence) out.push(`Criterio: ${rule.requiresEvidence}`);
