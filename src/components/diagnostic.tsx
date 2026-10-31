@@ -114,16 +114,10 @@ export function DiagnosticBody({ diagnostic }: { diagnostic: Diagnostic }) {
         </p>
       )}
 
-      {d.evidence && d.evidence.length > 0 && (
+      {pickEvidence(d).length > 0 && (
         <section>
           <h4 className="text-[11px] font-semibold uppercase text-muted-foreground">Evidencia</h4>
-          <ul className="mt-1 space-y-0.5 text-xs text-muted-foreground">
-            {d.evidence.slice(0, 12).map((e) => (
-              <li key={e} className="break-all">
-                · {e}
-              </li>
-            ))}
-          </ul>
+          <EvidenceList items={pickEvidence(d)} max={12} className="mt-1" />
         </section>
       )}
 
