@@ -17,7 +17,7 @@ const full: StructuredEvidence = {
 function finding(evidence: Finding["evidence"], id = "f1"): Finding {
   return {
     id, ruleId: "duplicate-title", ruleName: "Title duplicado", pageId: "p1",
-    pageUrl: "https://demo.test/a", category: "onpage", kind: "onpage", severity: "warning",
+    pageUrl: "https://demo.test/a", category: "onpage", kind: "onpage", severity: "important",
     impact: 5, current: "Inicio", problem: "Title repetido", explanation: "x", evidence,
   } as unknown as Finding;
 }
