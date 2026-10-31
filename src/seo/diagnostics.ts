@@ -1,4 +1,4 @@
-import { evidenceToStrings } from "./evidence";
+import { evidenceToStrings, type EvidenceItem } from "./evidence";
 /**
  * Capa de DIAGNÓSTICO (derivada, solo lectura).
  *
@@ -51,7 +51,10 @@ export interface Diagnostic {
   why?: string | undefined;
   /** Qué recomendamos (sugerencia concreta de la regla). */
   recommendation?: string | undefined;
+  /** Texto plano derivado (vistas e informe actuales). */
   evidence?: string[] | undefined;
+  /** Evidencia original sin aplanar: estructurada o string histórica. */
+  evidenceItems?: EvidenceItem[] | undefined;
   /** Puntos de score que el sistema ya calculó para esta regla (score.drivers). */
   estimatedPoints?: number | undefined;
   /** Cantidad de URLs afectadas por la misma regla dentro de la auditoría. */
@@ -182,6 +185,7 @@ export function buildDiagnostic(audit: Audit, finding: Finding): Diagnostic {
     why,
     recommendation: finding.suggestion,
     evidence: evidenceToStrings(finding.evidence),
+    evidenceItems: finding.evidence ? finding.evidence.map((e) => (typeof e === "string" ? e : { ...e })) : undefined,
     estimatedPoints: driver?.points,
     occurrences,
     pending: missing.length > 0,
