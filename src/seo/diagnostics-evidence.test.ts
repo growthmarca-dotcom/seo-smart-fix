@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { buildDiagnostic, groupDiagnostics } from "./diagnostics";
 import { evidenceToStrings, type StructuredEvidence } from "./evidence";
-import { buildReportFindingGroups } from "./report-presentation";
+import { reportEvidence } from "./report-presentation";
 import type { Audit, Finding } from "./types";
 
 const full: StructuredEvidence = {
@@ -63,6 +63,6 @@ describe("Diagnostic conserva evidencia estructurada", () => {
     const fs = [finding([full], "f1"), finding(["texto histórico"], "f2")];
     const a = audit(fs);
     expect(groupDiagnostics(a).length).toBeGreaterThan(0);
-    expect(() => buildReportFindingGroups(a)).not.toThrow();
+    for (const g of groupDiagnostics(a)) for (const d of g.diagnostics ?? []) expect(Array.isArray(reportEvidence(d, a))).toBe(true);
   });
 });
