@@ -63,6 +63,6 @@ describe("Diagnostic conserva evidencia estructurada", () => {
     const fs = [finding([full], "f1"), finding(["texto histórico"], "f2")];
     const a = audit(fs);
     expect(groupDiagnostics(a).length).toBeGreaterThan(0);
-    for (const g of groupDiagnostics(a)) for (const d of g.diagnostics ?? []) expect(Array.isArray(reportEvidence(d, a))).toBe(true);
+    for (const g of groupDiagnostics(a)) for (const d of g.items) expect(Array.isArray(reportEvidence(d, a))).toBe(true);
   });
 });
