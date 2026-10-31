@@ -19,14 +19,14 @@ function finding(evidence: Finding["evidence"], id = "f1"): Finding {
     id, ruleId: "duplicate-title", ruleName: "Title duplicado", pageId: "p1",
     pageUrl: "https://demo.test/a", category: "onpage", kind: "onpage", severity: "warning",
     impact: 5, current: "Inicio", problem: "Title repetido", explanation: "x", evidence,
-  } as Finding;
+  } as unknown as Finding;
 }
 
 function audit(findings: Finding[]): Audit {
   return {
     id: "a1", name: "t", platform: "generic-web", rootUrl: "https://demo.test", isDemo: true,
     status: "done", createdAt: "2026-01-01", crawlLimit: 10, respectRobots: true,
-    progress: { discovered: 1, crawled: 1, analyzed: 1 } as Audit["progress"],
+    progress: { discovered: 1, crawled: 1, analyzed: 1 } as unknown as Audit["progress"],
     pages: [], findings,
   } as Audit;
 }
