@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { buildRoadmap, updateTask, type Company } from "./model";
-import { companyIdentityRows, executiveSummary, linkedAuditSummaries, NOT_AVAILABLE } from "./company-report";
+import { addEvidence } from "./model";
+import { auditDisplayName, companyIdentityRows, executiveSummary, linkedAuditSummaries, NOT_AVAILABLE, roadmapPhasesForReport } from "./company-report";
 import type { Audit } from "@/seo/types";
 
 let n = 0;
@@ -50,5 +51,38 @@ describe("company report", () => {
   it("sin roadmap: 0% y sin próxima acción", () => {
     const s = executiveSummary(undefined, "2026-11-01");
     expect(s).toMatchObject({ hasRoadmap: false, percent: 0, nextAction: undefined });
+  });
+
+  it("no repite la marca demo", () => {
+    expect(auditDisplayName("Outdoor (demo) — inicial", true)).toBe("Outdoor (demo) — inicial");
+    expect(auditDisplayName("Sitio X", true)).toBe("Sitio X (demo)");
+    expect(auditDisplayName("Sitio X", false)).toBe("Sitio X");
+  });
+
+  it("roadmap por fases: datos reales, vencidas y No aplica sin inventar", () => {
+    let r = buildRoadmap("c1", "cabins", ctx);
+    const ph = r.phases[0]!;
+    const [t1, t2, t3] = ph.tasks;
+    r = updateTask(r, t1!.id, { status: "done", owner: "Ana" }, ctx);
+    r = updateTask(r, t2!.id, { status: "not-applicable" }, ctx, "lo define el cliente");
+    r = updateTask(r, t3!.id, { dueDate: "2026-10-01" }, ctx);
+    r = addEvidence(r, t1!.id, { note: "Acta", url: "https://doc.ar/a" }, ctx);
+    const seoTask = r.phases.flatMap((p) => p.tasks).find((t) => t.kind === "seo-audit")!;
+    seoTask.linkedAuditIds = ["a1", "ghost"];
+    const phases = roadmapPhasesForReport(r, "2026-11-01", { a1: "Auditoría 1" });
+    expect(phases).toHaveLength(r.phases.length);
+    const [a, b, c] = phases[0]!.tasks;
+    expect(phases[0]!.counts).toEqual({ applicable: ph.tasks.length - 1, done: 1, notApplicable: 1 });
+    expect(a).toMatchObject({ statusLabel: "Completada", owner: "Ana", dueDate: "Sin fecha", overdue: false });
+    expect(a!.evidence).toEqual([expect.objectContaining({ note: "Acta", url: "https://doc.ar/a" })]);
+    expect(b!.statusLabel).toBe("No aplica");
+    expect(b!.notes).toContain("No aplica: lo define el cliente");
+    expect(c).toMatchObject({ owner: "Sin asignar", overdue: true });
+    const seo = phases.flatMap((p) => p.tasks).find((t) => t.id === seoTask.id)!;
+    expect(seo.linkedAudits).toEqual(["Auditoría 1"]);
+  });
+
+  it("sin roadmap: sin fases", () => {
+    expect(roadmapPhasesForReport(undefined, "2026-11-01", {})).toEqual([]);
   });
 });
