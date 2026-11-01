@@ -27,7 +27,8 @@ import { countBySeverity } from "@/seo/engine";
 import { getConnector } from "@/seo/connectors";
 import { groupDiagnostics } from "@/seo/diagnostics";
 import { detectEcommerce } from "@/seo/ecommerce";
-import { useAppState } from "@/store/app-store";
+import { companyActions, useAppState } from "@/store/app-store";
+import { companyOfAudit } from "@/companies/model";
 import {
   EXCLUSION_LABELS,
   LINK_STATUS_LABELS,
@@ -164,6 +165,8 @@ function AuditResults() {
           </>
         }
       />
+
+      <CompanyLink auditId={audit.id} />
 
       <div className="grid gap-4 lg:grid-cols-[auto_1fr]">
         <div className="panel flex items-center gap-5 p-5">
@@ -691,6 +694,59 @@ function FilterSelect({
           ))}
         </SelectContent>
       </Select>
+    </div>
+  );
+}
+
+function CompanyLink({ auditId }: { auditId: string }) {
+  const companies = useAppState((s) => s.companies);
+  const current = companyOfAudit(companies, auditId);
+  const [editing, setEditing] = useState(false);
+  const [pick, setPick] = useState("");
+  const options = companies.filter((c) => c.id !== current?.id);
+
+  return (
+    <div className="panel mb-4 flex flex-wrap items-center gap-2 p-3 text-sm" aria-label="Empresa asociada">
+      <span className="text-muted-foreground">Empresa:</span>
+      {current ? (
+        <Link to="/companies/$companyId" params={{ companyId: current.id }} className="font-medium text-primary hover:underline">
+          {current.tradeName}
+        </Link>
+      ) : (
+        <span>Sin empresa asociada</span>
+      )}
+      {companies.length === 0 ? (
+        <Link to="/companies/new" className="text-xs text-primary hover:underline">Registrar una empresa</Link>
+      ) : !current || editing ? (
+        <>
+          <select
+            className="h-8 rounded-md border border-input bg-background px-2"
+            value={pick}
+            onChange={(e) => setPick(e.target.value)}
+            aria-label="Elegir empresa"
+          >
+            <option value="">Elegir empresa…</option>
+            {options.map((c) => <option key={c.id} value={c.id}>{c.tradeName}</option>)}
+          </select>
+          <Button size="sm" disabled={!pick} onClick={() => { companyActions.assignAudit(auditId, pick); setPick(""); setEditing(false); }}>
+            {current ? "Cambiar" : "Asociar"}
+          </Button>
+          {current && <Button size="sm" variant="ghost" onClick={() => setEditing(false)}>Cancelar</Button>}
+        </>
+      ) : (
+        <>
+          {options.length > 0 && <Button size="sm" variant="outline" onClick={() => setEditing(true)}>Cambiar empresa</Button>}
+          <Button
+            size="sm"
+            variant="ghost"
+            onClick={() => {
+              if (window.confirm(`¿Quitar la asociación con ${current.tradeName}? La auditoría se conserva.`)) companyActions.assignAudit(auditId, null);
+            }}
+          >
+            Quitar asociación
+          </Button>
+        </>
+      )}
     </div>
   );
 }
