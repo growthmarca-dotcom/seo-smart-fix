@@ -1,71 +1,121 @@
-# Revisión: por qué el diagnóstico de viaetravel.com.ar solo muestra 1 control turístico
+# Revisión de aceptación B2 y plan B3 — MarCa Audit
 
-Revisión de solo lectura. No hay cambios de código, registros ni guardado.
+## 1. Revisión de aceptación B2 (solo lectura)
 
-## Límite de la revisión
+### Qué se revisó en esta ronda
+Solo se leyó el código, sin abrir el navegador ni escribir datos: la pantalla de evaluación, la fila de control, la ventana de nueva evaluación, las acciones B1 y el cálculo.
 
-Las evaluaciones, empresas y auditorías se guardan en el navegador de la usuaria (localStorage). Desde el entorno de trabajo no puedo leer ese navegador ni los registros de la empresa `2adb04e9-…` o la auditoría `4c88b040-…`, y en este turno no hubo registros de consola o red de su vista. **Por eso no puedo confirmar qué estados concretos tiene la evaluación turística (punto 1).** No los invento.
+### Qué está verificado
+| Punto | Estado | Base |
+|---|---|---|
+| Seis dimensiones con ids y nombres exactos | Verificado | Se leen de `DIMENSIONS` sin copiarlas; hay una prueba que lo confirma |
+| Catálogo por rubro sin cambios | Verificado | `controlsFor(industry, dim)`; prueba de que el catálogo no cambia |
+| 4 estados visibles; «No aplica» con justificación en una sola llamada | Verificado | `decideStatusChange` / `decideNotesSave` y doble validación en B1; pruebas |
+| Notas y URL se guardan al salir del campo; el borrador se conserva ante error | Verificado en código | Borradores propios de cada fila; el aviso de error no los borra |
+| Cobertura, madurez, diagnóstico parcial e índice condicionado | Verificado | Usa `dimensionResults` / `globalIndex` sin fórmulas propias |
+| Historial sin borrado; la evaluación anterior queda intacta | Verificado | Prueba automática |
+| Recarga y respaldo pre-B1 sin cambios | Verificado | Pruebas automáticas, más una prueba en un navegador de prueba aislado durante B2 |
+| Precarga turística sin alterar el origen | Verificado solo en pruebas automáticas | No probada en navegador |
 
-## 2. Equivalencias vigentes (`src/diagnosis/equivalences.ts`, sin cambios en C1)
+### Observaciones y defectos (no se corrigieron)
+1. **Faltantes sin explicar (menor).** Los controles de integración futura y el control de SEO no se muestran en la pantalla editable. El índice los excluye correctamente, pero no se ve la lista «Qué falta». Esa lista sí existe en la vista previa.
+2. **«Guardando…» no llega a verse (cosmético).** El guardado es inmediato, así que solo se alterna entre «Guardado» y «Error».
+3. **«Sin datos» se ve como «Sin evaluar» (menor).** El selector muestra «Sin evaluar» cuando el estado guardado es `no-data`. En B2 la pantalla no crea ese estado, pero podría venir de datos anteriores.
+4. **Borradores que no se refrescan (menor).** Si la misma evaluación se edita en otra pestaña, los borradores abiertos no se actualizan hasta recargar.
+5. **Notas sin guardar al cambiar de estado (riesgo bajo).** Si se cambia el estado a algo distinto de «No aplica» sin haber salido del campo de notas, la nota se guarda recién al salir del campo. Normalmente se sale del campo antes de hacer clic en el selector.
 
-| Control turístico | Control del diagnóstico | Dimensión | ¿Aplica en turismo tras C1? |
-|---|---|---|---|
-| property-info | web-offer-clarity | Sitio web | Sí |
-| mobile-path | web-mobile | Sitio web | Sí |
-| photos-description | brand-content | Marca | Sí |
-| value-proposition | brand-value | Marca | Sí |
-| contact-whatsapp | ch-whatsapp | Canales | Sí (turismo, gastronomía, e-commerce) |
-| booking-engine | ch-booking | Canales | Sí (turismo, gastronomía) |
-| ota-consistency | vis-ota | Visibilidad | Sí (solo turismo) |
-| measurement | sales-conversion | Ventas | Sí (universal) |
-| rates-policies | — | — | Sin equivalencia (exclusivo turismo) |
-| trust | — | — | Sin equivalencia (decisión pendiente) |
+### Precarga turística en navegador: cómo probarla de forma segura
+La prueba real **escribe datos** (crea una evaluación), así que no la ejecuté. Preparación aislada necesaria:
+- Usar un navegador de prueba nuevo dentro del entorno, con almacenamiento propio y vacío. No usar la pestaña de la usuaria ni su almacenamiento.
+- Cargar en ese almacenamiento un estado ficticio: una empresa de alojamiento de prueba, una auditoría de prueba vinculada y una evaluación turística de prueba con los 10 controles.
+- Recorrido: crear con precarga → confirmar los 8 controles con «Tomado de evaluación turística» → editar uno → comparar la evaluación turística ficticia antes y después.
+- Al cerrar el navegador de prueba se descarta todo. No se tocan empresas reales, VIAE, auditorías existentes ni el respaldo pre-B1.
+- Requiere tu autorización explícita, porque escribe en ese almacenamiento descartable.
 
-## 3. ¿Hay ids, estados o filtros que bloqueen el mapeo?
+### Qué falta probar
+- La precarga en navegador (requiere la preparación anterior).
+- La lectura en celular de la pantalla editable.
+- Una evaluación que llegue al «Índice global» completo en pantalla. Por ahora solo está cubierto por las pruebas de cálculo.
 
-Revisé el código, no los datos:
-- Los 8 ids de origen existen en el catálogo turístico; los 8 destinos existen y aplican a los 4 rubros turísticos (lo cubre una prueba de C1).
-- Estados: Verificado → Cumple, Requiere revisión → Requiere mejora, No aplica → No aplica. No hay estados incompatibles.
-- Un control turístico solo se traslada si **tiene estado elegido**. Si solo tiene notas o URL de evidencia, queda «Sin evaluar». «No aplica» sin justificación también queda «Sin evaluar», con aviso.
-- La vista toma **una sola evaluación**: la de la auditoría vinculada más reciente que tenga al menos un estado elegido. Las demás se listan como «Otras evaluaciones conservadas».
-- El preview solo marca una empresa como turística si su rubro es Alojamiento, Hotel, Cabañas o Hostel. Como la usuaria ve un control «tomado de la evaluación turística», el rubro sí está detectado.
+---
 
-## 4. ¿La pantalla corresponde al código C1?
+## 2. Propuesta B3 — Síntesis profesional de la evaluación
 
-Sí, con alta probabilidad: «1/5» en Sitio web coincide con C1. Hoy se cuentan 5 controles: canal web propio, oferta, celular, contacto visible y dominio. El SEO y la velocidad no cuentan. Antes de C1 eran 3. La pantalla anterior a C1 mostraba «Cobertura 0/3», no «0/5».
+Objetivo: transformar una evaluación integral guardada en una síntesis legible para el cliente y en una base trazable para que MarCa Growth ofrezca servicios. Todo se calcula en el momento y nada se guarda.
 
-## Causa más probable (sin confirmar)
+### Principios
+- Cada afirmación remite a un control y a su estado guardado. No hay texto sin un control de origen.
+- Se muestra el origen del dato en 4 tipos: **Comprobado** (estado + URL de evidencia), **Informado por el cliente** (`source: client`), **Observación profesional** (`source: professional`, sin URL) e **Hipótesis** (solo en oportunidades, rotuladas así).
+- No se mencionan pérdidas, montos, porcentajes de impacto, causas ni resultados no medidos.
+- «Sin evaluar», «Sin datos» y «No aplica» nunca generan fortalezas ni recomendaciones. Van a «Límites del diagnóstico». «No aplica» se muestra con su justificación.
+- Si la cobertura es insuficiente, la síntesis se rotula «Síntesis parcial» y no muestra índice, igual que B2.
 
-El código traslada correctamente los 8 controles equivalentes. Que se vea solo uno indica que, en la evaluación elegida, **solo «Información del alojamiento» tiene estado**. Las otras causas posibles, en orden:
-1. Los demás controles tienen notas o URL, pero sin estado elegido.
-2. Están en «No aplica» sin justificación. En ese caso la pantalla mostraría el aviso en cada control.
-3. La vista eligió otra auditoría vinculada más reciente, con un solo control evaluado, en lugar de la del 27/10/2026.
+### Etapa B3.1 — Motor de síntesis (lógica pura, sin pantalla)
+- **Objetivo:** la función `buildSynthesis(company, assessment)` devuelve: fortalezas (controles en «Cumple»), mejoras (controles en «Requiere mejora», ordenadas primero por control crítico y después por peso propuesto de la dimensión), límites (sin evaluar / sin datos / No aplica / integraciones), cobertura e índice reutilizados.
+- **Archivos probables:** `src/diagnosis/synthesis.ts` y `src/diagnosis/synthesis.test.ts`.
+- **Depende de:** `scoring.ts`, `weights.ts`, `dimensions.ts`, `assessmentAsDiagnosis`.
+- **Pruebas:** sin evaluaciones no hay fortalezas ni mejoras; «No aplica» va a límites con su justificación; el orden de prioridades es estable; el origen se etiqueta bien; los cálculos no se duplican (se compara con `globalIndex`).
 
-**No hay defecto de código demostrado; no propongo corrección todavía.**
+### Etapa B3.2 — Catálogo de servicios MarCa Growth vinculado a controles
+- **Objetivo:** una tabla fija `serviceForControl`: id de control → servicio, con nombre y descripción breve. Una recomendación aparece **solo** si el control está en «Requiere mejora». Nunca aparece por «Sin evaluar».
+- **Archivos probables:** `src/diagnosis/services.ts` y `src/diagnosis/services.test.ts`.
+- **Depende de:** B3.1. **Requiere de MarCa:** la lista real de servicios, nombres y descripciones. No se inventan. Hasta tenerla, se muestra «Servicio a definir por MarCa».
+- **Pruebas:** cada servicio cita su control; no hay servicios sin control en «Requiere mejora»; los ids existen en el catálogo.
 
-## 5. Qué podría alimentar las seis dimensiones
+### Etapa B3.3 — Oportunidades de desarrollo comercial
+- **Objetivo:** se toman solo de controles de la dimensión «Oportunidades y desarrollo comercial» y de mejoras ya verificadas. Se rotulan «Hipótesis a validar» cuando no tienen URL de evidencia.
+- **Archivos probables:** se agregan a `synthesis.ts` y a sus pruebas.
+- **Pruebas:** no hay oportunidades sin control de origen; el rótulo de hipótesis es obligatorio cuando no hay evidencia.
 
-- **Mapeo actual (8):** según la tabla. Llega a Sitio web, Visibilidad, Ventas, Marca y Canales.
-- **Posible, requiere tu aprobación:**
-  - `trust` → `vis-reviews`, solo si las notas hablan de reseñas. Hoy mezcla reseñas, políticas y datos de contacto, por eso conviene dividirlo antes.
-  - `rates-policies` → `sales-pricing-visible`. Su alcance es más amplio que «precios visibles»: incluye condiciones y políticas.
-- **No permitido:**
-  - Llevar el SEO a madurez o cobertura.
-  - Copiar un mismo control turístico a dos controles del diagnóstico.
-  - Completar «Oportunidades». Ningún control turístico la cubre: necesita datos del cliente o la evaluación profesional.
-- **Límite de cobertura:** aunque los 10 controles turísticos estén evaluados, Oportunidades y varios controles universales seguirán sin datos hasta la Etapa B (carga propia del diagnóstico). El diagnóstico seguirá siendo parcial, y eso es lo esperado.
+### Etapa B3.4 — Pantalla de síntesis (solo lectura)
+- **Objetivo:** una sección o pestaña «Síntesis» dentro de la pantalla de evaluación existente, para la evaluación activa. Muestra: encabezado de cobertura y límites, fortalezas, prioridades de mejora, oportunidades, servicios vinculados y la leyenda de origen del dato.
+- **Archivos probables:** `src/diagnosis/ui/synthesis-view.tsx` y una inserción en `src/routes/companies.$companyId_.diagnosis.tsx`.
+- **Pruebas:** recorrido en un navegador de prueba aislado con datos ficticios. Las pruebas de B3.1 a B3.3 cubren el contenido.
 
-## Pasos propuestos (sin cambios de código)
+Opcional, aparte: corregir las observaciones 1 y 3 de B2 (mostrar «Qué falta» y el estado «Sin datos»). Son cambios pequeños, solo de pantalla.
 
-1. **Verificación en tu navegador:** en la auditoría del 27/10, abrir «Evaluación comercial». Anotar cuántos controles tienen estado elegido y cuántos solo tienen notas.
-2. En la ficha de diagnóstico, revisar debajo de «Evaluación turística usada» qué fecha de auditoría aparece y si hay «Otras evaluaciones conservadas».
-3. Según el resultado:
-   - **Solo hay un estado elegido:** el funcionamiento es correcto; no hay que corregir nada.
-   - **Hay más estados y no se trasladan:** es un defecto real. La corrección mínima sería en `src/diagnosis/preview.ts` o `equivalences.ts`, con una prueba que use esos estados.
-   - **Se eligió otra auditoría:** usar el selector existente. Opcionalmente, mostrar con más claridad cuál está en uso, cambiando solo la pantalla.
-4. **Opcional, solo pantalla y sin guardado:** en el diagnóstico, mostrar los controles turísticos que tienen notas o URL pero no tienen estado. Así se ve por qué no se trasladan.
+---
 
-## Decisiones pendientes
+## 3. Exclusiones explícitas
+- Informe PDF integral.
+- Sincronización con el Roadmap, creación de tareas o hallazgos.
+- Nube, autenticación, integraciones nuevas, IA, automatizaciones.
+- Cambios en el motor SEO, la evaluación turística original, el modelo y la persistencia de B1, el respaldo, pesos, umbrales y controles críticos.
+- Guardar la síntesis (se calcula al vuelo; guardar «conclusiones editadas» queda para una etapa posterior).
+- Estimaciones económicas o de impacto.
 
-- Equivalencias nuevas para `trust` y `rates-policies`.
-- Mantener WhatsApp como control crítico en turismo, o reemplazarlo por «canal de contacto principal».
+---
+
+## 4. Riesgos y criterios de aceptación
+
+### Riesgos
+- **Textos que suenan a resultado garantizado.** Mitigación: plantillas fijas y neutras, revisadas por MarCa.
+- **Servicios inventados.** Mitigación: B3.2 no avanza sin la lista real de MarCa; mientras tanto, «A definir».
+- **Duplicar el cálculo.** Mitigación: la síntesis solo consume `dimensionResults` y `globalIndex`; una prueba compara los resultados.
+- **Confundir hipótesis con hechos.** Mitigación: el origen del dato es obligatorio en cada ítem.
+- **Mezclar evaluaciones.** Mitigación: la síntesis recibe una sola evaluación; hay una prueba de aislamiento por empresa y por evaluación.
+
+### Criterios de aceptación
+- Cada ítem de la síntesis enlaza a un id de control existente y muestra su origen.
+- Ningún ítem se genera desde «Sin evaluar», «Sin datos» o «No aplica».
+- Con cobertura menor a la mínima: «Síntesis parcial», sin índice y con los límites visibles.
+- No hay cifras económicas ni causas no registradas.
+- Las 266 pruebas actuales siguen pasando, más las nuevas, y la revisión de tipos no da errores.
+- No cambia ningún dato guardado (prueba de inmutabilidad del almacenamiento y del respaldo).
+
+---
+
+## 5. Alcance y consumo relativo
+| Etapa | Tamaño | Consumo relativo |
+|---|---|---|
+| B3.1 Motor de síntesis | Pequeño-medio | Bajo |
+| B3.2 Servicios vinculados (con la lista de MarCa) | Pequeño | Bajo |
+| B3.3 Oportunidades | Pequeño | Bajo |
+| B3.4 Pantalla de síntesis | Medio | Medio |
+| Correcciones menores de B2 (opcional) | Muy pequeño | Muy bajo |
+
+**Opción mínima vendible:** B3.1 + B3.4, con fortalezas, prioridades y límites, más servicios «A definir». Permite mostrar al cliente una síntesis honesta y trazable con el menor consumo. B3.2 y B3.3 se suman cuando MarCa entregue su catálogo de servicios.
+
+### Pendiente de MarCa
+- La lista de servicios MarCa Growth y a qué controles corresponde cada uno.
+- Autorización para la prueba de precarga en un navegador de prueba aislado.
