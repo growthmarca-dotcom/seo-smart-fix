@@ -20,7 +20,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { CONNECTORS, getConnector } from "@/seo/connectors";
 import { buildDemoSite, DEMO_ROOT_URL, DEMO_STORE_NAME } from "@/seo/demo";
 import { analyzeUrlFn, crawlSiteFn } from "@/lib/crawl.functions";
-import { actions, createAuditFromSite, useAppState } from "@/store/app-store";
+import { actions, companyActions, createAuditFromSite, useAppState } from "@/store/app-store";
 import type { PlatformId, SiteContext } from "@/seo/types";
 
 export const Route = createFileRoute("/audits/new")({
@@ -47,6 +47,8 @@ const LIMITS = [50, 100, 250, 500, 1000];
 function NewAudit() {
   const navigate = useNavigate();
   const settings = useAppState((s) => s.settings);
+  const companies = useAppState((s) => s.companies);
+  const [companyId, setCompanyId] = useState("");
   const crawl = useServerFn(crawlSiteFn);
   const analyzeOne = useServerFn(analyzeUrlFn);
 
@@ -73,6 +75,8 @@ function NewAudit() {
       respectRobots,
     });
     actions.addAudit(audit);
+    // Solo se asocia después de crear la auditoría con éxito.
+    if (companyId) companyActions.assignAudit(audit.id, companyId);
     setProgress({
       discovered: site.coverage?.discovered ?? site.pages.length,
       analyzed: site.pages.length,
@@ -182,6 +186,20 @@ function NewAudit() {
               </SelectContent>
             </Select>
             <p className="text-xs text-muted-foreground">{connector?.description}</p>
+            {companies.length > 0 && (
+              <div className="mt-2 grid gap-1">
+                <Label htmlFor="audit-company">Empresa asociada (opcional)</Label>
+                <select
+                  id="audit-company"
+                  className="h-9 rounded-md border border-input bg-background px-2 text-sm"
+                  value={companyId}
+                  onChange={(e) => setCompanyId(e.target.value)}
+                >
+                  <option value="">Sin empresa</option>
+                  {companies.map((c) => <option key={c.id} value={c.id}>{c.tradeName}</option>)}
+                </select>
+              </div>
+            )}
             <p className="text-xs text-muted-foreground">
               Para alojamientos y sitios turísticos, seleccioná Web genérica. Después podés completar la
               evaluación comercial de venta directa.
