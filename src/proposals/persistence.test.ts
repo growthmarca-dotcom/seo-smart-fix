@@ -62,7 +62,7 @@ afterEach(() => vi.unstubAllGlobals());
 
 const parsed = () => JSON.parse(storage.getItem(STATE)!);
 const p3Raw = () => JSON.parse(storage.getItem(P3)!).raw as string | null;
-const PRESERVED = ["audits", "companies", "roadmaps", "commercialReviews", "companyAssessments", "settings", "changes", "history"] as const;
+const PRESERVED = ["audits", "companies", "roadmaps", "commercialReviews", "companyAssessments", "changes", "history"] as const;
 
 describe("P3 — migración sin escrituras", () => {
   it("un estado anterior sin colecciones P3 abre con listas vacías y sin escribir v1 ni pre-P3", async () => {
@@ -183,6 +183,8 @@ describe("P3 — inmutabilidad y reglas", () => {
     expect(m.proposalActions.newVersion(p.id).ok).toBe(true);
     const after = parsed();
     for (const k of PRESERVED) expect(after[k] ?? null).toEqual((original as Record<string, unknown>)[k] ?? (k === "companyAssessments" ? [] : null));
+    // settings: hidratar completa valores por defecto (comportamiento previo); los originales se conservan.
+    expect(after.settings).toMatchObject(original.settings);
     expect(after.proposals).toHaveLength(2);
   });
 
