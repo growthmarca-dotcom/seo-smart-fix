@@ -503,3 +503,36 @@ export function migrateCompanies(
     }));
   return { companies, roadmaps };
 }
+
+// ---------------------------------------------------------------- asociación desde auditorías
+
+/** Empresa a la que pertenece una auditoría (una sola; la primera si hubiera datos viejos). */
+export function companyOfAudit(companies: Company[], auditId: string): Company | undefined {
+  return companies.find((c) => c.auditIds.includes(auditId));
+}
+
+/**
+ * Asigna una auditoría a una empresa (o a ninguna con `targetId = null`).
+ * Primero la desvincula de cualquier otra empresa y luego la vincula a la
+ * elegida, así nunca queda en dos empresas ni duplicada. No cambia estados de tareas.
+ */
+export function assignAudit(
+  companies: Company[],
+  roadmaps: Roadmap[],
+  auditId: string,
+  targetId: string | null,
+  auditLabel: string,
+  ctx: Ctx,
+): { companies: Company[]; roadmaps: Roadmap[] } {
+  if (targetId !== null && !companies.some((c) => c.id === targetId)) return { companies, roadmaps };
+  const nextRoadmaps = [...roadmaps];
+  const nextCompanies = companies.map((c) => {
+    const idx = nextRoadmaps.findIndex((r) => r.companyId === c.id);
+    let res: { company: Company; roadmap: Roadmap | undefined } = { company: c, roadmap: nextRoadmaps[idx] };
+    if (c.id !== targetId && c.auditIds.includes(auditId)) res = unlinkAudit(c, res.roadmap, auditId, ctx);
+    if (c.id === targetId) res = linkAudit(c, res.roadmap, auditId, auditLabel, ctx);
+    if (idx !== -1 && res.roadmap) nextRoadmaps[idx] = res.roadmap;
+    return res.company;
+  });
+  return { companies: nextCompanies, roadmaps: nextRoadmaps };
+}
