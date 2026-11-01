@@ -1,113 +1,149 @@
-# Vista previa del diagnóstico integral por empresa (solo lectura)
+# MarCa Audit — Revisión y plan para completar el modelo de diagnóstico integral
 
-**Esta etapa no habilita edición ni guardado.** No crea datos nuevos, no cambia lo que se guarda en el navegador y no toca auditorías, evaluaciones turísticas, roadmap, informes, panel de inicio ni motor SEO.
+Solo propuesta. No se construye nada hasta aprobación expresa.
 
-## 1. Inspeccionado y propuesta de archivos
+## 1. Diagnóstico de brechas (inspeccionado en `src/diagnosis/*`)
 
-Inspeccionado:
-- `src/routes/companies.$companyId.tsx`: ficha con botones «Ver informe» y «Editar», auditorías vinculadas y roadmap.
-- Rutas hermanas `companies.$companyId_.edit.tsx` y `companies.$companyId_.report.tsx`.
-- `src/store/app-store.ts`: el estado tiene `audits`, `commercialReviews` y `companies`. No tiene diagnósticos.
-- `Audit` (`createdAt`, `finishedAt`, `score?: SeoScore`, `isDemo`).
-- `src/diagnosis/*`: `dimensionResults`, `globalIndex`, `seoReference`, `resolveControl`, `pickCurrentReview`, `controlsFor`, `SOURCE_LABELS`, `CONTROL_STATUS_LABELS` y `WEIGHTS_ARE_PROPOSED`.
+**Por qué hoy sale casi todo en 0%:** la vista previa es de solo lectura y no existe ninguna forma de cargar el estado de los controles del diagnóstico. Lo único que alimenta valores es la evaluación comercial turística (vía `equivalences.ts`). Por eso solo se llenan los controles con equivalente turístico; en empresas no turísticas todo queda «Sin evaluar». No es un error de cálculo: falta captura de datos.
 
-Propuesta:
-- **Crear `src/routes/companies.$companyId_.diagnosis.tsx`.** Es una ruta de solo lectura, con la misma convención que el informe de empresa.
-- **Crear `src/diagnosis/preview.ts`.** Es una función pura que arma la vista previa a partir de la empresa, sus auditorías y sus evaluaciones. No guarda nada.
-- **Crear `src/diagnosis/preview.test.ts`.**
-- **Modificar `src/routes/companies.$companyId.tsx`.** Solo se agrega un botón «Diagnóstico (vista previa)» junto a «Ver informe».
+**Aclaración sobre «presencia en notas coherentes con el sitio»:** en el catálogo el control es `vis-ota` — «Presencia en **OTAs** coherente con el sitio» (Booking, Airbnb). «OTAs» se lee como «notas». Ya está restringido a rubros turísticos, pero el título debe reescribirse sin siglas.
 
-## 2. Acceso y wireframe
+| Dimensión | Controles hoy | Alimentado por turismo | Estado real |
+|---|---|---|---|
+| Presencia digital y sitio | 5 (SEO referencia, claridad oferta, celular, control dominio, CWV integración) | claridad, celular | SEO no suma (correcto); CWV integración no implementada |
+| Visibilidad y reputación | 5 (GBP, reseñas, coherencia datos, OTAs [turismo], métricas GBP [integración]) | OTAs | Sin fuente para los demás → 0% |
+| Comercialización y ventas | 5 (respuesta, seguimiento, presupuestos, conversión, venta directa [turismo]) | conversión | 0% fuera de turismo |
+| Marca y contenidos | 4 | contenido, propuesta de valor | Sin fuente fuera de turismo |
+| Canales y experiencia | 4 (WhatsApp, reserva/compra, formularios, fidelización) | WhatsApp, reserva | WhatsApp y reserva/compra aplican hoy a TODOS los rubros (problema) |
+| Oportunidades | 4 (1 integración) | ninguno | Siempre vacía |
 
-Desde la ficha de empresa, el botón «Diagnóstico (vista previa)» lleva a `/companies/<id>/diagnosis`.
+Otros problemas detectados:
+- Controles críticos propuestos asumen canales que no todos tienen: `generic` exige `ch-whatsapp`; `ecommerce` exige `ch-booking` (rótulo de reservas).
+- No existe rubro «Servicios profesionales» (el perfil de pesos sí, sin uso).
+- Control turístico `trust` sin equivalencia (pendiente de decisión); `rates-policies` exclusivo de turismo.
 
-```text
-[Volver a la ficha]
-Diagnóstico integral — Vista previa (solo lectura, nada se guarda)
-Rubro: Cabañas / dúplex · Pesos y umbrales: PROPUESTOS, sin aprobar
+**Reutilización segura:** `dimensions.ts` (tipos), `scoring.ts` (cobertura, suficiencia, SEO como referencia), `model.ts` (estados y regla de No aplica justificado), `equivalences.ts` (turismo como fuente única), `preview.ts`. Nada de esto requiere cambiar el motor SEO ni la evaluación turística.
 
-[ Diagnóstico parcial ]  Cobertura total 18 %  (mínimo propuesto 70 %)
-Motivos: cobertura insuficiente · faltan críticos: Recorrido de reserva, Coherencia OTA
-Índice global: no se muestra
+## 2. Catálogo transversal propuesto
 
-Referencia técnica (no suma al índice)
-  Score SEO 82 · auditoría duplexdelcentro.com.ar, 20/10/2026 · [Ver informe SEO]
+Formato: qué se evalúa · evidencia · fuente · método verificable · aplica. Fuentes: A automática (auditoría SEO existente), E externa pública (revisión manual de fuentes públicas, sin integración), C cliente, P profesional MarCa, I integración futura (no evaluable hoy).
 
-Fuente turística usada: auditoría del 20/10/2026 (editada el 22/10) · regla: la más reciente con datos
-  Otras evaluaciones: 1 (03/2026) · [ver]
+**Presencia digital y sitio**
+- web-seo-health — salud técnica · auditoría vinculada · A · score SEO · todos con sitio. **Solo referencia, no suma.**
+- web-has-site — existe canal web propio (sitio, tienda o landing) · URL · P · abrir URL · todos (No aplica justificado si opera solo por redes/marketplace).
+- web-offer-clarity — oferta clara en primera visita · captura · P · prueba de 10 segundos · todos con sitio.
+- web-mobile — uso desde celular · captura móvil · P · recorrido en teléfono · todos con sitio.
+- web-contact-visible — datos de contacto y llamada a la acción visibles · captura · P · todos con sitio.
+- web-ownership — control de dominio y editor · declaración · C · todos con sitio.
+- web-performance — CWV · I · no evaluable hasta integrar PageSpeed.
 
-Por dimensión
-  Sitio web          Madurez 50 · Cobertura 2/4
-    - Oferta clara ......... Cumple       (de evaluación turística)
-    - Uso desde celular .... Sin evaluar
-    - Control del dominio .. Sin evaluar  (lo informa el cliente)
-    - Velocidad real ....... Integración futura (no cuenta)
-  Visibilidad        Sin datos suficientes · Cobertura 0/3
-  ...
-Qué falta para un diagnóstico completo: lista por origen (cliente / profesional / integración)
-```
+**Visibilidad y reputación**
+- vis-local-profile — perfil en Google Maps/Business existente y completo · URL del perfil · E · búsqueda pública del nombre · negocios con atención física o zona de servicio.
+- vis-reviews — volumen, calificación y respuesta a reseñas · URL + capturas · E · lectura pública · donde existan reseñas públicas (No aplica justificado si no hay ninguna plataforma).
+- vis-consistency — nombre, teléfono, ubicación coherentes · URLs comparadas · E · cotejo · todos.
+- vis-external-references — **reemplaza la idea de «notas»**, ver punto 4.
+- vis-ota — presencia en Booking/Airbnb coherente (título reescrito sin sigla) · turismo.
+- vis-marketplace — publicaciones en marketplaces coherentes · e-commerce/comercio.
+- vis-gbp-data — I.
 
-## 3. Fuente de cada sección y datos faltantes
+**Comercialización y ventas**
+- sales-response — tiempo de respuesta · consulta de prueba o declaración · P/C · todos.
+- sales-followup — seguimiento de consultas no cerradas · registro o declaración · C · todos.
+- sales-quotes — presupuestos/tarifas claros · ejemplo enviado · C/P · servicios, turismo, inmobiliaria, generales (no aplica a tienda con precio publicado).
+- sales-pricing-visible — precios o rangos visibles · captura · P · e-commerce, gastronomía, turismo.
+- sales-conversion — conoce su conversión · dato declarado · C · todos.
+- sales-direct — venta directa frente a intermediarios · turismo.
 
-| Sección | Fuente | Si falta |
+**Marca, comunicación y contenidos**
+- brand-identity, brand-value, brand-content, brand-social (ya existen; brand-social con No aplica justificado si no usa redes).
+- brand-proof — casos, testimonios o portfolio · URL · P · servicios profesionales, generales.
+
+**Canales y experiencia del cliente**
+- ch-primary-contact — **el canal de contacto principal que el negocio declara** (WhatsApp, teléfono, email, formulario) funciona · prueba real · P · todos. Reemplaza a `ch-whatsapp` como control universal.
+- ch-whatsapp — WhatsApp funciona · prueba · P · solo si el negocio usa WhatsApp (No aplica justificado en otro caso).
+- ch-booking — reserva sin fricciones · prueba · P · turismo y gastronomía con reservas.
+- ch-checkout — compra online sin fricciones · prueba hasta el pago (sin pagar) · P · e-commerce.
+- ch-forms — formularios llegan · envío de prueba · P · si hay formulario.
+- ch-loyalty — fidelización · declaración · C · todos.
+
+**Oportunidades y desarrollo comercial**
+- opp-competitors, opp-channels, opp-seasonality (existentes; estacionalidad aplica sobre todo a turismo/gastronomía, en otros como «objetivos comerciales»).
+- opp-quick-wins — mejoras de bajo costo identificadas · lista P · todos.
+- opp-keywords — I.
+
+## 3. Plantillas por rubro (universales vs específicos)
+
+Universales (todos): web-has-site, web-offer-clarity*, web-mobile*, web-contact-visible*, vis-consistency, vis-reviews, vis-external-references, sales-response, sales-followup, sales-conversion, brand-identity, brand-value, brand-content, ch-primary-contact, ch-loyalty, opp-competitors, opp-channels, opp-quick-wins. (*solo si hay sitio)
+
+| Rubro | Específicos que se suman | Que NO se preguntan |
 |---|---|---|
-| Rubro | `company.industry` | — |
-| Controles por dimensión | `controlsFor(industry)` | — |
-| Valor de cada control | `resolveControl(id, undefined, evaluación vigente)`; no hay diagnóstico propio guardado | «Sin evaluar» |
-| Evaluación vigente e historial | `pickCurrentReview` sobre las auditorías vinculadas (`auditIds`), con fecha `finishedAt ?? createdAt` y su `commercialReviews` | «Sin evaluación comercial vinculada» |
-| Madurez, cobertura, suficiencia | `dimensionResults` + `globalIndex` | «Sin datos suficientes»; nunca 0 |
-| Referencia SEO | `seoReference` con el `score` total de la auditoría vinculada más reciente que tenga score | «Sin auditoría SEO con puntaje» |
-| Auditoría demo | `isDemo` | Rótulo «demo» visible; nunca se presenta como dato real |
+| Alojamiento/turismo | vis-ota, sales-direct, ch-booking, sales-pricing-visible, opp-seasonality, vis-local-profile | ch-checkout, vis-marketplace |
+| Gastronomía | vis-local-profile, ch-booking (si toma reservas), sales-pricing-visible (carta/precios), opp-seasonality | vis-ota, sales-direct, ch-checkout |
+| Comercio / e-commerce | ch-checkout, vis-marketplace, sales-pricing-visible, vis-local-profile solo si tiene local | vis-ota, ch-booking, sales-quotes |
+| Servicios profesionales (rubro nuevo, requiere aprobación) | sales-quotes, brand-proof, vis-local-profile si atiende presencialmente | vis-ota, ch-booking, ch-checkout, sales-pricing-visible |
+| Inmobiliaria | sales-quotes, ch-forms, vis-local-profile, brand-proof | vis-ota, ch-checkout |
+| Generales («Otro») | sales-quotes, ch-forms | específicos de turismo/e-commerce |
 
-Para rubros que no son turismo, no se lee la evaluación turística y todos los controles empiezan en «Sin evaluar». Se muestra la vista vacía con la lista de lo que falta.
+Controles condicionales (ch-whatsapp, ch-forms, brand-social, vis-local-profile) aparecen pero se pueden marcar No aplica con justificación, en vez de ocultarse.
 
-## 4. Interactividad
+## 4. Menciones y referencias externas (nuevo `vis-external-references`)
 
-**Permitida (solo en pantalla, se pierde al salir):**
-- elegir otra auditoría vinculada como fuente turística, para comparar;
-- desplegar el historial de evaluaciones;
-- expandir o contraer dimensiones.
+- Qué evalúa: que el negocio tenga referencias externas relevantes y coherentes con su sitio.
+- Evidencias válidas (cualquiera): directorios del rubro, cámaras o asociaciones, guías turísticas, blogs o medios locales, notas periodísticas, perfiles en plataformas sectoriales, sitios de socios o proveedores, eventos, premios.
+- Método: búsqueda pública del nombre + rubro + ciudad; registrar hasta 3 URLs y si los datos coinciden con el sitio.
+- Cumple: al menos una referencia relevante y coherente. Requiere mejora: no hay referencias o tienen datos desactualizados. No aplica justificado: negocio nuevo o rubro sin ecosistema de referencias, con explicación.
+- Nunca exige notas periodísticas ni penaliza por no tenerlas.
 
-**Deshabilitada, con rótulo «Disponible cuando se apruebe el guardado»:**
-- cambiar estados, notas o URL de controles;
-- crear hallazgos o tareas de roadmap;
-- imprimir o exportar.
+## 5. Reglas de estados, cobertura y madurez
 
-Para editar un control turístico, el enlace lleva a la pantalla existente de evaluación comercial de esa auditoría.
+- Estados: Cumple (1), Requiere mejora (0), No evaluado (excluido), No aplica justificado (excluido del denominador). No aplica sin justificación = No evaluado (regla vigente). Integración futura = siempre excluido.
+- Cobertura por dimensión = evaluados / aplicables. Madurez = cumplidos / evaluados, solo si la cobertura de esa dimensión alcanza el mínimo.
+- Índice global solo si: cobertura total mínima, cada dimensión relevante del rubro con cobertura mínima y todos los controles críticos evaluados. Si no, «Diagnóstico parcial» con motivos (ya implementado; sin redistribuir pesos).
+- Propuesta adicional: mostrar por dimensión «Sin datos suficientes» en vez de 0% cuando cobertura = 0, para que no se lea como incumplimiento.
+- Controles críticos deben ser universales o específicos del rubro, nunca canales que el negocio puede no tener (reemplazar ch-whatsapp por ch-primary-contact; ch-booking por ch-checkout en e-commerce).
 
-## 5. Riesgos
+## 6. Evitar duplicación
 
-- **Datos guardados en el navegador:** solo se leen. No se agrega ni cambia ningún campo del estado guardado, así que no hay migración.
-- **RLS y base de datos:** no aplican, porque no hay backend.
-- **Leer la vista previa como resultado final:** se mitiga con el rótulo fijo «Vista previa · pesos propuestos» y el estado «Diagnóstico parcial».
-- **Regresión en la ficha:** el único cambio es un botón.
-- **Elegir otra fuente:** no se recuerda al recargar la página. Así está previsto.
+- SEO: solo referencia visible en «Sitio web»; no suma, no cubre, no es crítico. Los controles web manuales (claridad, celular, contacto visible) evalúan experiencia, no lo que mide el motor.
+- Coherencia de datos (vis-consistency) es un control único; ni SEO local ni reseñas lo repiten.
+- Evaluación turística: sigue siendo la fuente única de sus equivalentes; los nuevos controles no tocan su formato. `trust` se mapearía a vis-reviews solo si MarCa lo aprueba.
+- No se modifica el motor SEO, sus reglas, puntuación ni informes.
 
-## 6. Pruebas
+## 7. Qué es catálogo/lógica y qué requiere interfaz o persistencia
 
-Nuevas, en `preview.test.ts`:
-- Una empresa sin auditorías da «Diagnóstico parcial», sin índice global y con todos los controles en «Sin evaluar».
-- En turismo con dos evaluaciones, se usa la más reciente con datos, se informa su fecha y la otra queda en el historial.
-- Un rubro que no es turismo no lee la evaluación turística.
-- El score SEO aparece como referencia y no cambia la madurez.
-- «No aplica» sin nota en la evaluación turística se muestra como «Sin evaluar» con aviso.
-- Las auditorías y evaluaciones recibidas quedan intactas, verificado comparando su copia antes y después.
-- Una auditoría demo queda marcada como demo.
+| Cambio | Tipo |
+|---|---|
+| Nuevos controles, títulos reescritos, aplicabilidad por rubro, críticos corregidos, «Sin datos suficientes» | Catálogo y lógica pura + texto en la vista previa |
+| Rubro «Servicios profesionales» | Lista de rubros en el modelo de empresas (compatible: valor nuevo; empresas existentes no cambian) |
+| Cargar estados, notas y evidencias de los controles | **Requiere guardado nuevo por empresa** (Etapa B, ya pendiente de aprobación) |
 
-Regresión: pasan las 212 pruebas existentes, más el chequeo de tipos y la compilación. Además, una prueba en el navegador con una empresa de turismo vinculada y una empresa sin auditorías.
+Sin la Etapa B, la vista previa seguirá mostrando cobertura baja en rubros no turísticos: es esperable y honesto.
 
-## 7. Aceptación y decisiones
+## 8. Orden recomendado (bajo riesgo y bajo consumo)
 
-Criterios de aceptación:
-- se abre desde la ficha;
-- no cambia nada de lo guardado en el navegador, comprobado comparando antes y después;
-- muestra «Diagnóstico parcial» con sus motivos;
-- muestra el SEO separado;
-- indica la fuente turística con su fecha;
-- no inventa valores.
+1. **Etapa C1 — solo catálogo y lógica** (primera etapa acotada propuesta): actualizar `dimensions.ts` y `weights.ts` con el catálogo y plantillas de arriba, títulos claros, críticos corregidos, estado «Sin datos suficientes» en preview. Sin persistencia, sin migraciones, sin tocar SEO ni turismo.
+2. **Etapa C2 — rubro Servicios profesionales**: agregar el valor y su plantilla de roadmap genérica existente.
+3. **Etapa B — guardado del diagnóstico por empresa** y formulario de carga (requiere aprobación de almacenamiento).
+4. Después: informe integral y vínculo de hallazgos con el roadmap.
 
-Decisiones antes de construir:
-1. Aprobar una ruta nueva en lugar de una sección dentro de la ficha.
-2. Aprobar el texto del botón y el rótulo «Vista previa · pesos propuestos».
-3. Confirmar que el SEO de referencia se toma de la auditoría vinculada más reciente con puntaje.
-4. Confirmar que, fuera de turismo, la vista arranca vacía hasta aprobar el guardado (Etapa B).
+## 9. Pruebas y criterios de aceptación (C1)
+
+- Cada rubro recibe solo sus controles: turismo sin ch-checkout; e-commerce sin vis-ota/ch-booking; gastronomía sin vis-ota; generales sin específicos de turismo.
+- vis-external-references presente en todos; No aplica justificado lo excluye; sin justificación cuenta como No evaluado.
+- Ningún control crítico depende de un canal opcional.
+- SEO sigue sin sumar ni cubrir (prueba existente se mantiene).
+- Equivalencias turísticas producen los mismos resultados que hoy para los 8 controles mapeados.
+- Dimensión con cobertura 0 muestra «Sin datos suficientes», no 0%.
+- Las 212+ pruebas existentes siguen pasando; typecheck correcto; motor SEO y evaluación turística sin cambios.
+
+## Decisiones que requieren tu aprobación
+
+1. El catálogo y las plantillas por rubro (sección 2 y 3), incluidos los controles nuevos.
+2. Reemplazar `ch-whatsapp` por `ch-primary-contact` como universal y crítico.
+3. Controles críticos por rubro corregidos (propuesta: turismo ch-booking + ch-primary-contact + vis-ota; gastronomía vis-local-profile + vis-reviews; e-commerce ch-checkout; servicios sales-response + sales-quotes; generales web-offer-clarity + ch-primary-contact).
+4. Pesos por rubro y umbrales (70% total, 50% por dimensión relevante): siguen como propuestos.
+5. Crear el rubro «Servicios profesionales».
+6. Cómo tratar `trust` de la evaluación turística.
+7. Autorización separada para la Etapa B (guardado por empresa).
+
+**Primera etapa lista para aprobar:** C1 (solo catálogo y lógica pura, sin guardado nuevo).
