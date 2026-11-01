@@ -109,20 +109,102 @@ function CompanyReport() {
             <ul className="space-y-3 text-sm">
               {linked.map((a) => (
                 <li key={a.id} className="break-inside-avoid rounded-lg border border-border p-3">
-                  <p className="font-semibold">{a.name}{a.isDemo ? " (datos de demostración)" : ""}</p>
+                  <p className="font-semibold">{a.name}</p>
                   <p className="break-all text-muted-foreground">{a.rootUrl} · {a.date}</p>
+                  {a.isDemo && <p className="text-xs text-muted-foreground">Datos de demostración: no corresponden a un sitio real.</p>}
                   <p className="mt-1">
                     Salud SEO: {a.score !== undefined ? <strong>{a.score}/100 ({scoreLabel(a.score)})</strong> : "No disponible"} ·{" "}
                     {a.critical} críticos · {a.important} importantes · {a.improvement} mejoras
                   </p>
-                  <Link to="/audits/$auditId/report" params={{ auditId: a.id }} className="text-primary underline print:hidden">Ver informe SEO completo</Link>
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    El detalle de hallazgos, evidencias y plan de acción figura en el informe SEO individual de esta auditoría.{" "}
+                    <Link to="/audits/$auditId/report" params={{ auditId: a.id }} className="text-primary underline print:hidden">Ver informe SEO completo</Link>
+                  </p>
                 </li>
               ))}
             </ul>
           )}
         </Section>
+
+        <Section title="4. Roadmap de trabajo por fases">
+          {phases.length === 0 ? (
+            <p className="text-sm text-muted-foreground">Esta empresa todavía no tiene un roadmap de trabajo.</p>
+          ) : (
+            <div className="space-y-6">
+              {phases.map((ph) => (
+                <div key={ph.id}>
+                  <div className="mb-2 flex flex-wrap items-baseline justify-between gap-2 border-b border-border pb-1 break-after-avoid">
+                    <h3 className="font-display text-base font-semibold">{ph.title}</h3>
+                    <p className="text-xs text-muted-foreground">
+                      {ph.counts.done} de {ph.counts.applicable} completadas
+                      {ph.counts.notApplicable ? ` · ${ph.counts.notApplicable} no aplican` : ""}
+                    </p>
+                  </div>
+                  {ph.tasks.length === 0 ? (
+                    <p className="text-sm text-muted-foreground">Fase sin tareas.</p>
+                  ) : (
+                    <ul className="space-y-2">
+                      {ph.tasks.map((t) => <TaskBlock key={t.id} t={t} />)}
+                    </ul>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
+        </Section>
       </article>
     </div>
+  );
+}
+
+const STATUS_TONE: Record<TaskStatus, string> = {
+  done: "border-primary/40 text-primary",
+  "in-progress": "border-important/50 text-foreground",
+  blocked: "border-critical/50 text-critical",
+  pending: "border-border text-muted-foreground",
+  "not-applicable": "border-border text-muted-foreground",
+};
+
+function TaskBlock({ t }: { t: ReportTask }) {
+  return (
+    <li className={`break-inside-avoid rounded-lg border border-border p-3 text-sm ${t.status === "not-applicable" ? "opacity-75" : ""}`}>
+      <div className="flex flex-wrap items-start justify-between gap-2">
+        <p className="font-semibold">{t.title}</p>
+        <span className={`rounded-full border px-2 py-0.5 text-xs font-medium ${STATUS_TONE[t.status]}`}>{t.statusLabel}</span>
+      </div>
+      {t.description && <p className="mt-0.5 text-xs text-muted-foreground">{t.description}</p>}
+      <dl className="mt-2 grid grid-cols-3 gap-2 text-xs">
+        <Meta label="Prioridad" value={t.priorityLabel} />
+        <Meta label="Responsable" value={t.owner} />
+        <div>
+          <dt className="text-xs text-muted-foreground">Fecha prevista</dt>
+          <dd className={`font-medium ${t.overdue ? "text-critical" : ""}`}>{t.dueDate}{t.overdue ? " (vencida)" : ""}</dd>
+        </div>
+      </dl>
+      {t.linkedAudits.length > 0 && (
+        <p className="mt-2 text-xs"><span className="font-medium">Auditorías vinculadas:</span> {t.linkedAudits.join(", ")}</p>
+      )}
+      {t.notes && (
+        <div className="mt-2 text-xs">
+          <p className="font-medium">Observaciones</p>
+          <p className="whitespace-pre-wrap break-words text-muted-foreground">{t.notes}</p>
+        </div>
+      )}
+      {t.evidence.length > 0 && (
+        <div className="mt-2 text-xs">
+          <p className="font-medium">Evidencias ({t.evidence.length})</p>
+          <ul className="ml-4 list-disc space-y-0.5">
+            {t.evidence.map((e) => (
+              <li key={e.id} className="break-words">
+                <span className="text-muted-foreground">{e.date}</span>
+                {e.note ? ` · ${e.note}` : ""}
+                {e.url && <> · <a href={e.url} target="_blank" rel="noreferrer" className="break-all text-primary underline">{e.url}</a></>}
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+    </li>
   );
 }
 
