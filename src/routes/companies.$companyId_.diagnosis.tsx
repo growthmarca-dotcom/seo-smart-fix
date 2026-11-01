@@ -57,6 +57,8 @@ function DiagnosisPreviewPage() {
     );
 
   const { index, seo, review } = preview;
+  const titles = Object.fromEntries(preview.dimensions.flatMap((d) => d.controls.map((c) => [c.id, c.title])));
+  const titled = (r: string) => r.replace(/\b[a-z]+(?:-[a-z]+)+\b/g, (id) => (titles[id] ? `«${titles[id]}»` : id));
   const auditName = (id: string) => preview.linkedAudits.find((a) => a.id === id);
   const reviewOptions = review?.current ? [review.current, ...review.others] : [];
 
@@ -86,7 +88,7 @@ function DiagnosisPreviewPage() {
           <>
             <p className="text-muted-foreground">No se muestra índice global: la información disponible no alcanza para un resultado integral.</p>
             <ul className="list-disc space-y-0.5 pl-5">
-              {index.reasons.map((r) => <li key={r}>{r}</li>)}
+              {index.reasons.map((r) => <li key={r}>{titled(r)}</li>)}
             </ul>
           </>
         )}
@@ -97,7 +99,7 @@ function DiagnosisPreviewPage() {
           <h2 className="font-display font-semibold">Referencia técnica SEO (no suma al índice)</h2>
           {seo ? (
             <p>
-              Score SEO <strong>{seo.score}</strong> · {seo.auditName}{seo.isDemo ? " (demo)" : ""}, {fmt(seo.date)} ·{" "}
+              Score SEO <strong>{seo.score}</strong> · {seo.auditName}{seo.isDemo && !/demo/i.test(seo.auditName) ? " (demo)" : ""}, {fmt(seo.date)} ·{" "}
               <Link to="/audits/$auditId/report" params={{ auditId: seo.auditId }} className="underline">Ver informe SEO</Link>
             </p>
           ) : (
@@ -115,14 +117,14 @@ function DiagnosisPreviewPage() {
             <>
               <p>
                 Fuente: {auditName(review.current.auditId)?.name ?? review.current.auditId}
-                {auditName(review.current.auditId)?.isDemo ? " (demo)" : ""}, auditoría del {fmt(review.current.auditDate)}, editada el {fmt(review.current.reviewUpdatedAt)} ·{" "}
+, auditoría del {fmt(review.current.auditDate)}, editada el {fmt(review.current.reviewUpdatedAt)} ·{" "}
                 {review.reason === "latest" ? "regla: la más reciente con datos" : "elegida para comparar (no se guarda)"}
               </p>
               {reviewOptions.length > 1 && (
-                <label className="flex items-center gap-2">
+                <label className="flex min-w-0 flex-wrap items-center gap-2">
                   <span className="text-muted-foreground">Comparar con:</span>
                   <select
-                    className="h-8 rounded-md border border-input bg-background px-2"
+                    className="h-8 w-full min-w-0 max-w-full rounded-md border border-input bg-background px-2"
                     value={review.current.auditId}
                     onChange={(e) => setSelected(e.target.value)}
                     aria-label="Evaluación usada como fuente"
