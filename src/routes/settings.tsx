@@ -114,8 +114,9 @@ function SettingsPage() {
           <Button
             variant="outline"
             onClick={() => {
-              actions.resetDemo();
-              toast.success("Datos reiniciados con la auditoría demo");
+              const r = actions.resetDemo();
+              if (r.ok) toast.success("Datos reiniciados con la auditoría demo");
+              else toast.error(r.error);
             }}
           >
             Reiniciar datos demo
