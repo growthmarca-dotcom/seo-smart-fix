@@ -10,8 +10,16 @@ import { SOURCE_LABELS, type ControlSource } from "@/diagnosis/dimensions";
 import { CONTROL_STATUS_LABELS } from "@/diagnosis/model";
 import { buildDiagnosisPreview, type PreviewControl } from "@/diagnosis/preview";
 import { SUFFICIENCY } from "@/diagnosis/weights";
-import { useAppState, useCompany } from "@/store/app-store";
-import { AssessmentWorkspace } from "@/diagnosis/ui/assessment-workspace";
+import { useAppState, useCompany, useCompanyAssessments } from "@/store/app-store";
+import { DIMENSIONS, controlsFor } from "@/diagnosis/dimensions";
+import { assessmentAsDiagnosis, type CompanyAssessment } from "@/diagnosis/model";
+import { SEO_CONTROL_ID, dimensionResults, globalIndex, seoReference } from "@/diagnosis/scoring";
+import { criticalControlsFor } from "@/diagnosis/weights";
+import { pickCurrentReview } from "@/diagnosis/equivalences";
+import { auditDate } from "@/diagnosis/preview";
+import { isTourismIndustry } from "@/companies/model";
+import { ControlRow } from "@/diagnosis/ui/control-row";
+import { NewAssessmentDialog } from "@/diagnosis/ui/new-assessment-dialog";
 
 export const Route = createFileRoute("/companies/$companyId_/diagnosis")({
   head: () => ({
@@ -214,5 +222,143 @@ function DiagnosisPage() {
       onSelect={(id) => navigate({ search: { assessmentId: id } })}
       onPreview={() => navigate({ search: { view: "preview" } })}
     />
+  );
+}
+
+function coverageOf(a: CompanyAssessment, industry: Parameters<typeof dimensionResults>[0]) {
+  const r = dimensionResults(industry, assessmentAsDiagnosis(a));
+  const app = r.reduce((s, x) => s + x.applicable, 0);
+  const ev = r.reduce((s, x) => s + x.evaluated, 0);
+  return { app, ev, pct: app ? ev / app : 0 };
+}
+
+function AssessmentWorkspace({
+  companyId,
+  assessmentId,
+  onSelect,
+  onPreview,
+}: {
+  companyId: string;
+  assessmentId: string | undefined;
+  onSelect: (id: string) => void;
+  onPreview: () => void;
+}) {
+  const company = useCompany(companyId);
+  const audits = useAppState((s) => s.audits);
+  const reviews = useAppState((s) => s.commercialReviews);
+  const history = useCompanyAssessments(companyId);
+  const [dialog, setDialog] = useState(false);
+
+  const linked = useMemo(() => (company ? audits.filter((a) => company.auditIds.includes(a.id)) : []), [company, audits]);
+  const tourismSources = useMemo(() => {
+    if (!company || !isTourismIndustry(company.industry)) return [];
+    const choice = pickCurrentReview(linked.map((a) => ({ auditId: a.id, auditDate: auditDate(a), review: reviews.find((r) => r.auditId === a.id) })));
+    return [choice.current, ...choice.others]
+      .filter((c): c is NonNullable<typeof c> => !!c)
+      .map((c) => ({ auditId: c.auditId, label: `${linked.find((a) => a.id === c.auditId)?.name ?? c.auditId} · ${fmt(c.auditDate)}` }));
+  }, [company, linked, reviews]);
+
+  if (!company)
+    return (
+      <EmptyState
+        title="Empresa no encontrada"
+        description="Puede que se haya eliminado o que esté guardada en otro navegador."
+        action={<Button asChild><Link to="/companies">Ver empresas</Link></Button>}
+      />
+    );
+
+  const active = history.find((a) => a.id === assessmentId) ?? history[0];
+  const seoAudit = [...linked].filter((a) => a.score).sort((a, b) => auditDate(b).localeCompare(auditDate(a)))[0];
+  const seoScore = seoAudit?.score?.total;
+  const seo = seoReference({ seoScore });
+  const diag = active ? assessmentAsDiagnosis(active) : undefined;
+  const results = dimensionResults(company.industry, diag, { seoScore });
+  const index = globalIndex(company.industry, results, diag, { seoScore });
+  const critical = new Set(criticalControlsFor(company.industry));
+  const allTitles = Object.fromEntries(controlsFor(company.industry).map((c) => [c.id, c.title]));
+  const titled = (r: string) => r.replace(/\b[a-z]+(?:-[a-z]+)+\b/g, (id) => (allTitles[id] ? `«${allTitles[id]}»` : id));
+
+  return (
+    <>
+      <PageHeader
+        title={`Evaluación integral — ${company.tradeName}`}
+        description={`Rubro: ${INDUSTRY_LABELS[company.industry]}. Datos guardados en este navegador.`}
+        actions={
+          <div className="flex flex-wrap gap-2">
+            <Button onClick={() => setDialog(true)}>Nueva evaluación integral</Button>
+            <Button variant="outline" onClick={onPreview}>Vista previa (solo lectura)</Button>
+            <Button asChild variant="outline"><Link to="/companies/$companyId" params={{ companyId }}><ArrowLeft className="h-4 w-4" />Volver a la ficha</Link></Button>
+          </div>
+        }
+      />
+      <NewAssessmentDialog key={String(dialog)} open={dialog} onOpenChange={setDialog} companyId={companyId} tourismSources={tourismSources} onCreated={onSelect} />
+
+      {!active ? (
+        <EmptyState
+          title="Todavía no hay evaluaciones integrales"
+          description="Iniciá la primera evaluación. Podés consultar antes la vista previa de solo lectura con los datos existentes."
+          action={<Button onClick={() => setDialog(true)}>Iniciar primera evaluación</Button>}
+        />
+      ) : (
+        <>
+          <section className="panel mb-4 space-y-2 p-4 text-sm">
+            <label className="flex min-w-0 flex-wrap items-center gap-2">
+              <span className="text-muted-foreground">Evaluación:</span>
+              <select
+                className="h-9 w-full min-w-0 max-w-xl rounded-md border border-input bg-background px-2"
+                value={active.id}
+                onChange={(e) => onSelect(e.target.value)}
+                aria-label="Historial de evaluaciones"
+              >
+                {history.map((a) => {
+                  const c = coverageOf(a, company.industry);
+                  return <option key={a.id} value={a.id}>{a.title} · {fmt(a.assessmentDate + "T12:00:00")} · {c.ev}/{c.app} ({pct(c.pct)})</option>;
+                })}
+              </select>
+            </label>
+            {active.tourismSourceAuditId && (
+              <p className="text-xs text-muted-foreground">
+                Precargada desde la evaluación turística de «{audits.find((a) => a.id === active.tourismSourceAuditId)?.name ?? active.tourismSourceAuditId}» (copia independiente).
+              </p>
+            )}
+          </section>
+
+          <section className="panel mb-4 space-y-2 p-4 text-sm">
+            <div className="flex flex-wrap items-baseline gap-3">
+              <h2 className="font-display text-lg font-semibold">{index.status === "complete" ? `Índice global: ${index.value}` : "Diagnóstico parcial"}</h2>
+              <span className="text-muted-foreground">Cobertura total {pct(index.totalCoverage)} (mínimo propuesto {pct(SUFFICIENCY.minTotalCoverage)})</span>
+            </div>
+            {index.status === "partial" && (
+              <ul className="list-disc space-y-0.5 pl-5">{index.reasons.map((r) => <li key={r}>{titled(r)}</li>)}</ul>
+            )}
+            <p className="text-xs text-muted-foreground">
+              Referencia técnica SEO: {seo === undefined ? "sin auditoría vinculada con puntaje" : <strong>{seo}</strong>} · no suma puntos ni cobertura al índice. Pesos y umbrales propuestos.
+            </p>
+          </section>
+
+          <div className="space-y-4">
+            {DIMENSIONS.map((dim) => {
+              const r = results.find((x) => x.id === dim.id)!;
+              const controls = controlsFor(company.industry, dim.id).filter((c) => c.id !== SEO_CONTROL_ID && c.source !== "integration");
+              return (
+                <section key={dim.id} className="panel p-4 text-sm">
+                  <div className="flex flex-wrap items-baseline justify-between gap-2">
+                    <h3 className="font-display font-semibold">{dim.title}</h3>
+                    <span className="text-muted-foreground">
+                      {r.evaluated === 0 ? `Sin evaluar · 0/${r.applicable}` : `Madurez ${r.maturity} · Cobertura ${r.evaluated}/${r.applicable} (${pct(r.coverage)})`}
+                    </span>
+                  </div>
+                  <ul className="divide-y divide-border">
+                    {controls.map((c) => (
+                      <ControlRow key={`${active.id}:${c.id}`} assessmentId={active.id} control={c} state={active.controls[c.id]} critical={critical.has(c.id)} />
+                    ))}
+                  </ul>
+                </section>
+              );
+            })}
+          </div>
+        </>
+      )}
+    </>
   );
 }
