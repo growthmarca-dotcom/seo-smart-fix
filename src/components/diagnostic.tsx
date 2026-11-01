@@ -2,6 +2,8 @@
  * Presentación del diagnóstico SEO. Solo lee datos derivados (src/seo/diagnostics.ts):
  * no ejecuta reglas ni recalcula scores.
  */
+import { EvidenceList } from "@/components/evidence-list";
+import { pickEvidence } from "@/seo/evidence-display";
 import { useState, type ReactNode } from "react";
 import { Link } from "@tanstack/react-router";
 import { CheckCircle2, Circle, ExternalLink, ScrollText } from "lucide-react";

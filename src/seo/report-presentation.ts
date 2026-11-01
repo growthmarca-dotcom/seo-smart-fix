@@ -11,6 +11,7 @@
  *  - agrupación de acciones por causa común (plantillas vacías),
  *  - oportunidades deduplicadas y filtradas por pertinencia.
  */
+import { evidenceLine, pickEvidence } from "./evidence-display";
 import type { Diagnostic } from "./diagnostics";
 import { getRule } from "./diagnostics";
 import type { ContentItem } from "./content-analysis";
