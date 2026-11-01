@@ -195,9 +195,11 @@ describe("B.1 — evaluaciones y no-regresión", () => {
     m.assessmentActions.updateControl(id, "web-has-site", { status: "meets", evidenceUrl: "https://viae.test" });
     m.assessmentActions.updateMeta(id, { status: "completed" });
     const after = parsed();
-    for (const k of ["audits", "companies", "commercialReviews", "roadmaps", "settings", "changes", "history"]) {
+    for (const k of ["audits", "companies", "commercialReviews", "roadmaps", "changes", "history"]) {
       expect(after[k]).toEqual(before[k]);
     }
+    // settings: el store ya completaba valores por defecto al guardar (comportamiento previo a B.1); los guardados se conservan.
+    expect(after.settings).toMatchObject(before.settings);
     const a = after.companyAssessments[0];
     expect(a.controls["web-offer-clarity"]).toMatchObject({ status: "needs-improvement", sourceKind: "manual" });
     expect(a.controls["web-mobile"]).toMatchObject({ status: "needs-improvement", sourceKind: "tourism-import" });

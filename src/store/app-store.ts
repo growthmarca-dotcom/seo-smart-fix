@@ -766,7 +766,7 @@ export function validatePersistedState(raw: string): { ok: true; value: Partial<
   }
   if (!v || typeof v !== "object" || Array.isArray(v)) return { ok: false, error: "El estado no es un objeto." };
   const o = v as Record<string, unknown>;
-  if (!Array.isArray(o.audits)) return { ok: false, error: "Falta la colección «audits»." };
+  if (!Array.isArray(o["audits"])) return { ok: false, error: "Falta la colección «audits»." };
   for (const k of COLLECTIONS) {
     if (o[k] !== undefined && !Array.isArray(o[k])) return { ok: false, error: `La colección «${k}» no es una lista.` };
   }
@@ -774,11 +774,11 @@ export function validatePersistedState(raw: string): { ok: true; value: Partial<
     const list = (o[k] ?? []) as unknown[];
     if (list.some((x) => !x || typeof x !== "object")) return { ok: false, error: `La colección «${k}» tiene elementos inválidos.` };
   }
-  if ((o.audits as { id?: unknown }[]).some((a) => typeof a.id !== "string")) return { ok: false, error: "Hay auditorías sin id." };
-  if (((o.companies ?? []) as { id?: unknown }[]).some((c) => typeof c.id !== "string")) return { ok: false, error: "Hay empresas sin id." };
-  if (((o.roadmaps ?? []) as { companyId?: unknown }[]).some((r) => typeof r.companyId !== "string")) return { ok: false, error: "Hay roadmaps sin empresa." };
-  if (((o.commercialReviews ?? []) as { auditId?: unknown }[]).some((r) => typeof r.auditId !== "string")) return { ok: false, error: "Hay evaluaciones turísticas sin auditoría." };
-  if (o.settings !== undefined && (typeof o.settings !== "object" || o.settings === null || Array.isArray(o.settings)))
+  if ((o["audits"] as { id?: unknown }[]).some((a) => typeof a.id !== "string")) return { ok: false, error: "Hay auditorías sin id." };
+  if (((o["companies"] ?? []) as { id?: unknown }[]).some((c) => typeof c.id !== "string")) return { ok: false, error: "Hay empresas sin id." };
+  if (((o["roadmaps"] ?? []) as { companyId?: unknown }[]).some((r) => typeof r.companyId !== "string")) return { ok: false, error: "Hay roadmaps sin empresa." };
+  if (((o["commercialReviews"] ?? []) as { auditId?: unknown }[]).some((r) => typeof r.auditId !== "string")) return { ok: false, error: "Hay evaluaciones turísticas sin auditoría." };
+  if (o["settings"] !== undefined && (typeof o["settings"] !== "object" || o["settings"] === null || Array.isArray(o["settings"])))
     return { ok: false, error: "«settings» inválido." };
   return { ok: true, value: o as Partial<AppState> };
 }
