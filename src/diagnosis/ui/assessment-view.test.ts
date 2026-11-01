@@ -132,7 +132,10 @@ describe("B.2 — historial, recarga, precarga y respaldo", () => {
     const id = m.assessmentActions.create("c1").id!;
     m.assessmentActions.updateControl(id, "web-mobile", { status: "needs-improvement", notes: "Botón chico", evidenceUrl: "https://e.test" });
     const m2 = await boot(storage); // mismo almacenamiento, módulo nuevo
-    const a = m2.getState().companyAssessments.find((x) => x.id === id)!;
+    // Una escritura posterior desde el módulo recargado conserva lo guardado antes.
+    expect(m2.assessmentActions.updateControl(id, "brand-value", { status: "meets" }).ok).toBe(true);
+    const a = persisted().companyAssessments.find((x: { id: string }) => x.id === id);
+    expect(a.controls["brand-value"].status).toBe("meets");
     expect(a.controls["web-mobile"]).toMatchObject({ status: "needs-improvement", notes: "Botón chico", evidenceUrl: "https://e.test" });
   });
 
@@ -176,9 +179,8 @@ describe("B.2 — historial, recarga, precarga y respaldo", () => {
     const id = m.assessmentActions.create("c1").id!;
     m.assessmentActions.updateControl(id, "web-mobile", { status: "meets" });
     const s = seed();
-    expect(persisted().companies).toEqual(m.getState().companies);
-    expect(persisted().companies.map((c: { id: string }) => c.id)).toEqual(s.companies.map((c) => c.id));
-    expect(persisted().roadmaps).toEqual(m.getState().roadmaps);
+    expect(persisted().companies).toEqual(s.companies);
+    expect(persisted().roadmaps).toEqual(s.roadmaps);
   });
 });
 
