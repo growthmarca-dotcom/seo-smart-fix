@@ -1,4 +1,4 @@
-import { evidenceToStrings } from "@/seo/evidence";
+import { EvidenceList } from "@/components/evidence-list";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { ArrowLeft, Check, Pencil, X } from "lucide-react";
 import { useState } from "react";
