@@ -121,7 +121,7 @@ export function linkedAuditSummaries(company: Company, audits: Audit[]): AuditSu
     const c = countBySeverity(a.findings);
     return [{
       id: a.id,
-      name: a.name,
+      name: auditDisplayName(a.name, !!a.isDemo),
       rootUrl: a.rootUrl,
       isDemo: !!a.isDemo,
       date: fmtReportDate(a.finishedAt ?? a.createdAt),
