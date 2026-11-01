@@ -48,7 +48,7 @@ describe("B.1 — modelo de evaluación integral", () => {
   it("Sin evaluar no cuenta como cero en la madurez (reglas C1 intactas)", () => {
     let a = base();
     a = updateAssessmentControl(a, "web-mobile", { status: "meets" }, AT);
-    const web = dimensionResults("lodging", assessmentAsDiagnosis(a)).find((r) => r.id === "web")!;
+    const web = dimensionResults("tourism-lodging", assessmentAsDiagnosis(a)).find((r) => r.id === "web")!;
     expect(web.evaluated).toBe(1);
     expect(web.maturity).toBe(100);
     expect(web.coverage).toBeLessThan(1);
