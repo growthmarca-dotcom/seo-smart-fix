@@ -5,7 +5,7 @@ import { EmptyState } from "@/components/seo-ui";
 import { RoadmapView } from "@/components/roadmap-view";
 import { Button } from "@/components/ui/button";
 import { COMPANY_STATUS_LABELS, INDUSTRY_LABELS } from "@/companies/model";
-import { companyActions, useAppState, useCompany, useRoadmap } from "@/store/app-store";
+import { companyActions, useAppState, useCompany, useCompanyAssessments, useRoadmap } from "@/store/app-store";
 
 export const Route = createFileRoute("/companies/$companyId")({
   head: () => ({
@@ -26,6 +26,7 @@ function CompanyDetail() {
   const { companyId } = Route.useParams();
   const company = useCompany(companyId);
   const roadmap = useRoadmap(companyId);
+  const assessments = useCompanyAssessments(companyId);
   const audits = useAppState((s) => s.audits);
   const navigate = useNavigate();
   const [pick, setPick] = useState("");
@@ -61,7 +62,7 @@ function CompanyDetail() {
         actions={
           <div className="flex gap-2">
             <Button asChild><Link to="/companies/$companyId/report" params={{ companyId }}>Ver informe</Link></Button>
-            <Button asChild variant="outline"><Link to="/companies/$companyId/diagnosis" params={{ companyId }}>Diagnóstico (vista previa)</Link></Button>
+            <Button asChild variant="outline"><Link to="/companies/$companyId/diagnosis" params={{ companyId }}>Evaluación integral{assessments.length ? ` (${assessments.length})` : ""}</Link></Button>
             <Button asChild variant="outline"><Link to="/companies/$companyId/edit" params={{ companyId }}>Editar</Link></Button>
             <Button
               variant="ghost"
