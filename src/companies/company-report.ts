@@ -5,7 +5,17 @@
  */
 import { countBySeverity } from "@/seo/engine";
 import type { Audit } from "@/seo/types";
-import { COMPANY_STATUS_LABELS, INDUSTRY_LABELS, overdueTasks, roadmapProgress, type Company, type Roadmap } from "./model";
+import {
+  COMPANY_STATUS_LABELS,
+  INDUSTRY_LABELS,
+  TASK_PRIORITY_LABELS,
+  TASK_STATUS_LABELS,
+  overdueTasks,
+  roadmapProgress,
+  type Company,
+  type Roadmap,
+  type TaskStatus,
+} from "./model";
 
 export const NOT_AVAILABLE = "No informado";
 
@@ -28,6 +38,66 @@ export function companyIdentityRows(c: Company): [string, string][] {
     ["Email", c.email ?? NOT_AVAILABLE],
     ["Teléfono", c.phone ?? NOT_AVAILABLE],
   ];
+}
+
+/** Nombre visible de la auditoría; agrega la marca demo solo si el nombre no la trae ya. */
+export function auditDisplayName(name: string, isDemo: boolean): string {
+  if (!isDemo || /demo/i.test(name)) return name;
+  return `${name} (demo)`;
+}
+
+export interface ReportTask {
+  id: string;
+  title: string;
+  description: string;
+  status: TaskStatus;
+  statusLabel: string;
+  priorityLabel: string;
+  owner: string;
+  dueDate: string;
+  overdue: boolean;
+  notes: string;
+  evidence: { id: string; date: string; note: string; url: string | undefined }[];
+  linkedAudits: string[];
+}
+export interface ReportPhase {
+  id: string;
+  title: string;
+  counts: { applicable: number; done: number; notApplicable: number };
+  tasks: ReportTask[];
+}
+
+/** Roadmap completo para el informe. Usa los mismos criterios de vencida/No aplica que el modelo. */
+export function roadmapPhasesForReport(
+  roadmap: Roadmap | undefined,
+  today: string,
+  auditNames: Record<string, string>,
+): ReportPhase[] {
+  if (!roadmap) return [];
+  const overdueIds = new Set(overdueTasks(roadmap, today).map((t) => t.id));
+  return roadmap.phases.map((p) => ({
+    id: p.id,
+    title: p.title,
+    counts: {
+      applicable: p.tasks.filter((t) => t.status !== "not-applicable").length,
+      done: p.tasks.filter((t) => t.status === "done").length,
+      notApplicable: p.tasks.filter((t) => t.status === "not-applicable").length,
+    },
+    tasks: p.tasks.map((t) => ({
+      id: t.id,
+      title: t.title,
+      description: t.description,
+      status: t.status,
+      statusLabel: TASK_STATUS_LABELS[t.status],
+      priorityLabel: TASK_PRIORITY_LABELS[t.priority],
+      owner: t.owner ?? "Sin asignar",
+      dueDate: t.dueDate ? fmtReportDate(`${t.dueDate}T12:00:00`) : "Sin fecha",
+      overdue: overdueIds.has(t.id),
+      notes: t.notes.trim(),
+      evidence: t.evidence.map((e) => ({ id: e.id, date: fmtReportDate(e.at), note: e.note, url: e.url })),
+      linkedAudits: (t.linkedAuditIds ?? []).flatMap((id) => (auditNames[id] ? [auditNames[id]!] : [])),
+    })),
+  }));
 }
 
 export interface AuditSummary {
