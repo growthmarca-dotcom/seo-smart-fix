@@ -20,10 +20,19 @@ Son los commits posteriores a la base que tocan código o reglas. Los demás com
 | 6a0f38a | 16:21:38 | `AGENTS.md` |
 | 902409b | 16:24:18 | A2.1: `scoring.ts`, `weights.ts`, `equivalences.ts` y las dos pruebas |
 
-## Resumen frente a la base
+## Archivos de `src/diagnosis/` y su estado frente a la base
 
-- **Creados:** `src/diagnosis/equivalences.ts` y `src/diagnosis/equivalences.test.ts`.
-- **Modificados:** `src/diagnosis/model.ts`, `scoring.ts`, `weights.ts` y `diagnosis.test.ts`.
+| Archivo | Estado |
+|---|---|
+| `dimensions.ts` | Existía antes (Etapa A) y no se tocó |
+| `model.ts` | Modificado |
+| `scoring.ts` | Modificado |
+| `weights.ts` | Modificado |
+| `diagnosis.test.ts` | Modificado |
+| `equivalences.ts` | Creado |
+| `equivalences.test.ts` | Creado |
+
+Todos estos cambios están en commits; no hay nada sin confirmar.
 
 ## Fuera de `src/diagnosis/` y del plan
 
@@ -32,8 +41,21 @@ Son los commits posteriores a la base que tocan código o reglas. Los demás com
 - **`roadmap.md`:** se modificó a las 16:14, en el turno del asistente de WhatsApp, antes de la base. No forma parte de A2, A3 ni A2.1.
 - **Nada más:** no hay otros archivos de la app, pruebas, rutas, almacenamiento ni motor SEO tocados.
 
-## Si querés deshacerlo
+## Siguiente paso seguro (no ejecutado)
 
-Para deshacer A2, A3 y A2.1 se puede volver a la versión del historial del proyecto anterior a esos cambios, o pedirme que revierta solo esos archivos y la regla de `AGENTS.md`.
+Primero, decidir qué hacer con lo ya implementado:
+
+- **Conservarlo.** Es lógica que ninguna pantalla, informe ni guardado usa todavía, y las 210 pruebas pasan.
+- **Revertirlo.** Se puede volver a la versión del historial anterior a esos cambios. También puedo revertir solo esos archivos y la regla de `AGENTS.md`.
+
+Si se conserva, el paso siguiente es que apruebes por escrito estas decisiones, sin construir nada todavía:
+
+- pesos y controles críticos por rubro;
+- umbrales provisionales;
+- guardado nuevo por empresa, con la auditoría elegida como fuente.
+
+Recién después de eso empezaría la Etapa B, la pantalla de diagnóstico por empresa.
+
+No agregué esta verificación a `roadmap.md` porque estoy en modo de solo lectura.
 
 Sigo sin hacer cambios hasta que me autorices.
