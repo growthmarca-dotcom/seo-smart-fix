@@ -65,18 +65,18 @@ const isObj = (x: unknown): x is Record<string, unknown> => !!x && typeof x === 
 export function isProposalShape(x: unknown): x is Proposal {
   return (
     isObj(x) &&
-    typeof x.id === "string" &&
-    typeof x.companyId === "string" &&
-    typeof x.status === "string" &&
-    STATUSES.has(x.status) &&
-    typeof x.version === "number" &&
-    Array.isArray(x.items) &&
-    Array.isArray(x.discounts)
+    typeof x["id"] === "string" &&
+    typeof x["companyId"] === "string" &&
+    typeof x["status"] === "string" &&
+    STATUSES.has(x["status"]) &&
+    typeof x["version"] === "number" &&
+    Array.isArray(x["items"]) &&
+    Array.isArray(x["discounts"])
   );
 }
 
 export function isCatalogShape(x: unknown): x is CatalogItem {
-  return isObj(x) && typeof x.id === "string" && typeof x.name === "string" && typeof x.archived === "boolean";
+  return isObj(x) && typeof x["id"] === "string" && typeof x["name"] === "string" && typeof x["archived"] === "boolean";
 }
 
 /** Error si alguna colección P3 tiene elementos con forma inválida. */

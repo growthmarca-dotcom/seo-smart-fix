@@ -1182,6 +1182,11 @@ export function useServiceCatalog() {
   return useAppState((s) => s.serviceCatalog);
 }
 
+/** Lectura no reactiva del estado en memoria (pruebas y utilidades). */
+export function getAppState(): AppState {
+  return state;
+}
+
 /** Solo pruebas: reinicia el estado en memoria. */
 export function __resetForTests() {
   state = { ...initialState };

@@ -198,7 +198,7 @@ describe("P3 — inmutabilidad y reglas", () => {
     expect(m.proposalActions.accept(p.id).ok).toBe(false);
     const v = m.proposalActions.newVersion(p.id);
     expect(v.ok).toBe(true);
-    expect(JSON.stringify(m.getAppState().proposals.find((x) => x.id === p.id))).toBe(sent);
+    expect(JSON.stringify(m.getAppState().proposals.find((x: { id: string }) => x.id === p.id))).toBe(sent);
   });
 
   it("cambiar el catálogo no altera propuestas existentes", async () => {
