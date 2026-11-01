@@ -295,6 +295,15 @@ export const companyActions = {
       };
     });
   },
+  /** Asocia, cambia o quita (null) la empresa de una auditoría, sin duplicados. */
+  assignAudit(auditId: string, companyId: string | null) {
+    set((prev) => {
+      const audit = prev.audits.find((a) => a.id === auditId);
+      if (!audit) return prev;
+      const res = cm.assignAudit(prev.companies, prev.roadmaps, auditId, companyId, `${audit.name} (${audit.rootUrl})`, ctx);
+      return { ...prev, ...res };
+    });
+  },
   updateTask(companyId: string, taskId: string, patch: TaskPatch, statusNote?: string) {
     setRoadmap(companyId, (r) => cm.updateTask(r, taskId, patch, ctx, statusNote));
   },
