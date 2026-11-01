@@ -117,6 +117,7 @@ function DiagnosisPreviewPage() {
             <>
               <p>
                 Fuente: {auditName(review.current.auditId)?.name ?? review.current.auditId}
+                {auditName(review.current.auditId)?.isDemo && !/demo/i.test(auditName(review.current.auditId)!.name) ? " (demo)" : ""}
 , auditoría del {fmt(review.current.auditDate)}, editada el {fmt(review.current.reviewUpdatedAt)} ·{" "}
                 {review.reason === "latest" ? "regla: la más reciente con datos" : "elegida para comparar (no se guarda)"}
               </p>
