@@ -4,7 +4,16 @@ import { ArrowLeft, Printer } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/seo-ui";
 import { useAppState, useCompany, useRoadmap } from "@/store/app-store";
-import { companyIdentityRows, executiveSummary, fmtReportDate, linkedAuditSummaries } from "@/companies/company-report";
+import {
+  auditDisplayName,
+  companyIdentityRows,
+  executiveSummary,
+  fmtReportDate,
+  linkedAuditSummaries,
+  roadmapPhasesForReport,
+  type ReportTask,
+} from "@/companies/company-report";
+import type { TaskStatus } from "@/companies/model";
 import { scoreLabel } from "@/seo/engine";
 
 export const Route = createFileRoute("/companies/$companyId_/report")({
@@ -35,6 +44,8 @@ function CompanyReport() {
 
   const summary = executiveSummary(roadmap, today);
   const linked = linkedAuditSummaries(company, audits);
+  const auditNames = Object.fromEntries(audits.map((a) => [a.id, auditDisplayName(a.name, !!a.isDemo)]));
+  const phases = roadmapPhasesForReport(roadmap, today, auditNames);
 
   return (
     <div className="report mx-auto max-w-4xl">
