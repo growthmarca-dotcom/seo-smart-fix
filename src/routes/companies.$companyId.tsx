@@ -60,6 +60,7 @@ function CompanyDetail() {
         description="Ficha de la empresa y roadmap de trabajo. Datos guardados en este navegador."
         actions={
           <div className="flex gap-2">
+            <Button asChild><Link to="/companies/$companyId/report" params={{ companyId }}>Ver informe</Link></Button>
             <Button asChild variant="outline"><Link to="/companies/$companyId/edit" params={{ companyId }}>Editar</Link></Button>
             <Button
               variant="ghost"
