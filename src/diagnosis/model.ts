@@ -2,9 +2,10 @@
  * Diagnóstico integral por empresa. Lógica pura: el store solo llama a estas funciones.
  * Un control sin registro = "unevaluated" (sin evaluar), nunca cero.
  */
-export type ControlStatus = "unevaluated" | "meets" | "needs-improvement" | "not-applicable";
+export type ControlStatus = "unevaluated" | "no-data" | "meets" | "needs-improvement" | "not-applicable";
 export const CONTROL_STATUS_LABELS: Record<ControlStatus, string> = {
   unevaluated: "Sin evaluar",
+  "no-data": "Sin datos",
   meets: "Cumple",
   "needs-improvement": "Requiere mejora",
   "not-applicable": "No aplica",
@@ -23,7 +24,12 @@ export interface CompanyDiagnosis {
   updatedAt: string;
 }
 
-const STATUSES = new Set<ControlStatus>(["unevaluated", "meets", "needs-improvement", "not-applicable"]);
+const STATUSES = new Set<ControlStatus>(["unevaluated", "no-data", "meets", "needs-improvement", "not-applicable"]);
+
+/** "No aplica" solo excluye el control si tiene justificación escrita (en notas). */
+export function isJustifiedNotApplicable(s: Pick<ControlState, "status" | "notes">): boolean {
+  return s.status === "not-applicable" && (s.notes ?? "").trim().length > 0;
+}
 
 export function emptyDiagnosis(companyId: string, at: string): CompanyDiagnosis {
   return { companyId, controls: {}, updatedAt: at };
@@ -38,6 +44,8 @@ export function setControl(
   if (patch.status && !STATUSES.has(patch.status)) return d;
   const prev = d.controls[controlId] ?? { status: "unevaluated" as const, notes: "", updatedAt: at };
   const next: ControlState = { ...prev, ...patch, updatedAt: at };
+  // "No aplica" sin justificación se rechaza.
+  if (next.status === "not-applicable" && !isJustifiedNotApplicable(next)) return d;
   if (patch.evidenceUrl !== undefined) next.evidenceUrl = patch.evidenceUrl.trim() || undefined;
   return { ...d, controls: { ...d.controls, [controlId]: next }, updatedAt: at };
 }

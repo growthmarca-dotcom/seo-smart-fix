@@ -12,4 +12,5 @@
 ## Architecture rules
 
 - The integral business diagnosis lives per company in `src/diagnosis/` (pure logic); the SEO audit contributes a single indicator to the "web" dimension, so SEO never drives the global index.
-- Unevaluated, not-applicable and integration-only controls never count as zero; dimensions below minimum coverage are excluded from the global index, so missing data cannot penalize a company.
+- Unevaluated, no-data, not-applicable and integration-only controls never count as zero; "not applicable" requires a written justification, and the global index is shown only when sufficiency thresholds and critical controls are met, never by redistributing weights, so missing data cannot fake a complete score.
+- Tourism commercial controls are the single editable source for their equivalent diagnosis controls (read via `src/diagnosis/equivalences.ts`, conflicts surfaced), so the same fact is never edited twice.

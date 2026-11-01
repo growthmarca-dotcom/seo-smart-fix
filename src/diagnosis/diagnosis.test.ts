@@ -29,7 +29,8 @@ describe("pesos por rubro", () => {
     for (const w of Object.values(WEIGHT_PROFILES)) expect(Object.values(w).reduce((a, b) => a + b, 0)).toBe(100);
   });
   it("rubro sin perfil usa genérico; turismo agrupa hotel/cabañas/hostel", () => {
-    expect(weightProfileFor("real-estate")).toBe("generic");
+    expect(weightProfileFor("other")).toBe("generic");
+    expect(weightProfileFor("real-estate")).toBe("real-estate");
     expect(weightProfileFor("hostel")).toBe("tourism");
     expect(weightsFor("restaurant").visibility).toBe(30);
   });
@@ -39,13 +40,14 @@ describe("madurez y cobertura", () => {
   it("sin datos no es cero: madurez indefinida, cobertura 0, sin índice global", () => {
     const r = dimensionResults("cabins", undefined);
     expect(r.every((x) => x.maturity === undefined && x.coverage === 0 && !x.sufficient)).toBe(true);
-    expect(globalIndex("cabins", r)).toEqual({ value: undefined, basedOn: 0, total: 6 });
+    const g = globalIndex("cabins", r);
+    expect(g).toMatchObject({ status: "partial", value: undefined, totalCoverage: 0 });
   });
   it("Sin evaluar y No aplica no suman ni restan", () => {
     let d = emptyDiagnosis("c1", at);
     d = setControl(d, "brand-identity", { status: "meets" }, at);
     d = setControl(d, "brand-value", { status: "needs-improvement" }, at);
-    d = setControl(d, "brand-content", { status: "not-applicable" }, at);
+    d = setControl(d, "brand-content", { status: "not-applicable", notes: "Sin contenidos propios: vende por catálogo de terceros." }, at);
     const brand = dimensionResults("other", d).find((x) => x.id === "brand")!;
     expect(brand).toMatchObject({ applicable: 3, evaluated: 2, maturity: 50, needsImprovement: ["brand-value"] });
     expect(brand.coverage).toBeCloseTo(2 / 3);
@@ -54,12 +56,15 @@ describe("madurez y cobertura", () => {
     const web = dimensionResults("other", undefined).find((x) => x.id === "web")!;
     expect(web.applicable).toBe(controlsFor("other", "web").filter((c) => c.source !== "integration").length);
   });
-  it("dimensión bajo la cobertura mínima queda fuera del índice y se reparte el peso", () => {
+  it("dimensión con poca cobertura: diagnóstico parcial y sin redistribuir pesos", () => {
     let d = withAll("other", "sales", "meets");
-    d = setControl(d, "brand-identity", { status: "needs-improvement" }, at); // 1 de 4 < 50 %
+    d = setControl(d, "brand-identity", { status: "needs-improvement" }, at);
     const r = dimensionResults("other", d);
     expect(r.find((x) => x.id === "brand")!.coverage).toBeLessThan(MIN_COVERAGE);
-    expect(globalIndex("other", r)).toEqual({ value: 100, basedOn: 1, total: 6 });
+    const g = globalIndex("other", r, d);
+    expect(g.status).toBe("partial");
+    expect(g.value).toBeUndefined();
+    expect(g.reasons.length).toBeGreaterThan(0);
   });
 });
 
@@ -74,7 +79,7 @@ describe("el SEO no domina", () => {
       d = { ...d, controls: { ...d.controls, ...withAll("other", dim, "meets").controls } };
     const r = dimensionResults("other", d, { seoScore: 0 });
     const web = r.find((x) => x.id === "web")!;
-    const g = globalIndex("other", r).value!;
+    const g = globalIndex("other", r, d, { seoScore: 0 }).value!;
     // El peor caso posible: perder todo el peso de "web" (20 %) → índice ≥ 80.
     expect(g).toBeGreaterThanOrEqual(80);
     expect(web.maturity).toBe(Math.round((web.evaluated - 1) / web.evaluated * 100));
@@ -101,5 +106,45 @@ describe("persistencia", () => {
     const d = emptyDiagnosis("c1", at);
     expect(setControl(d, "x", { status: "rota" as never }, at)).toBe(d);
     expect(setControl(d, "x", { evidenceUrl: "  " }, at).controls["x"]!.evidenceUrl).toBeUndefined();
+  });
+});
+
+describe("suficiencia y estados", () => {
+  function full(industry: "cabins" | "other", status: "meets" | "needs-improvement" = "meets") {
+    let d = emptyDiagnosis("c1", at);
+    for (const dim of DIMENSIONS) d = { ...d, controls: { ...d.controls, ...withAll(industry, dim.id, status).controls } };
+    return d;
+  }
+  it("Sin datos no vale cero y cuenta como no cubierto", () => {
+    let d = emptyDiagnosis("c1", at);
+    d = setControl(d, "brand-identity", { status: "meets" }, at);
+    d = setControl(d, "brand-value", { status: "no-data" }, at);
+    const brand = dimensionResults("other", d).find((x) => x.id === "brand")!;
+    expect(brand).toMatchObject({ evaluated: 1, noData: 1, maturity: 100 });
+  });
+  it("No aplica sin justificación se rechaza", () => {
+    const d = emptyDiagnosis("c1", at);
+    expect(setControl(d, "brand-value", { status: "not-applicable" }, at)).toBe(d);
+    expect(setControl(d, "brand-value", { status: "not-applicable", notes: "  " }, at)).toBe(d);
+  });
+  it("todo evaluado y con SEO: índice completo", () => {
+    const d = full("other");
+    const r = dimensionResults("other", d, { seoScore: 100 });
+    expect(globalIndex("other", r, d, { seoScore: 100 })).toMatchObject({ status: "complete", value: 100, missingCritical: [] });
+  });
+  it("falta un control crítico del rubro: parcial aunque la cobertura sea alta", () => {
+    let d = full("cabins");
+    const { ["vis-ota"]: _drop, ...rest } = d.controls;
+    d = { ...d, controls: rest };
+    const r = dimensionResults("cabins", d, { seoScore: 90 });
+    const g = globalIndex("cabins", r, d, { seoScore: 90 });
+    expect(g.totalCoverage).toBeGreaterThanOrEqual(0.7);
+    expect(g).toMatchObject({ status: "partial", value: undefined, missingCritical: ["vis-ota"] });
+  });
+  it("estado Sin datos en un crítico mantiene el diagnóstico parcial", () => {
+    let d = full("other");
+    d = setControl(d, "ch-whatsapp", { status: "no-data" }, at);
+    const g = globalIndex("other", dimensionResults("other", d, { seoScore: 80 }), d, { seoScore: 80 });
+    expect(g.missingCritical).toEqual(["ch-whatsapp"]);
   });
 });

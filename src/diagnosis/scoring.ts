@@ -1,26 +1,29 @@
 /**
- * Madurez, cobertura e índice global del diagnóstico integral.
- * - "Sin evaluar" y "No aplica" no suman ni restan.
- * - Controles de origen "integration" se informan pero no cuentan hasta conectarse.
+ * Madurez, cobertura y suficiencia del diagnóstico integral.
+ * - "Sin evaluar", "Sin datos" y "No aplica" nunca valen cero.
+ * - "Sin datos" cuenta como no cubierto; "No aplica" se excluye solo con justificación.
+ * - Integraciones no cuentan hasta conectarse.
  * - El SEO entra como UN indicador (0–1) del control "web-seo-health".
- * - Una dimensión con cobertura < MIN_COVERAGE queda "incompleta" y no entra al índice global.
+ * - NO se redistribuyen pesos: si falta información, el resultado es "Diagnóstico parcial" sin índice.
  */
 import type { Industry } from "@/companies/model";
 import { DIMENSIONS, controlsFor, type DimensionId } from "./dimensions";
-import type { CompanyDiagnosis } from "./model";
-import { weightsFor } from "./weights";
+import { isJustifiedNotApplicable, type CompanyDiagnosis } from "./model";
+import { SUFFICIENCY, criticalControlsFor, weightsFor } from "./weights";
 
-export const MIN_COVERAGE = 0.5;
+/** Cobertura mínima para considerar una dimensión con madurez representativa (propuesto). */
+export const MIN_COVERAGE = SUFFICIENCY.minRelevantCoverage;
 export const SEO_CONTROL_ID = "web-seo-health";
 
 export interface DimensionResult {
   id: DimensionId;
   title: string;
-  /** Controles evaluables (excluye No aplica e integraciones). */
+  /** Controles evaluables (excluye No aplica justificado e integraciones). */
   applicable: number;
   evaluated: number;
+  noData: number;
   coverage: number; // 0–1
-  /** 0–100, o undefined si no hay nada evaluado. */
+  /** 0–100 sobre lo evaluado, o undefined si no hay nada evaluado. */
   maturity: number | undefined;
   sufficient: boolean;
   needsImprovement: string[];
@@ -35,6 +38,7 @@ export function dimensionResults(industry: Industry, d: CompanyDiagnosis | undef
   return DIMENSIONS.map((dim) => {
     let applicable = 0;
     let evaluated = 0;
+    let noData = 0;
     let sum = 0;
     const needsImprovement: string[] = [];
     for (const c of controlsFor(industry, dim.id)) {
@@ -47,10 +51,12 @@ export function dimensionResults(industry: Industry, d: CompanyDiagnosis | undef
         }
         continue;
       }
-      const st = d?.controls[c.id]?.status ?? "unevaluated";
-      if (st === "not-applicable") continue;
+      const s = d?.controls[c.id];
+      const st = s?.status ?? "unevaluated";
+      if (st === "not-applicable" && s && isJustifiedNotApplicable(s)) continue;
       applicable++;
-      if (st === "unevaluated") continue;
+      if (st === "no-data") { noData++; continue; }
+      if (st !== "meets" && st !== "needs-improvement") continue;
       evaluated++;
       if (st === "meets") sum += 1;
       else needsImprovement.push(c.id);
@@ -61,6 +67,7 @@ export function dimensionResults(industry: Industry, d: CompanyDiagnosis | undef
       title: dim.title,
       applicable,
       evaluated,
+      noData,
       coverage,
       maturity: evaluated ? Math.round((sum / evaluated) * 100) : undefined,
       sufficient: applicable > 0 && coverage >= MIN_COVERAGE,
@@ -70,19 +77,54 @@ export function dimensionResults(industry: Industry, d: CompanyDiagnosis | undef
 }
 
 export interface GlobalIndex {
-  /** 0–100, o undefined si ninguna dimensión tiene cobertura suficiente. */
+  status: "complete" | "partial";
+  /** 0–100 solo cuando status = "complete". Nunca se calcula con pesos redistribuidos. */
   value: number | undefined;
-  basedOn: number;
-  total: number;
+  /** Cobertura total (evaluados / aplicables), siempre visible. */
+  totalCoverage: number;
+  /** Controles críticos del rubro aún sin evaluar (o con "Sin datos"). */
+  missingCritical: string[];
+  /** Motivos legibles por los que el diagnóstico es parcial. */
+  reasons: string[];
 }
 
-export function globalIndex(industry: Industry, results: DimensionResult[]): GlobalIndex {
+export function globalIndex(
+  industry: Industry,
+  results: DimensionResult[],
+  d?: CompanyDiagnosis | undefined,
+  inputs: DiagnosisInputs = {},
+): GlobalIndex {
   const w = weightsFor(industry);
-  const used = results.filter((r) => r.sufficient && r.maturity !== undefined);
+  const applicable = results.reduce((s, r) => s + r.applicable, 0);
+  const evaluated = results.reduce((s, r) => s + r.evaluated, 0);
+  const totalCoverage = applicable ? evaluated / applicable : 0;
+  const reasons: string[] = [];
+
+  if (totalCoverage < SUFFICIENCY.minTotalCoverage)
+    reasons.push(`Cobertura total ${Math.round(totalCoverage * 100)} % (mínimo propuesto ${SUFFICIENCY.minTotalCoverage * 100} %).`);
+
+  for (const r of results) {
+    if (r.applicable === 0) continue;
+    if (w[r.id] >= SUFFICIENCY.relevantWeight && r.coverage < SUFFICIENCY.minRelevantCoverage)
+      reasons.push(`«${r.title}» con cobertura ${Math.round(r.coverage * 100)} % (mínimo propuesto ${SUFFICIENCY.minRelevantCoverage * 100} %).`);
+    else if (r.maturity === undefined) reasons.push(`«${r.title}» sin controles evaluados.`);
+  }
+
+  const relevantIds = new Set(controlsFor(industry).map((c) => c.id));
+  const missingCritical = criticalControlsFor(industry).filter((id) => {
+    if (!relevantIds.has(id)) return false;
+    if (id === SEO_CONTROL_ID) return inputs.seoScore === undefined;
+    const s = d?.controls[id];
+    if (!s) return true;
+    if (s.status === "not-applicable") return !isJustifiedNotApplicable(s);
+    return s.status !== "meets" && s.status !== "needs-improvement";
+  });
+  if (missingCritical.length) reasons.push(`Faltan controles críticos del rubro: ${missingCritical.join(", ")}.`);
+
+  if (reasons.length) return { status: "partial", value: undefined, totalCoverage, missingCritical, reasons };
+
+  const used = results.filter((r) => r.applicable > 0);
   const wsum = used.reduce((s, r) => s + w[r.id], 0);
-  return {
-    value: wsum ? Math.round(used.reduce((s, r) => s + r.maturity! * w[r.id], 0) / wsum) : undefined,
-    basedOn: used.length,
-    total: results.length,
-  };
+  const value = Math.round(used.reduce((s, r) => s + r.maturity! * w[r.id], 0) / wsum);
+  return { status: "complete", value, totalCoverage, missingCritical, reasons };
 }
