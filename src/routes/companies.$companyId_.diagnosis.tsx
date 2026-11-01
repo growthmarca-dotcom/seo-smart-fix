@@ -11,20 +11,25 @@ import { CONTROL_STATUS_LABELS } from "@/diagnosis/model";
 import { buildDiagnosisPreview, type PreviewControl } from "@/diagnosis/preview";
 import { SUFFICIENCY } from "@/diagnosis/weights";
 import { useAppState, useCompany } from "@/store/app-store";
+import { AssessmentWorkspace } from "@/diagnosis/ui/assessment-workspace";
 
 export const Route = createFileRoute("/companies/$companyId_/diagnosis")({
   head: () => ({
     meta: [
-      { title: "Diagnóstico integral (vista previa) — MarCa Audit" },
-      { name: "description", content: "Vista previa de solo lectura del diagnóstico integral de negocio de la empresa." },
-      { property: "og:title", content: "Diagnóstico integral (vista previa) — MarCa Audit" },
-      { property: "og:description", content: "Madurez y cobertura por dimensión, sin guardar cambios." },
+      { title: "Evaluación integral — MarCa Audit" },
+      { name: "description", content: "Evaluación integral de negocio por empresa: seis dimensiones, cobertura y madurez." },
+      { property: "og:title", content: "Evaluación integral — MarCa Audit" },
+      { property: "og:description", content: "Madurez y cobertura por dimensión, con historial de evaluaciones." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
       { name: "robots", content: "noindex" },
     ],
   }),
-  component: DiagnosisPreviewPage,
+  validateSearch: (s: Record<string, unknown>): { assessmentId?: string; view?: "preview" } => ({
+    assessmentId: typeof s.assessmentId === "string" ? s.assessmentId : undefined,
+    view: s.view === "preview" ? "preview" : undefined,
+  }),
+  component: DiagnosisPage,
 });
 
 const fmt = (iso: string) => (iso ? new Date(iso).toLocaleDateString("es-AR") : "Sin fecha");
@@ -36,8 +41,7 @@ function statusText(c: PreviewControl) {
   return CONTROL_STATUS_LABELS[c.status];
 }
 
-function DiagnosisPreviewPage() {
-  const { companyId } = Route.useParams();
+function ReadOnlyPreview({ companyId }: { companyId: string }) {
   const company = useCompany(companyId);
   const audits = useAppState((s) => s.audits);
   const reviews = useAppState((s) => s.commercialReviews);
@@ -187,5 +191,28 @@ function DiagnosisPreviewPage() {
         <p className="pt-2 text-xs text-muted-foreground">Editar controles, crear hallazgos o tareas e imprimir estarán disponibles cuando se apruebe el guardado.</p>
       </section>
     </>
+  );
+}
+
+function DiagnosisPage() {
+  const { companyId } = Route.useParams();
+  const search = Route.useSearch();
+  const navigate = Route.useNavigate();
+  if (search.view === "preview")
+    return (
+      <>
+        <div className="mb-3">
+          <Button variant="outline" size="sm" onClick={() => navigate({ search: {} })}>Volver a la evaluación integral</Button>
+        </div>
+        <ReadOnlyPreview companyId={companyId} />
+      </>
+    );
+  return (
+    <AssessmentWorkspace
+      companyId={companyId}
+      assessmentId={search.assessmentId}
+      onSelect={(id) => navigate({ search: { assessmentId: id } })}
+      onPreview={() => navigate({ search: { view: "preview" } })}
+    />
   );
 }
