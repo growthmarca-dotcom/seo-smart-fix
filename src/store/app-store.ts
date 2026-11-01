@@ -11,6 +11,9 @@ import { proposalFromFinding } from "@/seo/suggestions";
 import { mergeRows } from "@/seo/gsc/import";
 import { emptyReview, updateControl, type CommercialReview, type CommercialStatus } from "@/seo/tourism/commercial-review";
 import * as cm from "@/companies/model";
+import * as dm from "@/diagnosis/model";
+import type { AssessmentControlState, AssessmentInput, AssessmentMetaPatch, CompanyAssessment } from "@/diagnosis/model";
+import { TOURISM_EQUIVALENCES } from "@/diagnosis/equivalences";
 import type { Company, CompanyInput, Roadmap, TaskPatch, TaskPriority } from "@/companies/model";
 import type { GscConnection, GscRow } from "@/seo/gsc/types";
 import { mergeCategories, mergeProducts } from "@/seo/commerce/dedupe";
@@ -70,6 +73,8 @@ export interface AppState {
   /** Aditivo: empresas y su roadmap propio (uno por empresa). */
   companies: Company[];
   roadmaps: Roadmap[];
+  /** Etapa B.1 (aditivo): evaluaciones integrales por empresa. Historial; nunca se borran. */
+  companyAssessments: CompanyAssessment[];
   settings: Settings;
 }
 
@@ -87,6 +92,7 @@ const initialState: AppState = {
   commercialReviews: [],
   companies: [],
   roadmaps: [],
+  companyAssessments: [],
   settings: {
     defaultCrawlLimit: 100,
     respectRobots: true,
@@ -133,6 +139,12 @@ function log(entry: Omit<HistoryEntry, "id" | "at">) {
 
 export function hydrate() {
   if (state.hydrated) return;
+  // B.1: crear/verificar el respaldo pre-B1 ANTES de cualquier escritura posterior.
+  try {
+    backupStatus = ensurePreB1Backup(window.localStorage);
+  } catch {
+    backupStatus = { ok: false, state: "error", error: "No se pudo acceder al almacenamiento del navegador." };
+  }
   let loaded: Partial<AppState> = {};
   try {
     const raw = window.localStorage.getItem(STORAGE_KEY);
@@ -149,6 +161,7 @@ export function hydrate() {
     storeImports: loaded.storeImports ?? [],
     commercialReviews: loaded.commercialReviews ?? [],
     ...cm.migrateCompanies(loaded, (loaded.audits ?? []).map((a) => a.id)),
+    companyAssessments: dm.migrateAssessments(loaded.companyAssessments),
     settings: { ...initialState.settings, ...(loaded.settings ?? {}) },
     hydrated: true,
   };
