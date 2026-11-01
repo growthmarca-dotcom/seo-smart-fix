@@ -7,7 +7,7 @@ import { useAppState, useCompany, useRoadmap } from "@/store/app-store";
 import { companyIdentityRows, executiveSummary, fmtReportDate, linkedAuditSummaries } from "@/companies/company-report";
 import { scoreLabel } from "@/seo/engine";
 
-export const Route = createFileRoute("/companies/$companyId/report")({
+export const Route = createFileRoute("/companies/$companyId_/report")({
   head: () => ({
     meta: [
       { title: "Informe de seguimiento y roadmap — MarCa Growth" },
