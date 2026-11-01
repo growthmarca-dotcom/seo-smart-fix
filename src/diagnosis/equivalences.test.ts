@@ -38,6 +38,13 @@ describe("No aplica turístico sin justificación", () => {
     expect(r.state?.status).toBe("unevaluated");
     expect(r.unjustifiedNotApplicable).toBe(true);
   });
+  it("no modifica el registro turístico original", () => {
+    const rev = updateControl(emptyReview("a1", at), "booking-engine", { status: "not-applicable" }, at);
+    const before = JSON.stringify(rev);
+    resolveControl("ch-booking", undefined, rev);
+    expect(JSON.stringify(rev)).toBe(before);
+    expect(rev.controls["booking-engine"]!.status).toBe("not-applicable");
+  });
   it("con nota se mantiene No aplica", () => {
     const rev = updateControl(emptyReview("a1", at), "booking-engine", { status: "not-applicable", notes: "Solo consultas por teléfono" }, at);
     expect(resolveControl("ch-booking", undefined, rev).state?.status).toBe("not-applicable");
@@ -57,6 +64,11 @@ describe("evaluación vigente entre varias auditorías", () => {
     expect(c.reason).toBe("latest");
     expect(c.current).toMatchObject({ auditId: "new", auditDate: "2026-10-12", reviewUpdatedAt: "2026-10-14" });
     expect(c.others.map((o) => o.auditId)).toEqual(["old"]);
+  });
+  it("no reescribe ni borra las evaluaciones recibidas", () => {
+    const before = JSON.stringify(cands);
+    pickCurrentReview(cands);
+    expect(JSON.stringify(cands)).toBe(before);
   });
   it("respeta una selección explícita sin perder la otra", () => {
     const c = pickCurrentReview(cands, "old");
