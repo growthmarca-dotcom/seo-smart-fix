@@ -60,7 +60,7 @@ export function ControlRow({
     if (!d.ok) return setSave({ kind: "error", message: d.error });
     setSave({ kind: "saving" });
     const r = assessmentActions.updateControl(assessmentId, control.id, d.patch);
-    setSave(r.ok ? { kind: "saved" } : { kind: "error", message: r.error ?? "No se pudo guardar." });
+    setSave(r.ok ? { kind: "saved" } : { kind: "error", message: r.error || "No se pudo guardar." });
   };
 
   const notesDirty = notes !== (state?.notes ?? "");

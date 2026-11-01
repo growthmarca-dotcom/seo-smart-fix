@@ -37,7 +37,7 @@ export function NewAssessmentDialog({
       { title: title.trim() || undefined, assessmentDate: date },
       preload && source ? { tourismFromAuditId: source } : {},
     );
-    if (!r.ok || !r.id) return setError(r.error ?? "No se pudo crear la evaluación.");
+    if (!r.ok) return setError(r.error || "No se pudo crear la evaluación.");
     setError(undefined);
     onOpenChange(false);
     onCreated(r.id);

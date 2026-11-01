@@ -73,7 +73,7 @@ describe("B.2 — catálogo y dimensiones intactos", () => {
   it("no modifica el catálogo ni las 8 equivalencias al usar la pantalla", async () => {
     const before = JSON.stringify(CONTROLS);
     const m = await boot();
-    const id = m.assessmentActions.create("c1", {}, { tourismFromAuditId: "au1" }).id!;
+    const id = idOf(m.assessmentActions.create("c1", {}, { tourismFromAuditId: "au1" }));
     m.assessmentActions.updateControl(id, "web-mobile", { status: "needs-improvement" });
     expect(JSON.stringify(CONTROLS)).toBe(before);
     expect(Object.keys(TOURISM_EQUIVALENCES)).toHaveLength(8);
@@ -89,7 +89,7 @@ describe("B.2 — reglas de «No aplica» en la interfaz", () => {
   });
   it("una sola llamada con estado+notas es aceptada por la acción B1", async () => {
     const m = await boot();
-    const id = m.assessmentActions.create("c2").id!;
+    const id = idOf(m.assessmentActions.create("c2"));
     const d = decideStatusChange("not-applicable", "No tiene reservas online");
     expect(d.ok).toBe(true);
     const r = m.assessmentActions.updateControl(id, "ch-whatsapp", (d as { patch: object }).patch);
@@ -102,11 +102,11 @@ describe("B.2 — reglas de «No aplica» en la interfaz", () => {
   });
   it("la acción B1 también rechaza vaciar la justificación (doble barrera) y el error es comunicable", async () => {
     const m = await boot();
-    const id = m.assessmentActions.create("c2").id!;
+    const id = idOf(m.assessmentActions.create("c2"));
     m.assessmentActions.updateControl(id, "ch-whatsapp", { status: "not-applicable", notes: "Sin WhatsApp" });
     const r = m.assessmentActions.updateControl(id, "ch-whatsapp", { notes: "" });
     expect(r.ok).toBe(false);
-    expect(r.error).toBeTruthy();
+    expect("error" in r && r.error).toBeTruthy();
     expect(persisted().companyAssessments[0].controls["ch-whatsapp"].notes).toBe("Sin WhatsApp");
   });
   it("valida la URL de evidencia", () => {
@@ -118,7 +118,7 @@ describe("B.2 — reglas de «No aplica» en la interfaz", () => {
 describe("B.2 — historial, recarga, precarga y respaldo", () => {
   it("una evaluación anterior sigue intacta al crear otra", async () => {
     const m = await boot();
-    const a = m.assessmentActions.create("c1", { assessmentDate: "2026-10-01" }).id!;
+    const a = idOf(m.assessmentActions.create("c1", { assessmentDate: "2026-10-01" }));
     m.assessmentActions.updateControl(a, "web-mobile", { status: "meets", notes: "ok" });
     const snap = JSON.stringify(persisted().companyAssessments.find((x: { id: string }) => x.id === a));
     m.assessmentActions.create("c1", { assessmentDate: "2026-11-01" });
@@ -129,7 +129,7 @@ describe("B.2 — historial, recarga, precarga y respaldo", () => {
 
   it("una recarga conserva los cambios guardados", async () => {
     const m = await boot();
-    const id = m.assessmentActions.create("c1").id!;
+    const id = idOf(m.assessmentActions.create("c1"));
     m.assessmentActions.updateControl(id, "web-mobile", { status: "needs-improvement", notes: "Botón chico", evidenceUrl: "https://e.test" });
     const m2 = await boot(storage); // mismo almacenamiento, módulo nuevo
     // Una escritura posterior desde el módulo recargado conserva lo guardado antes.
@@ -142,7 +142,7 @@ describe("B.2 — historial, recarga, precarga y respaldo", () => {
   it("precarga exactamente las 8 equivalencias sin modificar commercialReviews ni auditorías", async () => {
     const m = await boot();
     const before = JSON.stringify({ r: persistedOrSeed().commercialReviews, a: persistedOrSeed().audits });
-    const id = m.assessmentActions.create("c1", {}, { tourismFromAuditId: "au1" }).id!;
+    const id = idOf(m.assessmentActions.create("c1", {}, { tourismFromAuditId: "au1" }));
     const a = persisted().companyAssessments.find((x: { id: string }) => x.id === id);
     expect(Object.keys(a.controls).sort()).toEqual(Object.values(TOURISM_EQUIVALENCES).sort());
     expect(Object.values(a.controls).every((c) => (c as { sourceKind: string }).sourceKind === "tourism-import")).toBe(true);
@@ -154,12 +154,12 @@ describe("B.2 — historial, recarga, precarga y respaldo", () => {
 
   it("un error de guardado (respaldo inválido) se comunica y no escribe", async () => {
     const m = await boot();
-    const id = m.assessmentActions.create("c1").id!;
+    const id = idOf(m.assessmentActions.create("c1"));
     const prev = storage.getItem(STATE);
     storage.removeItem(BACKUP);
     const r = m.assessmentActions.updateControl(id, "web-mobile", { status: "meets" });
     expect(r.ok).toBe(false);
-    expect(r.error).toBeTruthy();
+    expect("error" in r && r.error).toBeTruthy();
     expect(storage.getItem(STATE)).toBe(prev);
   });
 
@@ -167,7 +167,7 @@ describe("B.2 — historial, recarga, precarga y respaldo", () => {
     const m = await boot();
     const backup = storage.getItem(BACKUP);
     expect(backup).toBeTruthy();
-    const id = m.assessmentActions.create("c1", {}, { tourismFromAuditId: "au1" }).id!;
+    const id = idOf(m.assessmentActions.create("c1", {}, { tourismFromAuditId: "au1" }));
     m.assessmentActions.updateControl(id, "ch-whatsapp", { status: "not-applicable", notes: "Sin WhatsApp" });
     m.assessmentActions.updateControl(id, "web-mobile", { evidenceUrl: "https://e.test" });
     m.assessmentActions.create("c1");
@@ -176,7 +176,7 @@ describe("B.2 — historial, recarga, precarga y respaldo", () => {
 
   it("empresas y roadmaps permanecen idénticos", async () => {
     const m = await boot();
-    const id = m.assessmentActions.create("c1").id!;
+    const id = idOf(m.assessmentActions.create("c1"));
     m.assessmentActions.updateControl(id, "web-mobile", { status: "meets" });
     const s = seed();
     expect(persisted().companies).toEqual(s.companies);
@@ -187,4 +187,9 @@ describe("B.2 — historial, recarga, precarga y respaldo", () => {
 function persistedOrSeed() {
   const raw = storage.getItem(STATE);
   return raw ? JSON.parse(raw) : seed();
+}
+
+function idOf(r: { ok: true; id: string } | { ok: false; error: string }): string {
+  if (!r.ok) throw new Error(r.error);
+  return r.id;
 }
