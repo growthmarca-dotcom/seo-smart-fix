@@ -33,9 +33,7 @@ export function SynthesisView({ company, assessment }: { company: Company; asses
         <p className="text-muted-foreground">
           Cobertura total {pct(s.index.totalCoverage)}. Basada solo en los controles evaluados de «{assessment.title}». No incluye estimaciones económicas ni resultados no medidos.
         </p>
-        {s.partial && (
-          <ul className="list-disc pl-5 text-muted-foreground">{s.index.reasons.map((r) => <li key={r}>{r}</li>)}</ul>
-        )}
+        {s.partial && <p className="text-muted-foreground">No se muestra índice global: los motivos se detallan en el resumen de arriba.</p>}
       </section>
 
       <section className="panel p-4">
