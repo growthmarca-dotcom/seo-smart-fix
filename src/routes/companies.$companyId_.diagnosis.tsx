@@ -20,6 +20,7 @@ import { auditDate } from "@/diagnosis/preview";
 import { isTourismIndustry } from "@/companies/model";
 import { ControlRow } from "@/diagnosis/ui/control-row";
 import { NewAssessmentDialog } from "@/diagnosis/ui/new-assessment-dialog";
+import { SynthesisView } from "@/diagnosis/ui/synthesis-view";
 
 export const Route = createFileRoute("/companies/$companyId_/diagnosis")({
   head: () => ({
@@ -248,6 +249,7 @@ function AssessmentWorkspace({
   const reviews = useAppState((s) => s.commercialReviews);
   const history = useCompanyAssessments(companyId);
   const [dialog, setDialog] = useState(false);
+  const [tab, setTab] = useState<"edit" | "synthesis">("edit");
 
   const linked = useMemo(() => (company ? audits.filter((a) => company.auditIds.includes(a.id)) : []), [company, audits]);
   const tourismSources = useMemo(() => {
@@ -336,6 +338,11 @@ function AssessmentWorkspace({
             </p>
           </section>
 
+          <div className="mb-4 flex gap-2" role="tablist">
+            <Button size="sm" role="tab" aria-selected={tab === "edit"} variant={tab === "edit" ? "default" : "outline"} onClick={() => setTab("edit")}>Evaluar controles</Button>
+            <Button size="sm" role="tab" aria-selected={tab === "synthesis"} variant={tab === "synthesis" ? "default" : "outline"} onClick={() => setTab("synthesis")}>Síntesis</Button>
+          </div>
+          {tab === "synthesis" ? <SynthesisView company={company} assessment={active} /> : (
           <div className="space-y-4">
             {DIMENSIONS.map((dim) => {
               const r = results.find((x) => x.id === dim.id)!;
@@ -357,6 +364,7 @@ function AssessmentWorkspace({
               );
             })}
           </div>
+          )}
         </>
       )}
     </>
