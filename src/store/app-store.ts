@@ -14,6 +14,8 @@ import * as cm from "@/companies/model";
 import * as dm from "@/diagnosis/model";
 import type { AssessmentControlState, AssessmentInput, AssessmentMetaPatch, CompanyAssessment } from "@/diagnosis/model";
 import { TOURISM_EQUIVALENCES } from "@/diagnosis/equivalences";
+import * as pm from "@/proposals/model";
+import * as catalog from "@/proposals/catalog";
 import type { Company, CompanyInput, Roadmap, TaskPatch, TaskPriority } from "@/companies/model";
 import type { GscConnection, GscRow } from "@/seo/gsc/types";
 import { mergeCategories, mergeProducts } from "@/seo/commerce/dedupe";
@@ -75,6 +77,10 @@ export interface AppState {
   roadmaps: Roadmap[];
   /** Etapa B.1 (aditivo): evaluaciones integrales por empresa. Historial; nunca se borran. */
   companyAssessments: CompanyAssessment[];
+  /** P3 (aditivo): propuestas modulares versionadas. Nunca se borran. */
+  proposals: pm.Proposal[];
+  /** P3 (aditivo): catálogo editable de servicios (plantillas copiadas por valor). */
+  serviceCatalog: catalog.CatalogItem[];
   settings: Settings;
 }
 
@@ -93,6 +99,8 @@ const initialState: AppState = {
   companies: [],
   roadmaps: [],
   companyAssessments: [],
+  proposals: [],
+  serviceCatalog: [],
   settings: {
     defaultCrawlLimit: 100,
     respectRobots: true,
@@ -162,9 +170,13 @@ export function hydrate() {
     commercialReviews: loaded.commercialReviews ?? [],
     ...cm.migrateCompanies(loaded, (loaded.audits ?? []).map((a) => a.id)),
     companyAssessments: dm.migrateAssessments(loaded.companyAssessments),
+    // P3 (aditivo): se conservan TAL CUAL; si falta, vacío solo en memoria (no se escribe).
+    proposals: Array.isArray(loaded.proposals) ? loaded.proposals : [],
+    serviceCatalog: Array.isArray(loaded.serviceCatalog) ? loaded.serviceCatalog : [],
     settings: { ...initialState.settings, ...(loaded.settings ?? {}) },
     hydrated: true,
   };
+  p3IntegrityStatus = catalog.p3IntegrityError(loaded.proposals, loaded.serviceCatalog);
   emit();
   if (state.audits.length === 0) {
     const demo = createAuditFromSite(buildDemoSite("generic-web"), {
@@ -616,7 +628,16 @@ export const actions = {
       ),
     }));
   },
-  resetDemo() {
+  /**
+   * Reinicia los datos demo. Bloqueado si existen propuestas, servicios de catálogo o
+   * evaluaciones integrales (o datos P3 con formato inválido): nunca los borra.
+   */
+  resetDemo(): { ok: boolean; error?: string } {
+    if (state.companyAssessments.length > 0 || state.proposals.length > 0 || state.serviceCatalog.length > 0 || p3IntegrityStatus)
+      return {
+        ok: false,
+        error: "No se puede reiniciar: hay evaluaciones integrales, propuestas o servicios guardados que se perderían.",
+      };
     set(() => ({ ...initialState, hydrated: true }));
     try {
       window.localStorage.removeItem(STORAGE_KEY);
@@ -625,6 +646,7 @@ export const actions = {
     }
     state = { ...initialState, hydrated: false };
     hydrate();
+    return { ok: true };
   },
 };
 
@@ -754,6 +776,7 @@ export function getBackupStatus(): BackupStatus | undefined {
 const COLLECTIONS = [
   "audits", "changes", "history", "reviewed", "gsc", "stores", "storeImports",
   "commercialReviews", "companies", "roadmaps", "companyAssessments",
+  "proposals", "serviceCatalog",
 ] as const;
 
 /** Valida el esquema compatible del estado persistido (todas las versiones previas). */
@@ -778,6 +801,8 @@ export function validatePersistedState(raw: string): { ok: true; value: Partial<
   if (((o["companies"] ?? []) as { id?: unknown }[]).some((c) => typeof c.id !== "string")) return { ok: false, error: "Hay empresas sin id." };
   if (((o["roadmaps"] ?? []) as { companyId?: unknown }[]).some((r) => typeof r.companyId !== "string")) return { ok: false, error: "Hay roadmaps sin empresa." };
   if (((o["commercialReviews"] ?? []) as { auditId?: unknown }[]).some((r) => typeof r.auditId !== "string")) return { ok: false, error: "Hay evaluaciones turísticas sin auditoría." };
+  const p3 = catalog.p3IntegrityError(o["proposals"], o["serviceCatalog"]);
+  if (p3) return { ok: false, error: p3 };
   if (o["settings"] !== undefined && (typeof o["settings"] !== "object" || o["settings"] === null || Array.isArray(o["settings"])))
     return { ok: false, error: "«settings» inválido." };
   return { ok: true, value: o as Partial<AppState> };
@@ -954,8 +979,213 @@ export function useCompanyAssessment(assessmentId: string) {
   return useAppState((s) => s.companyAssessments.find((a) => a.id === assessmentId));
 }
 
+// ============================================================== P3: propuestas y catálogo
+
+export const PRE_P3_BACKUP_KEY = "seo-fixer:state:backup:pre-p3";
+
+interface P3Envelope {
+  kind: "seo-fixer-pre-p3-backup";
+  createdAt: string;
+  raw: string | null;
+}
+
+let p3BackupStatus: BackupStatus | undefined;
+let p3IntegrityStatus: string | undefined;
+export function getP3BackupStatus(): BackupStatus | undefined {
+  return p3BackupStatus;
+}
+/** Error de forma de datos P3 detectado al hidratar (bloquea escrituras P3 y el reinicio). */
+export function getP3IntegrityError(): string | undefined {
+  return p3IntegrityStatus;
+}
+
+function parseP3Envelope(text: string | null): P3Envelope | undefined {
+  if (text === null) return undefined;
+  try {
+    const e = JSON.parse(text) as P3Envelope;
+    if (e?.kind !== "seo-fixer-pre-p3-backup" || typeof e.createdAt !== "string") return undefined;
+    if (e.raw !== null && (typeof e.raw !== "string" || !validatePersistedState(e.raw).ok)) return undefined;
+    return e;
+  } catch {
+    return undefined;
+  }
+}
+
+function hasP3Writes(raw: string | null): boolean {
+  if (!raw) return false;
+  try {
+    const v = JSON.parse(raw) as { proposals?: unknown; serviceCatalog?: unknown };
+    return (Array.isArray(v.proposals) && v.proposals.length > 0) || (Array.isArray(v.serviceCatalog) && v.serviceCatalog.length > 0);
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Respaldo pre-P3, misma semántica que pre-B1. Se invoca SOLO antes de la primera escritura P3
+ * (no al hidratar), así abrir la app no escribe nada. Nunca escribe en seo-fixer:state:v1
+ * ni en el respaldo pre-B1.
+ */
+export function ensurePreP3Backup(storage: KeyValueStorage, at: string = new Date().toISOString()): BackupStatus {
+  const original = storage.getItem(STORAGE_KEY);
+  const existingText = storage.getItem(PRE_P3_BACKUP_KEY);
+  const existing = parseP3Envelope(existingText);
+  const p3 = hasP3Writes(original);
+  if (existing && p3) return { ok: true, state: "kept" };
+  if (!existing && p3)
+    return { ok: false, state: "error", error: "El respaldo previo a P3 falta o está dañado y ya hay propuestas o servicios guardados." };
+  if (existing && existing.raw === original) return { ok: true, state: "kept" };
+  const text = JSON.stringify({ kind: "seo-fixer-pre-p3-backup", createdAt: at, raw: original } satisfies P3Envelope);
+  try {
+    storage.setItem(PRE_P3_BACKUP_KEY, text);
+  } catch {
+    return { ok: false, state: "error", error: "No se pudo escribir el respaldo previo a P3 (almacenamiento lleno o bloqueado)." };
+  }
+  const check = parseP3Envelope(storage.getItem(PRE_P3_BACKUP_KEY));
+  if (!check || check.raw !== original)
+    return { ok: false, state: "error", error: "El respaldo previo a P3 no coincide con el estado original." };
+  return { ok: true, state: existingText === null ? "created" : "replaced-stale" };
+}
+
+export function verifyPreP3Backup(storage: KeyValueStorage): boolean {
+  return !!parseP3Envelope(storage.getItem(PRE_P3_BACKUP_KEY));
+}
+
+export function readPreP3Backup(storage: KeyValueStorage): string | null | undefined {
+  return parseP3Envelope(storage.getItem(PRE_P3_BACKUP_KEY))?.raw;
+}
+
+function guardP3Write(): string | undefined {
+  if (!state.hydrated) return "El estado todavía no se cargó.";
+  if (p3IntegrityStatus) return `${p3IntegrityStatus} No se guardan cambios para no perder esos datos.`;
+  const b1 = guardB1Write();
+  if (b1) return b1;
+  try {
+    p3BackupStatus = ensurePreP3Backup(window.localStorage);
+    if (!p3BackupStatus.ok) return p3BackupStatus.error;
+    if (!verifyPreP3Backup(window.localStorage)) {
+      p3BackupStatus = { ok: false, state: "error", error: "El respaldo previo a P3 ya no está disponible o está dañado." };
+      return p3BackupStatus.error;
+    }
+  } catch {
+    return "No se pudo verificar el respaldo previo a P3.";
+  }
+  return undefined;
+}
+
+/** Escribe y verifica ANTES de actualizar memoria: si falla, nada cambia. */
+function commitP3(updater: (prev: AppState) => AppState): string | undefined {
+  const err = guardP3Write();
+  if (err) return err;
+  const next = updater(state);
+  const { hydrated: _h, ...persisted } = next;
+  const text = JSON.stringify(persisted);
+  try {
+    window.localStorage.setItem(STORAGE_KEY, text);
+    if (window.localStorage.getItem(STORAGE_KEY) !== text) throw new Error("verify");
+  } catch {
+    return "No se pudo guardar (almacenamiento lleno o bloqueado). No se perdió ningún dato.";
+  }
+  state = next;
+  emit();
+  return undefined;
+}
+
+export type P3Result = { ok: true; id: string } | { ok: false; error: string };
+const p3Ctx: pm.Ctx = { now, newId: id };
+
+function applyProposal(proposalId: string, fn: (p: pm.Proposal, at: string) => pm.Result<pm.Proposal>): P3Result {
+  const cur = state.proposals.find((p) => p.id === proposalId);
+  if (!cur) return { ok: false, error: "Propuesta inexistente." };
+  const r = fn(structuredClone(cur), now());
+  if (!r.ok) return r;
+  const err = commitP3((prev) => ({ ...prev, proposals: prev.proposals.map((p) => (p.id === proposalId ? r.value : p)) }));
+  return err ? { ok: false, error: err } : { ok: true, id: proposalId };
+}
+
+/** Acciones de propuestas: nunca borran propuestas ni versiones. Delegan las reglas en P2. */
+export const proposalActions = {
+  create(input: pm.ProposalInput): P3Result {
+    if (!state.companies.some((c) => c.id === input.companyId)) return { ok: false, error: "Empresa inexistente." };
+    if (input.assessmentId && !state.companyAssessments.some((a) => a.id === input.assessmentId && a.companyId === input.companyId))
+      return { ok: false, error: "La evaluación no pertenece a esta empresa." };
+    const p = pm.createProposal(input, p3Ctx);
+    const err = commitP3((prev) => ({ ...prev, proposals: [...prev.proposals, p] }));
+    return err ? { ok: false, error: err } : { ok: true, id: p.id };
+  },
+  upsertItem: (pid: string, item: pm.ProposalItem) => applyProposal(pid, (p, at) => pm.upsertItem(p, item, at)),
+  removeItem: (pid: string, itemId: string) => applyProposal(pid, (p, at) => pm.removeItem(p, itemId, at)),
+  upsertDiscount: (pid: string, d: pm.Discount) => applyProposal(pid, (p, at) => pm.upsertDiscount(p, d, at)),
+  removeDiscount: (pid: string, did: string) => applyProposal(pid, (p, at) => pm.removeDiscount(p, did, at)),
+  setVatPercent: (pid: string, v: number | undefined) => applyProposal(pid, (p, at) => pm.setVatPercent(p, v, at)),
+  setValidUntil: (pid: string, v: string | undefined) => applyProposal(pid, (p, at) => pm.setValidUntil(p, v, at)),
+  send: (pid: string) => applyProposal(pid, (p, at) => pm.sendProposal(p, at)),
+  accept: (pid: string) => applyProposal(pid, (p, at) => pm.acceptProposal(p, at)),
+  reject: (pid: string) => applyProposal(pid, (p, at) => pm.rejectProposal(p, at)),
+  /** Agrega una copia por valor de un servicio del catálogo. */
+  addFromCatalog(pid: string, catalogId: string): P3Result {
+    const c = state.serviceCatalog.find((x) => x.id === catalogId);
+    if (!c) return { ok: false, error: "Servicio inexistente." };
+    if (c.archived) return { ok: false, error: "El servicio está archivado." };
+    const item = catalog.catalogToProposalItem(c, id());
+    return applyProposal(pid, (p, at) => pm.upsertItem(p, item, at));
+  },
+  newVersion(pid: string): P3Result {
+    const cur = state.proposals.find((p) => p.id === pid);
+    if (!cur) return { ok: false, error: "Propuesta inexistente." };
+    const r = pm.newVersion(structuredClone(cur), p3Ctx);
+    if (!r.ok) return r;
+    const err = commitP3((prev) => ({ ...prev, proposals: [...prev.proposals, r.value] }));
+    return err ? { ok: false, error: err } : { ok: true, id: r.value.id };
+  },
+};
+
+/** Catálogo: alta/edición y archivo. Nunca borra. */
+export const catalogActions = {
+  upsert(input: Omit<catalog.CatalogItem, "id" | "createdAt" | "updatedAt" | "archived"> & { id?: string }): P3Result {
+    const at = now();
+    const cur = input.id ? state.serviceCatalog.find((c) => c.id === input.id) : undefined;
+    if (input.id && !cur) return { ok: false, error: "Servicio inexistente." };
+    const item: catalog.CatalogItem = {
+      ...structuredClone(input),
+      id: cur?.id ?? id(),
+      archived: cur?.archived ?? false,
+      createdAt: cur?.createdAt ?? at,
+      updatedAt: at,
+    };
+    const v = catalog.validateCatalogItem(item);
+    if (v) return { ok: false, error: v };
+    const err = commitP3((prev) => ({
+      ...prev,
+      serviceCatalog: cur ? prev.serviceCatalog.map((c) => (c.id === item.id ? item : c)) : [...prev.serviceCatalog, item],
+    }));
+    return err ? { ok: false, error: err } : { ok: true, id: item.id };
+  },
+  setArchived(catalogId: string, archived: boolean): P3Result {
+    const cur = state.serviceCatalog.find((c) => c.id === catalogId);
+    if (!cur) return { ok: false, error: "Servicio inexistente." };
+    const err = commitP3((prev) => ({
+      ...prev,
+      serviceCatalog: prev.serviceCatalog.map((c) => (c.id === catalogId ? { ...c, archived, updatedAt: now() } : c)),
+    }));
+    return err ? { ok: false, error: err } : { ok: true, id: catalogId };
+  },
+};
+
+export function useCompanyProposals(companyId: string) {
+  return useAppState((s) => s.proposals.filter((p) => p.companyId === companyId));
+}
+export function useProposal(proposalId: string) {
+  return useAppState((s) => s.proposals.find((p) => p.id === proposalId));
+}
+export function useServiceCatalog() {
+  return useAppState((s) => s.serviceCatalog);
+}
+
 /** Solo pruebas: reinicia el estado en memoria. */
 export function __resetForTests() {
   state = { ...initialState };
   backupStatus = undefined;
+  p3BackupStatus = undefined;
+  p3IntegrityStatus = undefined;
 }
