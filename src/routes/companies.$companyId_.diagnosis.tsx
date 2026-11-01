@@ -33,9 +33,9 @@ export const Route = createFileRoute("/companies/$companyId_/diagnosis")({
       { name: "robots", content: "noindex" },
     ],
   }),
-  validateSearch: (s: Record<string, unknown>): { assessmentId?: string; view?: "preview" } => ({
-    assessmentId: typeof s.assessmentId === "string" ? s.assessmentId : undefined,
-    view: s.view === "preview" ? "preview" : undefined,
+  validateSearch: (s: Record<string, unknown>): { assessmentId?: string | undefined; view?: "preview" | undefined } => ({
+    assessmentId: typeof s["assessmentId"] === "string" ? s["assessmentId"] : undefined,
+    view: s["view"] === "preview" ? "preview" : undefined,
   }),
   component: DiagnosisPage,
 });
