@@ -884,7 +884,9 @@ export type AssessmentResult = { ok: true; id: string } | { ok: false; error: st
 function guardB1Write(): string | undefined {
   if (typeof window === "undefined") return "Sin almacenamiento disponible.";
   try {
-    if (!backupStatus?.ok) backupStatus = ensurePreB1Backup(window.localStorage);
+    // Antes de la primera escritura B.1 refresca el respaldo al estado exacto vigente;
+    // después lo conserva sin sobrescribirlo (ver ensurePreB1Backup).
+    backupStatus = ensurePreB1Backup(window.localStorage);
     if (!backupStatus.ok) return backupStatus.error;
     if (!verifyPreB1Backup(window.localStorage)) {
       backupStatus = { ok: false, state: "error", error: "El respaldo previo a B.1 ya no está disponible o está dañado." };
