@@ -719,3 +719,241 @@ export function useCompany(companyId: string) {
 export function useRoadmap(companyId: string) {
   return useAppState((s) => s.roadmaps.find((r) => r.companyId === companyId));
 }
+
+/* ------------------------------------------------------------------ */
+/* Etapa B.1 — Respaldo pre-B1, restauración validada y evaluaciones.  */
+/* ------------------------------------------------------------------ */
+
+export const STATE_KEY = STORAGE_KEY;
+export const PRE_B1_BACKUP_KEY = "seo-fixer:state:backup:pre-b1";
+
+/** Almacenamiento mínimo (localStorage o un doble en pruebas). */
+export interface KeyValueStorage {
+  getItem(key: string): string | null;
+  setItem(key: string, value: string): void;
+}
+
+/** Envoltorio del respaldo: `raw` es la cadena EXACTA de seo-fixer:state:v1 (null si no había estado). */
+interface BackupEnvelope {
+  kind: "seo-fixer-pre-b1-backup";
+  createdAt: string;
+  raw: string | null;
+}
+
+export interface BackupStatus {
+  ok: boolean;
+  state: "created" | "kept" | "replaced-stale" | "error";
+  error?: string | undefined;
+}
+
+let backupStatus: BackupStatus | undefined;
+export function getBackupStatus(): BackupStatus | undefined {
+  return backupStatus;
+}
+
+const COLLECTIONS = [
+  "audits", "changes", "history", "reviewed", "gsc", "stores", "storeImports",
+  "commercialReviews", "companies", "roadmaps", "companyAssessments",
+] as const;
+
+/** Valida el esquema compatible del estado persistido (todas las versiones previas). */
+export function validatePersistedState(raw: string): { ok: true; value: Partial<AppState> } | { ok: false; error: string } {
+  let v: unknown;
+  try {
+    v = JSON.parse(raw);
+  } catch {
+    return { ok: false, error: "JSON inválido." };
+  }
+  if (!v || typeof v !== "object" || Array.isArray(v)) return { ok: false, error: "El estado no es un objeto." };
+  const o = v as Record<string, unknown>;
+  if (!Array.isArray(o.audits)) return { ok: false, error: "Falta la colección «audits»." };
+  for (const k of COLLECTIONS) {
+    if (o[k] !== undefined && !Array.isArray(o[k])) return { ok: false, error: `La colección «${k}» no es una lista.` };
+  }
+  for (const k of ["audits", "companies", "roadmaps", "commercialReviews", "companyAssessments"] as const) {
+    const list = (o[k] ?? []) as unknown[];
+    if (list.some((x) => !x || typeof x !== "object")) return { ok: false, error: `La colección «${k}» tiene elementos inválidos.` };
+  }
+  if ((o.audits as { id?: unknown }[]).some((a) => typeof a.id !== "string")) return { ok: false, error: "Hay auditorías sin id." };
+  if (((o.companies ?? []) as { id?: unknown }[]).some((c) => typeof c.id !== "string")) return { ok: false, error: "Hay empresas sin id." };
+  if (((o.roadmaps ?? []) as { companyId?: unknown }[]).some((r) => typeof r.companyId !== "string")) return { ok: false, error: "Hay roadmaps sin empresa." };
+  if (((o.commercialReviews ?? []) as { auditId?: unknown }[]).some((r) => typeof r.auditId !== "string")) return { ok: false, error: "Hay evaluaciones turísticas sin auditoría." };
+  if (o.settings !== undefined && (typeof o.settings !== "object" || o.settings === null || Array.isArray(o.settings)))
+    return { ok: false, error: "«settings» inválido." };
+  return { ok: true, value: o as Partial<AppState> };
+}
+
+function parseEnvelope(text: string | null): BackupEnvelope | undefined {
+  if (text === null) return undefined;
+  try {
+    const e = JSON.parse(text) as BackupEnvelope;
+    if (e?.kind !== "seo-fixer-pre-b1-backup" || typeof e.createdAt !== "string") return undefined;
+    if (e.raw !== null && (typeof e.raw !== "string" || !validatePersistedState(e.raw).ok)) return undefined;
+    return e;
+  } catch {
+    return undefined;
+  }
+}
+
+/** true si el estado ya contiene escrituras de B.1 (al menos una evaluación integral). */
+function hasB1Writes(raw: string | null): boolean {
+  if (!raw) return false;
+  try {
+    const v = JSON.parse(raw) as { companyAssessments?: unknown };
+    return Array.isArray(v.companyAssessments) && v.companyAssessments.length > 0;
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Garantiza el respaldo pre-B1:
+ * - Sin respaldo → se crea con la cadena exacta actual y se verifica releyéndolo.
+ * - Respaldo válido y ya hubo escrituras B.1 → se conserva SIN tocar (estado original).
+ * - Respaldo previo (válido o no) sin escrituras B.1 → es anterior/desactualizado: se reemplaza por el estado actual y se verifica.
+ * - Respaldo inválido con escrituras B.1 → error: no se puede garantizar la recuperación.
+ * Nunca escribe en seo-fixer:state:v1.
+ */
+export function ensurePreB1Backup(storage: KeyValueStorage, at: string = new Date().toISOString()): BackupStatus {
+  const original = storage.getItem(STORAGE_KEY);
+  const existingText = storage.getItem(PRE_B1_BACKUP_KEY);
+  const existing = parseEnvelope(existingText);
+  const b1 = hasB1Writes(original);
+  if (existing && b1) return { ok: true, state: "kept" };
+  if (!existing && b1)
+    return { ok: false, state: "error", error: "El respaldo previo a B.1 falta o está dañado y ya hay evaluaciones integrales guardadas." };
+  if (existing && existing.raw === original) return { ok: true, state: "kept" };
+  const envelope: BackupEnvelope = { kind: "seo-fixer-pre-b1-backup", createdAt: at, raw: original };
+  const text = JSON.stringify(envelope);
+  try {
+    storage.setItem(PRE_B1_BACKUP_KEY, text);
+  } catch {
+    return { ok: false, state: "error", error: "No se pudo escribir el respaldo (almacenamiento lleno o bloqueado)." };
+  }
+  const check = parseEnvelope(storage.getItem(PRE_B1_BACKUP_KEY));
+  if (!check || check.raw !== original)
+    return { ok: false, state: "error", error: "El respaldo escrito no coincide con el estado original." };
+  return { ok: true, state: existingText === null ? "created" : "replaced-stale" };
+}
+
+/** Comprueba, sin escribir, que el respaldo pre-B1 sigue disponible y válido. */
+export function verifyPreB1Backup(storage: KeyValueStorage): boolean {
+  return !!parseEnvelope(storage.getItem(PRE_B1_BACKUP_KEY));
+}
+
+/** Devuelve la cadena original resguardada (para descargar o restaurar). */
+export function readPreB1Backup(storage: KeyValueStorage): string | null | undefined {
+  return parseEnvelope(storage.getItem(PRE_B1_BACKUP_KEY))?.raw;
+}
+
+/** Copia textual del estado vigente persistido. */
+export function exportStateBackup(storage: KeyValueStorage = window.localStorage): string | null {
+  return storage.getItem(STORAGE_KEY);
+}
+
+/**
+ * Restaura un estado validando JSON y esquema completo ANTES de tocar nada.
+ * Si falla la validación o la escritura, el estado vigente (memoria y almacenamiento) queda igual.
+ * No modifica el respaldo pre-B1.
+ */
+export function restoreStateBackup(rawJson: string, storage: KeyValueStorage = window.localStorage): { ok: boolean; error?: string } {
+  const v = validatePersistedState(rawJson);
+  if (!v.ok) return { ok: false, error: v.error };
+  const previous = storage.getItem(STORAGE_KEY);
+  try {
+    storage.setItem(STORAGE_KEY, rawJson);
+    if (storage.getItem(STORAGE_KEY) !== rawJson) throw new Error("verify");
+  } catch {
+    try {
+      if (previous !== null) storage.setItem(STORAGE_KEY, previous);
+    } catch {
+      /* el original sigue en el respaldo */
+    }
+    return { ok: false, error: "No se pudo escribir el estado restaurado; se mantiene el vigente." };
+  }
+  if (typeof window !== "undefined" && storage === window.localStorage) {
+    state = { ...initialState, hydrated: false };
+    hydrate();
+  }
+  return { ok: true };
+}
+
+export type AssessmentResult = { ok: true; id: string } | { ok: false; error: string };
+
+/** Antes de cada escritura B.1: respaldo creado la primera vez y verificado (sin sobrescribir) después. */
+function guardB1Write(): string | undefined {
+  if (typeof window === "undefined") return "Sin almacenamiento disponible.";
+  try {
+    if (!backupStatus?.ok) backupStatus = ensurePreB1Backup(window.localStorage);
+    if (!backupStatus.ok) return backupStatus.error;
+    if (!verifyPreB1Backup(window.localStorage)) {
+      backupStatus = { ok: false, state: "error", error: "El respaldo previo a B.1 ya no está disponible o está dañado." };
+      return backupStatus.error;
+    }
+  } catch {
+    return "No se pudo verificar el respaldo.";
+  }
+  return undefined;
+}
+
+export const assessmentActions = {
+  /** Crea una evaluación NUEVA (nunca reemplaza otra). Opcionalmente precarga los controles turísticos equivalentes. */
+  create(companyId: string, input: AssessmentInput = {}, opts: { tourismFromAuditId?: string } = {}): AssessmentResult {
+    if (!state.companies.some((c) => c.id === companyId)) return { ok: false, error: "Empresa inexistente." };
+    const err = guardB1Write();
+    if (err) return { ok: false, error: err };
+    const at = now();
+    let a = dm.emptyAssessment(id(), companyId, at, input);
+    if (opts.tourismFromAuditId) {
+      const review = state.commercialReviews.find((r) => r.auditId === opts.tourismFromAuditId);
+      const company = state.companies.find((c) => c.id === companyId)!;
+      if (review && company.auditIds.includes(review.auditId))
+        a = dm.importTourismEquivalences(a, structuredClone(review), TOURISM_EQUIVALENCES, at);
+    }
+    set((prev) => ({ ...prev, companyAssessments: [...prev.companyAssessments, a] }));
+    return { ok: true, id: a.id };
+  },
+  updateControl(
+    assessmentId: string,
+    controlId: string,
+    patch: Partial<Pick<AssessmentControlState, "status" | "notes" | "evidenceUrl" | "sourceKind">>,
+  ): AssessmentResult {
+    const cur = state.companyAssessments.find((x) => x.id === assessmentId);
+    if (!cur) return { ok: false, error: "Evaluación inexistente." };
+    const next = dm.updateAssessmentControl(cur, controlId, patch, now());
+    if (next === cur) return { ok: false, error: "Cambio rechazado (estado inválido o «No aplica» sin justificación)." };
+    const err = guardB1Write();
+    if (err) return { ok: false, error: err };
+    set((prev) => ({ ...prev, companyAssessments: prev.companyAssessments.map((x) => (x.id === assessmentId ? next : x)) }));
+    return { ok: true, id: assessmentId };
+  },
+  updateMeta(assessmentId: string, patch: AssessmentMetaPatch): AssessmentResult {
+    const cur = state.companyAssessments.find((x) => x.id === assessmentId);
+    if (!cur) return { ok: false, error: "Evaluación inexistente." };
+    const next = dm.updateAssessmentMeta(cur, patch, now());
+    if (next === cur) return { ok: false, error: "Cambio rechazado (datos inválidos)." };
+    const err = guardB1Write();
+    if (err) return { ok: false, error: err };
+    set((prev) => ({ ...prev, companyAssessments: prev.companyAssessments.map((x) => (x.id === assessmentId ? next : x)) }));
+    return { ok: true, id: assessmentId };
+  },
+};
+
+/** Historial de evaluaciones integrales de UNA empresa, más reciente primero. */
+export function useCompanyAssessments(companyId: string) {
+  return useAppState((s) =>
+    s.companyAssessments
+      .filter((a) => a.companyId === companyId)
+      .sort((a, b) => b.assessmentDate.localeCompare(a.assessmentDate) || b.createdAt.localeCompare(a.createdAt)),
+  );
+}
+
+export function useCompanyAssessment(assessmentId: string) {
+  return useAppState((s) => s.companyAssessments.find((a) => a.id === assessmentId));
+}
+
+/** Solo pruebas: reinicia el estado en memoria. */
+export function __resetForTests() {
+  state = { ...initialState };
+  backupStatus = undefined;
+}
