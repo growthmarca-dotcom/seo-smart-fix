@@ -8,6 +8,7 @@ import { DIMENSIONS, controlsFor, type DiagnosisControl, type DimensionId } from
 import { assessmentAsDiagnosis, isJustifiedNotApplicable, type AssessmentControlState, type CompanyAssessment } from "./model";
 import { SEO_CONTROL_ID, dimensionResults, globalIndex, type DimensionResult, type GlobalIndex } from "./scoring";
 import { criticalControlsFor, weightsFor } from "./weights";
+import { suggestedAreasFor } from "@/proposals/work-areas";
 
 /** Origen del dato mostrado junto a cada ítem. */
 export type DataOrigin = "verified" | "client" | "professional";
@@ -31,7 +32,9 @@ export interface SynthesisItem {
 }
 
 export interface PriorityItem extends SynthesisItem {
-  /** Servicio MarCa Growth vinculado. Hasta que MarCa entregue su catálogo: SERVICE_PENDING. */
+  /** Áreas de trabajo sugeridas (solo sugerencia; la combinación final la decide MarCa). */
+  suggestedAreas: string[];
+  /** Texto mostrado: áreas sugeridas o SERVICE_PENDING si no hay. */
   service: string;
 }
 
@@ -109,7 +112,10 @@ export function buildSynthesis(company: Pick<Company, "industry">, a: CompanyAss
       evidenceUrl: s.evidenceUrl,
     };
     if (s.status === "meets") strengths.push(item);
-    else if (s.status === "needs-improvement") priorities.push({ ...item, service: SERVICE_PENDING });
+    else if (s.status === "needs-improvement") {
+      const areas = suggestedAreasFor(c.id).map((x) => x.name);
+      priorities.push({ ...item, suggestedAreas: areas, service: areas.length ? `Áreas sugeridas: ${areas.join(" · ")}` : SERVICE_PENDING });
+    }
   }
 
   // Prioridad: críticos primero, luego peso propuesto de la dimensión, luego orden del catálogo (estable).

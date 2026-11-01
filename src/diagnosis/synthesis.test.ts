@@ -41,7 +41,9 @@ describe("B3.1 — síntesis de evaluación", () => {
     expect(s.strengths.map((x) => x.controlId)).toEqual(["web-mobile"]);
     expect(s.strengths[0]!.origin).toBe("verified");
     expect(s.priorities).toHaveLength(1);
-    expect(s.priorities[0]).toMatchObject({ controlId: "brand-value", origin: "professional", service: SERVICE_PENDING });
+    expect(s.priorities[0]).toMatchObject({ controlId: "brand-value", origin: "professional", suggestedAreas: ["Redes sociales orgánicas"] });
+    expect(s.priorities[0]!.service).not.toBe(SERVICE_PENDING);
+    expect(s.limits.some((l) => "suggestedAreas" in l)).toBe(false);
   });
 
   it("controles críticos primero, luego peso de la dimensión (orden estable)", () => {
