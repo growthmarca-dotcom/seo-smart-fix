@@ -1,8 +1,8 @@
 import { describe, expect, it } from "vitest";
 import { CONTROLS, DIMENSIONS, controlsFor } from "./dimensions";
-import { WEIGHT_PROFILES, weightProfileFor, weightsFor } from "./weights";
+import { WEIGHT_PROFILES, criticalControlsFor, weightProfileFor, weightsFor } from "./weights";
 import { emptyDiagnosis, migrateDiagnoses, setControl, type CompanyDiagnosis } from "./model";
-import { MIN_COVERAGE, dimensionResults, globalIndex } from "./scoring";
+import { MIN_COVERAGE, dimensionResults, globalIndex, seoReference } from "./scoring";
 
 const at = "2026-11-01T00:00:00Z";
 function withAll(industry: "cabins" | "other", dim: string, status: "meets" | "needs-improvement"): CompanyDiagnosis {
@@ -54,7 +54,7 @@ describe("madurez y cobertura", () => {
   });
   it("integraciones no cuentan en la cobertura", () => {
     const web = dimensionResults("other", undefined).find((x) => x.id === "web")!;
-    expect(web.applicable).toBe(controlsFor("other", "web").filter((c) => c.source !== "integration").length);
+    expect(web.applicable).toBe(controlsFor("other", "web").filter((c) => c.source !== "integration" && c.id !== "web-seo-health").length);
   });
   it("dimensión con poca cobertura: diagnóstico parcial y sin redistribuir pesos", () => {
     let d = withAll("other", "sales", "meets");
@@ -68,21 +68,22 @@ describe("madurez y cobertura", () => {
   });
 });
 
-describe("el SEO no domina", () => {
-  it("es un solo indicador de la dimensión web", () => {
-    const web = dimensionResults("other", undefined, { seoScore: 80 }).find((x) => x.id === "web")!;
-    expect(web).toMatchObject({ evaluated: 1, maturity: 80 });
+describe("el SEO es referencia, sin puntos", () => {
+  it("el score SEO no cambia madurez ni cobertura de web", () => {
+    const d = withAll("other", "web", "meets");
+    const a = dimensionResults("other", d).find((x) => x.id === "web")!;
+    const b = dimensionResults("other", d, { seoScore: 0 }).find((x) => x.id === "web")!;
+    expect(b).toEqual(a);
+    expect(a.maturity).toBe(100);
   });
-  it("un SEO de 0 solo baja el índice dentro del peso de su dimensión", () => {
-    let d = withAll("other", "web", "meets");
-    for (const dim of ["visibility", "sales", "brand", "channels", "opportunities"])
-      d = { ...d, controls: { ...d.controls, ...withAll("other", dim, "meets").controls } };
-    const r = dimensionResults("other", d, { seoScore: 0 });
-    const web = r.find((x) => x.id === "web")!;
-    const g = globalIndex("other", r, d, { seoScore: 0 }).value!;
-    // El peor caso posible: perder todo el peso de "web" (20 %) → índice ≥ 80.
-    expect(g).toBeGreaterThanOrEqual(80);
-    expect(web.maturity).toBe(Math.round((web.evaluated - 1) / web.evaluated * 100));
+  it("el control SEO no cuenta como aplicable ni crítico", () => {
+    const web = dimensionResults("other", undefined).find((x) => x.id === "web")!;
+    expect(web.applicable).toBe(controlsFor("other", "web").filter((c) => c.source !== "integration" && c.id !== "web-seo-health").length);
+    expect(criticalControlsFor("ecommerce")).not.toContain("web-seo-health");
+  });
+  it("seoReference muestra el score acotado o nada", () => {
+    expect(seoReference({ seoScore: 82.4 })).toBe(82);
+    expect(seoReference({})).toBeUndefined();
   });
 });
 

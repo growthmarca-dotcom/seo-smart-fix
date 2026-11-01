@@ -3,7 +3,8 @@
  * - "Sin evaluar", "Sin datos" y "No aplica" nunca valen cero.
  * - "Sin datos" cuenta como no cubierto; "No aplica" se excluye solo con justificación.
  * - Integraciones no cuentan hasta conectarse.
- * - El SEO entra como UN indicador (0–1) del control "web-seo-health".
+ * - El score SEO es una REFERENCIA visible del control "web-seo-health": no suma puntos ni cobertura,
+ *   para no contar dos veces criterios que el motor SEO ya evalúa (móvil, peso, contenido, metadatos).
  * - NO se redistribuyen pesos: si falta información, el resultado es "Diagnóstico parcial" sin índice.
  */
 import type { Industry } from "@/companies/model";
@@ -34,7 +35,12 @@ export interface DiagnosisInputs {
   seoScore?: number | undefined;
 }
 
-export function dimensionResults(industry: Industry, d: CompanyDiagnosis | undefined, inputs: DiagnosisInputs = {}): DimensionResult[] {
+/** Score SEO como referencia visible (sin puntos). undefined si no hay auditoría asociada. */
+export function seoReference(inputs: DiagnosisInputs): number | undefined {
+  return inputs.seoScore === undefined ? undefined : Math.max(0, Math.min(100, Math.round(inputs.seoScore)));
+}
+
+export function dimensionResults(industry: Industry, d: CompanyDiagnosis | undefined, _inputs: DiagnosisInputs = {}): DimensionResult[] {
   return DIMENSIONS.map((dim) => {
     let applicable = 0;
     let evaluated = 0;
@@ -43,14 +49,7 @@ export function dimensionResults(industry: Industry, d: CompanyDiagnosis | undef
     const needsImprovement: string[] = [];
     for (const c of controlsFor(industry, dim.id)) {
       if (c.source === "integration") continue;
-      if (c.id === SEO_CONTROL_ID) {
-        applicable++;
-        if (inputs.seoScore !== undefined) {
-          evaluated++;
-          sum += Math.max(0, Math.min(100, inputs.seoScore)) / 100;
-        }
-        continue;
-      }
+      if (c.id === SEO_CONTROL_ID) continue; // referencia, ver seoReference()
       const s = d?.controls[c.id];
       const st = s?.status ?? "unevaluated";
       if (st === "not-applicable" && s && isJustifiedNotApplicable(s)) continue;
@@ -92,7 +91,7 @@ export function globalIndex(
   industry: Industry,
   results: DimensionResult[],
   d?: CompanyDiagnosis | undefined,
-  inputs: DiagnosisInputs = {},
+  _inputs: DiagnosisInputs = {},
 ): GlobalIndex {
   const w = weightsFor(industry);
   const applicable = results.reduce((s, r) => s + r.applicable, 0);
@@ -113,7 +112,7 @@ export function globalIndex(
   const relevantIds = new Set(controlsFor(industry).map((c) => c.id));
   const missingCritical = criticalControlsFor(industry).filter((id) => {
     if (!relevantIds.has(id)) return false;
-    if (id === SEO_CONTROL_ID) return inputs.seoScore === undefined;
+    if (id === SEO_CONTROL_ID) return false;
     const s = d?.controls[id];
     if (!s) return true;
     if (s.status === "not-applicable") return !isJustifiedNotApplicable(s);

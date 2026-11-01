@@ -27,7 +27,7 @@ export const WEIGHT_PROFILES: Record<WeightProfile, Weights> = {
 export const CRITICAL_CONTROLS: Record<WeightProfile, string[]> = {
   tourism: ["ch-booking", "ch-whatsapp", "vis-ota"],
   restaurant: ["vis-gbp", "vis-reviews"],
-  ecommerce: ["ch-booking", "web-seo-health"],
+  ecommerce: ["ch-booking"],
   "real-estate": ["sales-followup", "ch-forms"],
   "professional-services": ["sales-response", "sales-quotes"],
   generic: ["web-offer-clarity", "ch-whatsapp"],
