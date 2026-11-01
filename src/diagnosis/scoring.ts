@@ -104,9 +104,9 @@ export function globalIndex(
 
   for (const r of results) {
     if (r.applicable === 0) continue;
-    if (w[r.id] >= SUFFICIENCY.relevantWeight && r.coverage < SUFFICIENCY.minRelevantCoverage)
+    if (r.evaluated === 0) reasons.push(`«${r.title}»: sin datos suficientes (ningún control evaluado).`);
+    else if (w[r.id] >= SUFFICIENCY.relevantWeight && r.coverage < SUFFICIENCY.minRelevantCoverage)
       reasons.push(`«${r.title}» con cobertura ${Math.round(r.coverage * 100)} % (mínimo propuesto ${SUFFICIENCY.minRelevantCoverage * 100} %).`);
-    else if (r.maturity === undefined) reasons.push(`«${r.title}» sin controles evaluados.`);
   }
 
   const relevantIds = new Set(controlsFor(industry).map((c) => c.id));

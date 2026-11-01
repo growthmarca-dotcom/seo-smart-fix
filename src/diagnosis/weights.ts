@@ -25,12 +25,14 @@ export const WEIGHT_PROFILES: Record<WeightProfile, Weights> = {
 
 /** Controles críticos propuestos por perfil: sin ellos evaluados no hay índice global. */
 export const CRITICAL_CONTROLS: Record<WeightProfile, string[]> = {
+  // Nunca exigen canales opcionales a quien no los usa: WhatsApp/reservas solo en rubros donde
+  // existen y siempre con "No aplica" justificado disponible.
   tourism: ["ch-booking", "ch-whatsapp", "vis-ota"],
   restaurant: ["vis-gbp", "vis-reviews"],
-  ecommerce: ["ch-booking"],
+  ecommerce: ["ch-checkout"],
   "real-estate": ["sales-followup", "ch-forms"],
   "professional-services": ["sales-response", "sales-quotes"],
-  generic: ["web-offer-clarity", "ch-whatsapp"],
+  generic: ["web-offer-clarity", "ch-primary-contact"],
 };
 
 /** Umbrales propuestos de suficiencia (no son política definitiva). */

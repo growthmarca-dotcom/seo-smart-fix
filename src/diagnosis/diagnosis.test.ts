@@ -49,8 +49,8 @@ describe("madurez y cobertura", () => {
     d = setControl(d, "brand-value", { status: "needs-improvement" }, at);
     d = setControl(d, "brand-content", { status: "not-applicable", notes: "Sin contenidos propios: vende por catálogo de terceros." }, at);
     const brand = dimensionResults("other", d).find((x) => x.id === "brand")!;
-    expect(brand).toMatchObject({ applicable: 3, evaluated: 2, maturity: 50, needsImprovement: ["brand-value"] });
-    expect(brand.coverage).toBeCloseTo(2 / 3);
+    expect(brand).toMatchObject({ applicable: 4, evaluated: 2, maturity: 50, needsImprovement: ["brand-value"] });
+    expect(brand.coverage).toBeCloseTo(2 / 4);
   });
   it("integraciones no cuentan en la cobertura", () => {
     const web = dimensionResults("other", undefined).find((x) => x.id === "web")!;
@@ -144,8 +144,8 @@ describe("suficiencia y estados", () => {
   });
   it("estado Sin datos en un crítico mantiene el diagnóstico parcial", () => {
     let d = full("other");
-    d = setControl(d, "ch-whatsapp", { status: "no-data" }, at);
+    d = setControl(d, "ch-primary-contact", { status: "no-data" }, at);
     const g = globalIndex("other", dimensionResults("other", d, { seoScore: 80 }), d, { seoScore: 80 });
-    expect(g.missingCritical).toEqual(["ch-whatsapp"]);
+    expect(g.missingCritical).toEqual(["ch-primary-contact"]);
   });
 });

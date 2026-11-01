@@ -151,7 +151,9 @@ function DiagnosisPreviewPage() {
             <div className="mb-2 flex flex-wrap items-baseline justify-between gap-2">
               <h3 className="font-display font-semibold">{d.title}</h3>
               <span className="text-muted-foreground">
-                {d.result.maturity === undefined ? "Sin datos suficientes" : `Madurez ${d.result.maturity}`} · Cobertura {d.result.evaluated}/{d.result.applicable}
+                {d.result.evaluated === 0
+                  ? `Sin datos suficientes · 0 de ${d.result.applicable} controles evaluados`
+                  : `Madurez ${d.result.maturity} · Cobertura ${d.result.evaluated}/${d.result.applicable}`}
               </span>
             </div>
             <ul className="divide-y divide-border">
