@@ -447,7 +447,8 @@ export function acceptProposal(p: Proposal, at: string): Result<Proposal> {
 
 export function rejectProposal(p: Proposal, at: string): Result<Proposal> {
   const s = effectiveStatus(p, at);
-  if (s !== "sent" && s !== "expired") return fail("Solo se puede rechazar una propuesta enviada.");
+  if (s === "expired") return fail("La propuesta está vencida y no puede rechazarse. Para continuar, creá una nueva versión vinculada.");
+  if (s !== "sent") return fail("Solo se puede rechazar una propuesta enviada.");
   return ok({ ...p, status: "rejected", decidedAt: at, updatedAt: at });
 }
 
