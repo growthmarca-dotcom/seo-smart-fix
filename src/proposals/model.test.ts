@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   acceptProposal,
+  computeItemAmounts,
   computeTotals,
   createProposal,
   effectiveStatus,
@@ -203,5 +204,82 @@ describe("estados, congelación y versiones", () => {
   });
   it("envío requiere al menos un ítem", () => {
     expect(sendProposal(build([]), AT).ok).toBe(false);
+  });
+});
+
+describe("servicios recurrentes: mensual y período", () => {
+  const rec = (o: Partial<ProposalItem>) => item({ modality: "recurring", ...o });
+  it("ítem: mensual × meses; sin meses o sin precio → período no informado", () => {
+    expect(computeItemAmounts(rec({ quantity: 2, unitPriceCents: 10_000, months: 6 }))).toEqual({ amountCents: 20_000, months: 6, periodCents: 120_000 });
+    expect(computeItemAmounts(rec({ months: undefined })).periodCents).toBeUndefined();
+    const noPrice = computeItemAmounts(rec({ unitPriceCents: undefined, months: 3 }));
+    expect(noPrice.amountCents).toBeUndefined();
+    expect(noPrice.periodCents).toBeUndefined();
+    expect(computeItemAmounts(item({})).periodCents).toBeUndefined();
+  });
+  it("duraciones distintas: el período suma cada ítem con sus meses; mensual intacto", () => {
+    const p = build([rec({ unitPriceCents: 10_000, months: 6 }), rec({ unitPriceCents: 5_000, months: 3 })]);
+    const b = block(p, "ARS", "recurring");
+    expect(b.billedTotal).toBe(15_000);
+    expect(b.period).toMatchObject({ incomplete: false, months: 6, billedTotal: 75_000 });
+  });
+  it("sin meses → período incompleto sin totales, nunca cero", () => {
+    const a = rec({ months: undefined });
+    const b = block(build([a, rec({ months: 3 })]), "ARS", "recurring");
+    expect(b.period!.incomplete).toBe(true);
+    expect(b.period!.missingMonthsItemIds).toEqual([a.id]);
+    expect(b.period!.billedTotal).toBeUndefined();
+    expect(b.billedTotal).toBe(200_000);
+  });
+  it("sin precio → mensual y período incompletos", () => {
+    const b = block(build([rec({ unitPriceCents: undefined, months: 3 })]), "ARS", "recurring");
+    expect(b.incomplete).toBe(true);
+    expect(b.period!.incomplete).toBe(true);
+    expect(b.period!.billedTotal).toBeUndefined();
+  });
+  it("descuento fijo mensual se multiplica por los meses con base; porcentual coherente", () => {
+    const p = build(
+      [rec({ unitPriceCents: 10_000, months: 6 }), rec({ unitPriceCents: 5_000, months: 3 })],
+      [disc({ kind: "amount", value: 12_000, currency: "ARS", modality: "recurring" })],
+    );
+    const b = block(p, "ARS", "recurring");
+    expect(b.discountTotal).toBe(12_000);
+    // meses 1-3: base 15.000 → 12.000; meses 4-6: base 10.000 → tope 10.000
+    expect(b.period!.discountTotal).toBe(66_000);
+    expect(b.period!.billedTotal).toBe(9_000);
+    const pct = block(build([rec({ unitPriceCents: 10_000, months: 4 })], [disc({ value: 10 })], 21), "ARS", "recurring");
+    expect(pct.billedTotal).toBe(9_000);
+    expect(pct.period).toMatchObject({ discountTotal: 4_000, billedTotal: 36_000, vatCents: 7_560 });
+  });
+  it("publicidad mensual queda informativa también en el período", () => {
+    const b = block(build([rec({ costType: "ad-spend", platform: "Meta", unitPriceCents: 1_000, months: 2 })]), "ARS", "recurring");
+    expect(b.period!.billedTotal).toBe(0);
+    expect(b.period!.direct!.adSpendByPlatform).toEqual({ Meta: 2_000 });
+  });
+  it("puntual no tiene período y queda separado", () => {
+    const p = build([item({}), rec({ unitPriceCents: 1_000, months: 2 })]);
+    expect(block(p).period).toBeUndefined();
+    expect(block(p).billedTotal).toBe(100_000);
+  });
+  it("el período queda congelado al enviar y la nueva versión conserva meses", () => {
+    const sent = val(sendProposal(build([rec({ unitPriceCents: 1_000, months: 2 })]), AT));
+    expect(sent.frozen!.totals.blocks[0]!.period!.billedTotal).toBe(2_000);
+    expect(val(newVersion(sent, ctx)).items[0]!.months).toBe(2);
+  });
+});
+
+describe("vencidas: ni aceptar ni rechazar", () => {
+  it("rechazo bloqueado, original intacta, nueva versión copia ítems/descuentos/IVA sin fecha", () => {
+    const sent = val(sendProposal({ ...build([item({})], [disc({})], 21), validUntil: "2026-11-02" }, AT));
+    const snap = structuredClone(sent);
+    const late = "2026-11-20T00:00:00Z";
+    expect(rejectProposal(sent, late).ok).toBe(false);
+    expect(acceptProposal(sent, late).ok).toBe(false);
+    expect(sent).toEqual(snap);
+    const v2 = val(newVersion(sent, { now: () => late, newId: ctx.newId }));
+    expect(v2.validUntil).toBeUndefined();
+    expect(v2.vatPercent).toBe(21);
+    expect(v2.items).toEqual(sent.frozen!.items);
+    expect(v2.discounts).toEqual(sent.frozen!.discounts);
   });
 });
