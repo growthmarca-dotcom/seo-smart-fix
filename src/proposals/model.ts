@@ -160,6 +160,47 @@ export interface TotalsBlock {
   billedTotalWithVat: number;
   /** Pagos directos del cliente: informativos, fuera del total y del IVA. */
   direct: { adSpendByPlatform: Record<string, number>; externalByProvider: Record<string, number>; total: number };
+  /**
+   * Solo en bloques mensuales: total del período contratado (los importes de arriba son MENSUALES).
+   * Se calcula mes a mes: cada ítem cuenta solo durante sus propios meses; los descuentos
+   * (porcentuales o por monto mensual) y el tope se aplican en cada mes. Sin meses o sin precio en
+   * algún ítem → incompleto y sin totales (nunca se asume una duración ni cero).
+   */
+  period?: PeriodTotals | undefined;
+}
+
+export interface PeriodTotals {
+  incomplete: boolean;
+  missingMonthsItemIds: string[];
+  missingPriceItemIds: string[];
+  /** Mayor duración entre los ítems (meses), si todos la informan. */
+  months?: number | undefined;
+  subtotals?: TotalsBlock["subtotals"] | undefined;
+  discountBase?: number | undefined;
+  discounts?: DiscountLine[] | undefined;
+  discountTotal?: number | undefined;
+  ownFeeNet?: number | undefined;
+  collaboratorNet?: number | undefined;
+  billedTotal?: number | undefined;
+  vatCents?: number | undefined;
+  billedTotalWithVat?: number | undefined;
+  direct?: TotalsBlock["direct"] | undefined;
+}
+
+export interface ItemAmounts {
+  /** Puntual: importe total. Mensual: importe por mes. Vacío = no informado. */
+  amountCents?: number | undefined;
+  months?: number | undefined;
+  /** Solo mensual: importe × meses. Vacío si falta precio o meses. */
+  periodCents?: number | undefined;
+}
+
+/** Importes de un ítem sin alterar el importe original. */
+export function computeItemAmounts(it: ProposalItem): ItemAmounts {
+  const amountCents = it.unitPriceCents === undefined ? undefined : Math.round(it.quantity * it.unitPriceCents);
+  if (it.modality !== "recurring") return { amountCents };
+  const months = it.months;
+  return { amountCents, months, periodCents: amountCents !== undefined && months !== undefined ? amountCents * months : undefined };
 }
 
 export interface ProposalTotals {
