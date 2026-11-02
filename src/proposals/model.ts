@@ -160,6 +160,47 @@ export interface TotalsBlock {
   billedTotalWithVat: number;
   /** Pagos directos del cliente: informativos, fuera del total y del IVA. */
   direct: { adSpendByPlatform: Record<string, number>; externalByProvider: Record<string, number>; total: number };
+  /**
+   * Solo en bloques mensuales: total del período contratado (los importes de arriba son MENSUALES).
+   * Se calcula mes a mes: cada ítem cuenta solo durante sus propios meses; los descuentos
+   * (porcentuales o por monto mensual) y el tope se aplican en cada mes. Sin meses o sin precio en
+   * algún ítem → incompleto y sin totales (nunca se asume una duración ni cero).
+   */
+  period?: PeriodTotals | undefined;
+}
+
+export interface PeriodTotals {
+  incomplete: boolean;
+  missingMonthsItemIds: string[];
+  missingPriceItemIds: string[];
+  /** Mayor duración entre los ítems (meses), si todos la informan. */
+  months?: number | undefined;
+  subtotals?: TotalsBlock["subtotals"] | undefined;
+  discountBase?: number | undefined;
+  discounts?: DiscountLine[] | undefined;
+  discountTotal?: number | undefined;
+  ownFeeNet?: number | undefined;
+  collaboratorNet?: number | undefined;
+  billedTotal?: number | undefined;
+  vatCents?: number | undefined;
+  billedTotalWithVat?: number | undefined;
+  direct?: TotalsBlock["direct"] | undefined;
+}
+
+export interface ItemAmounts {
+  /** Puntual: importe total. Mensual: importe por mes. Vacío = no informado. */
+  amountCents?: number | undefined;
+  months?: number | undefined;
+  /** Solo mensual: importe × meses. Vacío si falta precio o meses. */
+  periodCents?: number | undefined;
+}
+
+/** Importes de un ítem sin alterar el importe original. */
+export function computeItemAmounts(it: ProposalItem): ItemAmounts {
+  const amountCents = it.unitPriceCents === undefined ? undefined : Math.round(it.quantity * it.unitPriceCents);
+  if (it.modality !== "recurring") return { amountCents };
+  const months = it.months;
+  return { amountCents, months, periodCents: amountCents !== undefined && months !== undefined ? amountCents * months : undefined };
 }
 
 export interface ProposalTotals {
@@ -181,8 +222,7 @@ export function computeTotals(p: Pick<Proposal, "items" | "discounts" | "vatPerc
   return { blocks, multiCurrency: new Set(keys.map((k) => k.currency)).size > 1 };
 }
 
-function computeBlock(p: Pick<Proposal, "items" | "discounts" | "vatPercent">, currency: string, modality: Modality): TotalsBlock {
-  const items = p.items.filter((i) => i.currency === currency && i.modality === modality);
+function computeCore(p: Pick<Proposal, "discounts" | "vatPercent">, items: ProposalItem[], currency: string, modality: Modality): TotalsBlock {
   const missing = items.filter((i) => i.unitPriceCents === undefined).map((i) => i.id);
   const sub = { ownFee: 0, collaborator: 0, coordination: 0, externalBilled: 0 };
   const direct = { adSpendByPlatform: {} as Record<string, number>, externalByProvider: {} as Record<string, number>, total: 0 };
@@ -259,6 +299,48 @@ function computeBlock(p: Pick<Proposal, "items" | "discounts" | "vatPercent">, c
     billedTotalWithVat: billedTotal + vatCents,
     direct,
   };
+}
+
+function computeBlock(p: Pick<Proposal, "items" | "discounts" | "vatPercent">, currency: string, modality: Modality): TotalsBlock {
+  const items = p.items.filter((i) => i.currency === currency && i.modality === modality);
+  const block = computeCore(p, items, currency, modality);
+  if (modality === "recurring") block.period = computePeriod(p, items, currency);
+  return block;
+}
+
+function computePeriod(p: Pick<Proposal, "items" | "discounts" | "vatPercent">, items: ProposalItem[], currency: string): PeriodTotals {
+  const missingMonthsItemIds = items.filter((i) => i.months === undefined).map((i) => i.id);
+  const missingPriceItemIds = items.filter((i) => i.unitPriceCents === undefined).map((i) => i.id);
+  if (missingMonthsItemIds.length || missingPriceItemIds.length) return { incomplete: true, missingMonthsItemIds, missingPriceItemIds };
+  const months = Math.max(...items.map((i) => i.months!));
+  const acc: PeriodTotals = {
+    incomplete: false, missingMonthsItemIds, missingPriceItemIds, months,
+    subtotals: { ownFee: 0, collaborator: 0, coordination: 0, externalBilled: 0 },
+    discountBase: 0, discounts: [], discountTotal: 0, ownFeeNet: 0, collaboratorNet: 0,
+    billedTotal: 0, vatCents: 0, billedTotalWithVat: 0,
+    direct: { adSpendByPlatform: {}, externalByProvider: {}, total: 0 },
+  };
+  const add = (r: Record<string, number>, s: Record<string, number>) => { for (const k in s) r[k] = (r[k] ?? 0) + s[k]!; };
+  for (let m = 1; m <= months; m++) {
+    const b = computeCore(p, items.filter((i) => i.months! >= m), currency, "recurring");
+    add(acc.subtotals!, b.subtotals);
+    for (const d of b.discounts) {
+      const cur = acc.discounts!.find((x) => x.id === d.id);
+      if (cur) cur.amountCents += d.amountCents;
+      else acc.discounts!.push({ ...d });
+    }
+    acc.discountBase! += b.discountBase;
+    acc.discountTotal! += b.discountTotal;
+    acc.ownFeeNet! += b.ownFeeNet;
+    acc.collaboratorNet! += b.collaboratorNet;
+    acc.billedTotal! += b.billedTotal;
+    acc.vatCents! += b.vatCents;
+    acc.billedTotalWithVat! += b.billedTotalWithVat;
+    add(acc.direct!.adSpendByPlatform, b.direct.adSpendByPlatform);
+    add(acc.direct!.externalByProvider, b.direct.externalByProvider);
+    acc.direct!.total += b.direct.total;
+  }
+  return acc;
 }
 
 // ---------------------------------------------------------------- estados
@@ -365,7 +447,8 @@ export function acceptProposal(p: Proposal, at: string): Result<Proposal> {
 
 export function rejectProposal(p: Proposal, at: string): Result<Proposal> {
   const s = effectiveStatus(p, at);
-  if (s !== "sent" && s !== "expired") return fail("Solo se puede rechazar una propuesta enviada.");
+  if (s === "expired") return fail("La propuesta está vencida y no puede rechazarse. Para continuar, creá una nueva versión vinculada.");
+  if (s !== "sent") return fail("Solo se puede rechazar una propuesta enviada.");
   return ok({ ...p, status: "rejected", decidedAt: at, updatedAt: at });
 }
 
