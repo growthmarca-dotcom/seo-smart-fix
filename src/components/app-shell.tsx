@@ -2,6 +2,7 @@ import { Link, useRouterState } from "@tanstack/react-router";
 import {
   Activity,
   BarChart3,
+  Briefcase,
   Building2,
   ClipboardCheck,
   History,
@@ -21,6 +22,7 @@ import { useAppState } from "@/store/app-store";
 const NAV = [
   { to: "/", label: "Dashboard", icon: LayoutDashboard },
   { to: "/companies", label: "Empresas", icon: Building2 },
+  { to: "/catalog", label: "Catálogo de servicios", icon: Briefcase },
   { to: "/audits/new", label: "Nueva auditoría", icon: Sparkles },
   { to: "/audits", label: "Auditorías", icon: BarChart3 },
   { to: "/changes", label: "Sugerencias y cambios", icon: ClipboardCheck },
