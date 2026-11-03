@@ -31,7 +31,13 @@ export function CatalogItemDialog({ initial, open, onOpenChange }: { initial: Ca
         <DialogHeader><DialogTitle>{f.id ? "Editar servicio" : "Nuevo servicio"}</DialogTitle></DialogHeader>
         <div className="grid gap-3 sm:grid-cols-2">
           <div className="sm:col-span-2"><Label htmlFor="c-name">Nombre</Label><Input id="c-name" value={f.name} onChange={(e) => set("name", e.target.value)} /></div>
-          <div className="sm:col-span-2"><Label htmlFor="c-scope">Descripción y alcance</Label><Textarea id="c-scope" rows={3} value={f.scope} onChange={(e) => set("scope", e.target.value)} /></div>
+          {f.needsReview && (
+            <p role="note" className="sm:col-span-2 rounded-md border border-border bg-muted p-2 text-xs">
+              Este servicio se guardó con «Descripción y alcance» en un solo campo. El texto completo se conservó en «Alcance». Revisalo y pasá a «Descripción» la parte comercial si corresponde.
+            </p>
+          )}
+          <div className="sm:col-span-2"><Label htmlFor="c-desc">Descripción</Label><Textarea id="c-desc" rows={2} placeholder="Qué ofrece MarCa y para qué sirve" value={f.description} onChange={(e) => set("description", e.target.value)} /></div>
+          <div className="sm:col-span-2"><Label htmlFor="c-scope">Alcance</Label><Textarea id="c-scope" rows={3} placeholder="Tareas incluidas y límites de la prestación" value={f.scope} onChange={(e) => set("scope", e.target.value)} /></div>
           <div className="sm:col-span-2"><Label htmlFor="c-del">Entregables</Label><Textarea id="c-del" rows={2} value={f.deliverables} onChange={(e) => set("deliverables", e.target.value)} /></div>
           <div><Label htmlFor="c-term">Plazo estimado</Label><Input id="c-term" placeholder="Ej.: 3 semanas" value={f.term} onChange={(e) => set("term", e.target.value)} /></div>
           <div><Label htmlFor="c-area">Área de trabajo</Label>
