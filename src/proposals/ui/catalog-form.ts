@@ -18,7 +18,10 @@ export const MODALITY_LABELS: Record<Modality, string> = { "one-off": "Puntual",
 export interface CatalogForm {
   id?: string | undefined;
   name: string;
+  description: string;
   scope: string;
+  /** true si el registro original combinaba descripción y alcance (pre-P4.2). */
+  needsReview?: boolean | undefined;
   deliverables: string;
   term: string;
   workAreaId: string;
@@ -34,13 +37,13 @@ export interface CatalogForm {
 }
 
 export const emptyForm = (): CatalogForm => ({
-  name: "", scope: "", deliverables: "", term: "", workAreaId: "", modality: "one-off", costType: "own-fee",
+  name: "", description: "", scope: "", deliverables: "", term: "", workAreaId: "", modality: "one-off", costType: "own-fee",
   billedBy: "", currency: "ARS", price: "", months: "", collaboratorName: "", provider: "", platform: "",
 });
 
 export function formFromItem(c: CatalogItem): CatalogForm {
   return {
-    id: c.id, name: c.name, scope: c.scope, deliverables: c.deliverables, term: c.term, workAreaId: c.workAreaId ?? "",
+    id: c.id, name: c.name, description: c.description ?? "", scope: c.scope, needsReview: c.description === undefined && c.scope.trim() !== "", deliverables: c.deliverables, term: c.term, workAreaId: c.workAreaId ?? "",
     modality: c.modality, costType: c.costType, billedBy: c.billedBy ?? "", currency: c.currency,
     price: c.unitPriceCents === undefined ? "" : formatCents(c.unitPriceCents), months: c.months === undefined ? "" : String(c.months),
     collaboratorName: c.collaboratorName ?? "", provider: c.provider ?? "", platform: c.platform ?? "",
@@ -77,7 +80,7 @@ export function formToInput(f: CatalogForm): { ok: true; value: UpsertInput } | 
     ok: true,
     value: {
       ...(f.id ? { id: f.id } : {}),
-      name: f.name.trim(), scope: f.scope.trim(), deliverables: f.deliverables.trim(), term: f.term.trim(),
+      name: f.name.trim(), description: f.description.trim(), scope: f.scope.trim(), deliverables: f.deliverables.trim(), term: f.term.trim(),
       workAreaId: opt(f.workAreaId), modality: f.modality, months, costType: f.costType, billedBy,
       currency: f.currency.trim().toUpperCase(), quantity: 1, unitPriceCents: price,
       collaboratorName: f.costType === "collaborator" ? opt(f.collaboratorName) : undefined,

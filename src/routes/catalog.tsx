@@ -9,6 +9,7 @@ import { WORK_AREAS } from "@/proposals/work-areas";
 import { catalogActions, useServiceCatalog } from "@/store/app-store";
 import { CatalogItemDialog } from "@/proposals/ui/catalog-item-dialog";
 import { COST_TYPE_LABELS, MODALITY_LABELS, emptyForm, filterCatalog, formFromItem, formatCents, type CatalogForm, type StatusFilter } from "@/proposals/ui/catalog-form";
+import { needsScopeReview } from "@/proposals/catalog";
 
 export const Route = createFileRoute("/catalog")({
   head: () => ({
@@ -80,7 +81,9 @@ function CatalogPage() {
                 <Badge variant="outline">{COST_TYPE_LABELS[c.costType]}</Badge>
                 {c.costType === "external-license" && <Badge variant="outline">{c.billedBy === "marca" ? "Factura MarCa" : "Pago directo del cliente"}</Badge>}
               </div>
-              {c.scope && <p className="whitespace-pre-wrap">{c.scope}</p>}
+              {needsScopeReview(c) && <Badge variant="secondary">Revisar: descripción y alcance guardados juntos</Badge>}
+              {c.description && <p className="whitespace-pre-wrap">{c.description}</p>}
+              {c.scope && <p className="whitespace-pre-wrap text-muted-foreground"><span className="font-medium text-foreground">Alcance: </span>{c.scope}</p>}
               <dl className="grid grid-cols-2 gap-x-4 gap-y-1 text-xs">
                 <dt className="text-muted-foreground">Precio sugerido</dt>
                 <dd>{c.unitPriceCents === undefined ? "No informado" : `${c.currency} ${formatCents(c.unitPriceCents)}${c.modality === "recurring" ? " / mes" : ""}`}</dd>

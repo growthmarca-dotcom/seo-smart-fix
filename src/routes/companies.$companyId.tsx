@@ -4,6 +4,7 @@ import { PageHeader } from "@/components/app-shell";
 import { EmptyState } from "@/components/seo-ui";
 import { RoadmapView } from "@/components/roadmap-view";
 import { Button } from "@/components/ui/button";
+import { CompanyProposalsSection } from "@/proposals/ui/company-proposals-section";
 import { COMPANY_STATUS_LABELS, INDUSTRY_LABELS } from "@/companies/model";
 import { companyActions, useAppState, useCompany, useCompanyAssessments, useRoadmap } from "@/store/app-store";
 
@@ -113,6 +114,9 @@ function CompanyDetail() {
           )}
           <Button asChild size="sm" variant="outline"><Link to="/audits/new">Nueva auditoría</Link></Button>
         </div>
+      </div>
+      <div className="mt-6">
+        <CompanyProposalsSection companyId={companyId} />
       </div>
       <div className="mt-6">
         {roadmap ? <RoadmapView roadmap={roadmap} auditNames={auditNames} /> : <p className="text-sm text-muted-foreground">Esta empresa no tiene roadmap.</p>}
