@@ -9,6 +9,13 @@ import { validateItem, type BilledBy, type CostType, type Modality, type Proposa
 export interface CatalogItem {
   id: string;
   name: string;
+  /**
+   * P4.2 — Presentación comercial. Ausente (undefined) en registros anteriores a P4.2:
+   * en esos registros `scope` contiene el texto combinado «Descripción y alcance», que se
+   * conserva íntegro y se marca para revisión manual (nunca se separa automáticamente).
+   */
+  description?: string | undefined;
+  /** Tareas incluidas y límites de la prestación. */
   scope: string;
   deliverables: string;
   term: string;
@@ -29,12 +36,18 @@ export interface CatalogItem {
   updatedAt: string;
 }
 
+/** Registro previo a P4.2 con texto combinado que requiere revisión manual. */
+export function needsScopeReview(c: Pick<CatalogItem, "description" | "scope">): boolean {
+  return c.description === undefined && c.scope.trim() !== "";
+}
+
 /** Copia por valor de un ítem del catálogo como línea de propuesta. */
 export function catalogToProposalItem(c: CatalogItem, newId: string): ProposalItem {
   const copy = structuredClone(c);
   return {
     id: newId,
     name: copy.name,
+    description: copy.description,
     scope: copy.scope,
     deliverables: copy.deliverables,
     term: copy.term,

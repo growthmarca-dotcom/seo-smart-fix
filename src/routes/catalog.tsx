@@ -9,6 +9,7 @@ import { WORK_AREAS } from "@/proposals/work-areas";
 import { catalogActions, useServiceCatalog } from "@/store/app-store";
 import { CatalogItemDialog } from "@/proposals/ui/catalog-item-dialog";
 import { COST_TYPE_LABELS, MODALITY_LABELS, emptyForm, filterCatalog, formFromItem, formatCents, type CatalogForm, type StatusFilter } from "@/proposals/ui/catalog-form";
+import { needsScopeReview } from "@/proposals/catalog";
 
 export const Route = createFileRoute("/catalog")({
   head: () => ({

@@ -34,6 +34,8 @@ export const STATUS_LABELS: Record<EffectiveStatus, string> = {
 export interface ProposalItem {
   id: string;
   name: string;
+  /** Copia por valor de la descripción del catálogo (P4.2). No interviene en cálculos. */
+  description?: string | undefined;
   scope: string;
   deliverables: string;
   term: string;
