@@ -84,7 +84,8 @@ export function isProposalShape(x: unknown): x is Proposal {
     STATUSES.has(x["status"]) &&
     typeof x["version"] === "number" &&
     Array.isArray(x["items"]) &&
-    Array.isArray(x["discounts"])
+    Array.isArray(x["discounts"]) &&
+    (["reference", "context", "clientNotes", "internalNotes"] as const).every((k) => x[k] === undefined || typeof x[k] === "string")
   );
 }
 
