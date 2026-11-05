@@ -83,7 +83,16 @@ export interface Proposal {
   validUntil?: string | undefined;
   /** Único campo de IVA. Vacío = sin IVA. */
   vatPercent?: number | undefined;
+  /** Campo heredado (P4.2 guardaba aquí la referencia). Se conserva tal cual. */
   notes: string;
+  /** P4.3: textos separados, opcionales. */
+  reference?: string | undefined;
+  /** Contexto y objetivo: visible para el cliente. */
+  context?: string | undefined;
+  /** Observaciones y condiciones: visibles para el cliente. */
+  clientNotes?: string | undefined;
+  /** Solo MarCa: nunca se muestra al cliente. */
+  internalNotes?: string | undefined;
   items: ProposalItem[];
   discounts: Discount[];
   /** Copia congelada al enviar. */
@@ -363,6 +372,7 @@ export interface ProposalInput {
   assessmentId?: string | undefined;
   validUntil?: string | undefined;
   notes?: string | undefined;
+  reference?: string | undefined;
 }
 
 export function createProposal(input: ProposalInput, ctx: Ctx): Proposal {
@@ -378,6 +388,7 @@ export function createProposal(input: ProposalInput, ctx: Ctx): Proposal {
     validUntil: input.validUntil,
     vatPercent: undefined,
     notes: input.notes ?? "",
+    ...(input.reference !== undefined ? { reference: input.reference } : {}),
     items: [],
     discounts: [],
   };
@@ -425,6 +436,15 @@ export function setValidUntil(p: Proposal, v: string | undefined, at: string): R
   return editDraft(p, at, { validUntil: v });
 }
 
+export type ProposalTexts = Pick<Proposal, "reference" | "context" | "clientNotes" | "internalNotes">;
+
+/** Edita los textos de un borrador (referencia, contexto, observaciones al cliente, notas internas). */
+export function setTexts(p: Proposal, patch: ProposalTexts, at: string): Result<Proposal> {
+  const clean: ProposalTexts = {};
+  for (const k of ["reference", "context", "clientNotes", "internalNotes"] as const) if (k in patch) clean[k] = patch[k];
+  return editDraft(p, at, clean);
+}
+
 export function sendProposal(p: Proposal, at: string): Result<Proposal> {
   if (p.status !== "draft") return fail("Solo se puede enviar un borrador.");
   if (p.items.length === 0) return fail("La propuesta necesita al menos un ítem.");
@@ -454,11 +474,11 @@ export function rejectProposal(p: Proposal, at: string): Result<Proposal> {
   return ok({ ...p, status: "rejected", decidedAt: at, updatedAt: at });
 }
 
-/** Nueva versión: borrador vinculado a la anterior (enviada, rechazada o vencida). La original no se modifica. */
+/** Nueva versión: borrador vinculado a la anterior (enviada, aceptada, rechazada o vencida). La original no se modifica. */
 export function newVersion(p: Proposal, ctx: Ctx): Result<Proposal> {
   const at = ctx.now();
   const s = effectiveStatus(p, at);
-  if (s !== "sent" && s !== "rejected" && s !== "expired") return fail("Solo se crea una nueva versión desde una propuesta enviada, rechazada o vencida.");
+  if (s === "draft") return fail("Solo se crea una nueva versión desde una propuesta enviada, aceptada, rechazada o vencida.");
   const src = p.frozen ?? { items: p.items, discounts: p.discounts, vatPercent: p.vatPercent };
   return ok({
     id: ctx.newId(),
@@ -472,6 +492,10 @@ export function newVersion(p: Proposal, ctx: Ctx): Result<Proposal> {
     validUntil: undefined,
     vatPercent: src.vatPercent,
     notes: p.notes,
+    ...(p.reference !== undefined ? { reference: p.reference } : {}),
+    ...(p.context !== undefined ? { context: p.context } : {}),
+    ...(p.clientNotes !== undefined ? { clientNotes: p.clientNotes } : {}),
+    ...(p.internalNotes !== undefined ? { internalNotes: p.internalNotes } : {}),
     items: structuredClone(src.items),
     discounts: structuredClone(src.discounts),
   });
