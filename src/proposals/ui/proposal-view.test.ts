@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { acceptProposal, createProposal, newVersion, sendProposal, setTexts, upsertItem, type Ctx, type Proposal, type ProposalItem, type Result } from "../model";
 import { isProposalShape } from "../catalog";
-import { clientView, itemRow, proposalReference, NOT_INFORMED } from "./proposal-view";
+import { money, clientView, itemRow, proposalReference, NOT_INFORMED } from "./proposal-view";
 
 const AT = "2026-11-01T12:00:00.000Z";
 let n = 0;
@@ -74,8 +74,7 @@ describe("P4.3 presentación", () => {
     expect(json).not.toContain("margen interno");
     expect(json).not.toContain("Juan Secreto");
     const b = v.blocks[0]!;
-    expect(b.fees).toBe(`ARS ${"1.500,00"}`.replace("1.500,00", b.fees!.slice(4)));
-    expect(b.fees).not.toBe(NOT_INFORMED);
+    expect(b.fees).toBe(money("ARS", 150_000));
     expect(b.direct).toBeDefined();
     expect(v.lines.find((l) => l.direct)?.name).toBe("Ítem");
   });
