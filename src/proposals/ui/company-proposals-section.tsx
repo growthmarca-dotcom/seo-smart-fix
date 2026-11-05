@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { toast } from "sonner";
+import { Link, useNavigate } from "@tanstack/react-router";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -13,6 +14,7 @@ const sel = "h-9 w-full rounded-md border border-input bg-background px-2 text-s
 export function CompanyProposalsSection({ companyId }: { companyId: string }) {
   const proposals = useCompanyProposals(companyId);
   const assessments = useCompanyAssessments(companyId);
+  const navigate = useNavigate();
   const [open, setOpen] = useState(false);
   const [reference, setReference] = useState("");
   const [assessmentId, setAssessmentId] = useState("");
@@ -27,11 +29,12 @@ export function CompanyProposalsSection({ companyId }: { companyId: string }) {
       companyId,
       assessmentId: assessmentId || undefined,
       validUntil: validUntil || undefined,
-      notes: reference.trim(),
+      reference: reference.trim(),
     });
     if (!r.ok) return setError(r.error);
     setOpen(false);
-    toast.success("Propuesta guardada como borrador. El editor de propuestas todavía no está disponible.");
+    toast.success("Propuesta guardada como borrador.");
+    void navigate({ to: "/proposals/$proposalId", params: { proposalId: r.id } });
   };
 
   return (
@@ -45,7 +48,7 @@ export function CompanyProposalsSection({ companyId }: { companyId: string }) {
           {rows.map((r) => (
             <li key={r.id} className="flex flex-wrap items-start justify-between gap-2 py-2">
               <div className="min-w-0">
-                <p className="font-medium">Versión {r.version}{r.reference ? ` · ${r.reference}` : ""}</p>
+                <Link to="/proposals/$proposalId" params={{ proposalId: r.id }} className="font-medium text-primary hover:underline">Versión {r.version}{r.reference ? ` · ${r.reference}` : ""}</Link>
                 <p className="text-xs text-muted-foreground">
                   {r.dateLabel}: {r.date} · Validez: {r.validUntil ?? "Sin fecha"}
                 </p>
@@ -56,7 +59,6 @@ export function CompanyProposalsSection({ companyId }: { companyId: string }) {
           ))}
         </ul>
       )}
-      <p className="text-xs text-muted-foreground">El detalle y la edición de cada propuesta llegarán en la próxima etapa.</p>
 
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent>

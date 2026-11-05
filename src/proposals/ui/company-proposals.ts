@@ -4,6 +4,7 @@
  */
 import { STATUS_LABELS, displayTotals, effectiveStatus, type Proposal } from "../model";
 import { formatCents } from "./catalog-form";
+import { proposalReference } from "./proposal-view";
 
 export interface ProposalRow {
   id: string;
@@ -30,7 +31,7 @@ export function proposalRows(proposals: Proposal[], companyId: string, nowIso: s
         dateLabel: sent ? "Enviada" : "Creada",
         date: (sent ? p.sentAt! : p.createdAt).slice(0, 10),
         validUntil: p.validUntil,
-        reference: p.notes,
+        reference: proposalReference(p).text,
         totals: displayTotals(p).blocks.map((b) => {
           const mod = b.modality === "recurring" ? " / mes" : "";
           const amount = b.incomplete ? "incompleto (faltan precios)" : `${formatCents(b.billedTotalWithVat)}${mod}`;

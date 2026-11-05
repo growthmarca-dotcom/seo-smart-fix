@@ -1119,6 +1119,7 @@ export const proposalActions = {
   removeDiscount: (pid: string, did: string) => applyProposal(pid, (p, at) => pm.removeDiscount(p, did, at)),
   setVatPercent: (pid: string, v: number | undefined) => applyProposal(pid, (p, at) => pm.setVatPercent(p, v, at)),
   setValidUntil: (pid: string, v: string | undefined) => applyProposal(pid, (p, at) => pm.setValidUntil(p, v, at)),
+  setTexts: (pid: string, t: pm.ProposalTexts) => applyProposal(pid, (p, at) => pm.setTexts(p, t, at)),
   send: (pid: string) => applyProposal(pid, (p, at) => pm.sendProposal(p, at)),
   accept: (pid: string) => applyProposal(pid, (p, at) => pm.acceptProposal(p, at)),
   reject: (pid: string) => applyProposal(pid, (p, at) => pm.rejectProposal(p, at)),
