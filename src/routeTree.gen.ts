@@ -22,6 +22,7 @@ import { Route as AuditsNewRouteImport } from './routes/audits.new'
 import { Route as CompaniesIndexRouteImport } from './routes/companies.index'
 import { Route as CompaniesCompanyIdRouteImport } from './routes/companies.$companyId'
 import { Route as CompaniesNewRouteImport } from './routes/companies.new'
+import { Route as ProposalsProposalIdRouteImport } from './routes/proposals.$proposalId'
 import { Route as AuditsAuditIdIndexRouteImport } from './routes/audits.$auditId.index'
 import { Route as AuditsAuditIdArchitectureRouteImport } from './routes/audits.$auditId.architecture'
 import { Route as AuditsAuditIdCommercialRouteImport } from './routes/audits.$auditId.commercial'
@@ -33,6 +34,7 @@ import { Route as AuditsAuditIdReportRouteImport } from './routes/audits.$auditI
 import { Route as CompaniesCompanyIdDiagnosisRouteImport } from './routes/companies.$companyId_.diagnosis'
 import { Route as CompaniesCompanyIdEditRouteImport } from './routes/companies.$companyId_.edit'
 import { Route as CompaniesCompanyIdReportRouteImport } from './routes/companies.$companyId_.report'
+import { Route as ProposalsProposalIdPreviewRouteImport } from './routes/proposals.$proposalId_.preview'
 import { Route as AuditsAuditIdUrlPageIdRouteImport } from './routes/audits.$auditId.url.$pageId'
 
 const IndexRoute = IndexRouteImport.update({
@@ -100,6 +102,11 @@ const CompaniesNewRoute = CompaniesNewRouteImport.update({
   path: '/companies/new',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ProposalsProposalIdRoute = ProposalsProposalIdRouteImport.update({
+  id: '/proposals/$proposalId',
+  path: '/proposals/$proposalId',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AuditsAuditIdIndexRoute = AuditsAuditIdIndexRouteImport.update({
   id: '/',
   path: '/',
@@ -158,6 +165,12 @@ const CompaniesCompanyIdReportRoute =
     path: '/companies/$companyId/report',
     getParentRoute: () => rootRouteImport,
   } as any)
+const ProposalsProposalIdPreviewRoute =
+  ProposalsProposalIdPreviewRouteImport.update({
+    id: '/proposals/$proposalId_/preview',
+    path: '/proposals/$proposalId/preview',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const AuditsAuditIdUrlPageIdRoute = AuditsAuditIdUrlPageIdRouteImport.update({
   id: '/url/$pageId',
   path: '/url/$pageId',
@@ -176,6 +189,7 @@ export interface FileRoutesByFullPath {
   '/audits/new': typeof AuditsNewRoute
   '/companies/$companyId': typeof CompaniesCompanyIdRoute
   '/companies/new': typeof CompaniesNewRoute
+  '/proposals/$proposalId': typeof ProposalsProposalIdRoute
   '/audits/': typeof AuditsIndexRoute
   '/companies/': typeof CompaniesIndexRoute
   '/audits/$auditId/architecture': typeof AuditsAuditIdArchitectureRoute
@@ -188,6 +202,7 @@ export interface FileRoutesByFullPath {
   '/companies/$companyId/diagnosis': typeof CompaniesCompanyIdDiagnosisRoute
   '/companies/$companyId/edit': typeof CompaniesCompanyIdEditRoute
   '/companies/$companyId/report': typeof CompaniesCompanyIdReportRoute
+  '/proposals/$proposalId/preview': typeof ProposalsProposalIdPreviewRoute
   '/audits/$auditId/': typeof AuditsAuditIdIndexRoute
   '/audits/$auditId/url/$pageId': typeof AuditsAuditIdUrlPageIdRoute
 }
@@ -202,6 +217,7 @@ export interface FileRoutesByTo {
   '/audits/new': typeof AuditsNewRoute
   '/companies/$companyId': typeof CompaniesCompanyIdRoute
   '/companies/new': typeof CompaniesNewRoute
+  '/proposals/$proposalId': typeof ProposalsProposalIdRoute
   '/audits': typeof AuditsIndexRoute
   '/companies': typeof CompaniesIndexRoute
   '/audits/$auditId/architecture': typeof AuditsAuditIdArchitectureRoute
@@ -214,6 +230,7 @@ export interface FileRoutesByTo {
   '/companies/$companyId/diagnosis': typeof CompaniesCompanyIdDiagnosisRoute
   '/companies/$companyId/edit': typeof CompaniesCompanyIdEditRoute
   '/companies/$companyId/report': typeof CompaniesCompanyIdReportRoute
+  '/proposals/$proposalId/preview': typeof ProposalsProposalIdPreviewRoute
   '/audits/$auditId': typeof AuditsAuditIdIndexRoute
   '/audits/$auditId/url/$pageId': typeof AuditsAuditIdUrlPageIdRoute
 }
@@ -230,6 +247,7 @@ export interface FileRoutesById {
   '/audits/new': typeof AuditsNewRoute
   '/companies/$companyId': typeof CompaniesCompanyIdRoute
   '/companies/new': typeof CompaniesNewRoute
+  '/proposals/$proposalId': typeof ProposalsProposalIdRoute
   '/audits/': typeof AuditsIndexRoute
   '/companies/': typeof CompaniesIndexRoute
   '/audits/$auditId/architecture': typeof AuditsAuditIdArchitectureRoute
@@ -242,6 +260,7 @@ export interface FileRoutesById {
   '/companies/$companyId_/diagnosis': typeof CompaniesCompanyIdDiagnosisRoute
   '/companies/$companyId_/edit': typeof CompaniesCompanyIdEditRoute
   '/companies/$companyId_/report': typeof CompaniesCompanyIdReportRoute
+  '/proposals/$proposalId_/preview': typeof ProposalsProposalIdPreviewRoute
   '/audits/$auditId/': typeof AuditsAuditIdIndexRoute
   '/audits/$auditId/url/$pageId': typeof AuditsAuditIdUrlPageIdRoute
 }
@@ -259,6 +278,7 @@ export interface FileRouteTypes {
     | '/audits/new'
     | '/companies/$companyId'
     | '/companies/new'
+    | '/proposals/$proposalId'
     | '/audits/'
     | '/companies/'
     | '/audits/$auditId/architecture'
@@ -271,6 +291,7 @@ export interface FileRouteTypes {
     | '/companies/$companyId/diagnosis'
     | '/companies/$companyId/edit'
     | '/companies/$companyId/report'
+    | '/proposals/$proposalId/preview'
     | '/audits/$auditId/'
     | '/audits/$auditId/url/$pageId'
   fileRoutesByTo: FileRoutesByTo
@@ -285,6 +306,7 @@ export interface FileRouteTypes {
     | '/audits/new'
     | '/companies/$companyId'
     | '/companies/new'
+    | '/proposals/$proposalId'
     | '/audits'
     | '/companies'
     | '/audits/$auditId/architecture'
@@ -297,6 +319,7 @@ export interface FileRouteTypes {
     | '/companies/$companyId/diagnosis'
     | '/companies/$companyId/edit'
     | '/companies/$companyId/report'
+    | '/proposals/$proposalId/preview'
     | '/audits/$auditId'
     | '/audits/$auditId/url/$pageId'
   id:
@@ -312,6 +335,7 @@ export interface FileRouteTypes {
     | '/audits/new'
     | '/companies/$companyId'
     | '/companies/new'
+    | '/proposals/$proposalId'
     | '/audits/'
     | '/companies/'
     | '/audits/$auditId/architecture'
@@ -324,6 +348,7 @@ export interface FileRouteTypes {
     | '/companies/$companyId_/diagnosis'
     | '/companies/$companyId_/edit'
     | '/companies/$companyId_/report'
+    | '/proposals/$proposalId_/preview'
     | '/audits/$auditId/'
     | '/audits/$auditId/url/$pageId'
   fileRoutesById: FileRoutesById
@@ -340,11 +365,13 @@ export interface RootRouteChildren {
   AuditsNewRoute: typeof AuditsNewRoute
   CompaniesCompanyIdRoute: typeof CompaniesCompanyIdRoute
   CompaniesNewRoute: typeof CompaniesNewRoute
+  ProposalsProposalIdRoute: typeof ProposalsProposalIdRoute
   AuditsIndexRoute: typeof AuditsIndexRoute
   CompaniesIndexRoute: typeof CompaniesIndexRoute
   CompaniesCompanyIdDiagnosisRoute: typeof CompaniesCompanyIdDiagnosisRoute
   CompaniesCompanyIdEditRoute: typeof CompaniesCompanyIdEditRoute
   CompaniesCompanyIdReportRoute: typeof CompaniesCompanyIdReportRoute
+  ProposalsProposalIdPreviewRoute: typeof ProposalsProposalIdPreviewRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -440,6 +467,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof CompaniesNewRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/proposals/$proposalId': {
+      id: '/proposals/$proposalId'
+      path: '/proposals/$proposalId'
+      fullPath: '/proposals/$proposalId'
+      preLoaderRoute: typeof ProposalsProposalIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/audits/$auditId/': {
       id: '/audits/$auditId/'
       path: '/'
@@ -517,6 +551,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof CompaniesCompanyIdReportRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/proposals/$proposalId_/preview': {
+      id: '/proposals/$proposalId_/preview'
+      path: '/proposals/$proposalId/preview'
+      fullPath: '/proposals/$proposalId/preview'
+      preLoaderRoute: typeof ProposalsProposalIdPreviewRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/audits/$auditId/url/$pageId': {
       id: '/audits/$auditId/url/$pageId'
       path: '/url/$pageId'
@@ -567,11 +608,13 @@ const rootRouteChildren: RootRouteChildren = {
   AuditsNewRoute: AuditsNewRoute,
   CompaniesCompanyIdRoute: CompaniesCompanyIdRoute,
   CompaniesNewRoute: CompaniesNewRoute,
+  ProposalsProposalIdRoute: ProposalsProposalIdRoute,
   AuditsIndexRoute: AuditsIndexRoute,
   CompaniesIndexRoute: CompaniesIndexRoute,
   CompaniesCompanyIdDiagnosisRoute: CompaniesCompanyIdDiagnosisRoute,
   CompaniesCompanyIdEditRoute: CompaniesCompanyIdEditRoute,
   CompaniesCompanyIdReportRoute: CompaniesCompanyIdReportRoute,
+  ProposalsProposalIdPreviewRoute: ProposalsProposalIdPreviewRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
