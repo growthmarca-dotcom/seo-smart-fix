@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { STATUS_LABELS, displayTotals, effectiveStatus, type Discount, type ProposalItem, type ProposalTexts } from "@/proposals/model";
 import { COST_TYPE_LABELS } from "@/proposals/ui/catalog-form";
 import { ProposalItemDialog } from "@/proposals/ui/proposal-item-dialog";
@@ -218,18 +218,18 @@ function ProposalPage() {
 
       <ProposalItemDialog open={itemOpen} onOpenChange={setItemOpen} item={editItem} newId={newId} onSave={(it) => res(proposalActions.upsertItem(p.id, it))} />
       <DiscountDialog open={discOpen} onOpenChange={setDiscOpen} discount={editDisc} newId={newId} onSave={(d) => res(proposalActions.upsertDiscount(p.id, d))} />
-      <AlertDialog open={confirmSend} onOpenChange={setConfirmSend}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>¿Enviar la propuesta?</AlertDialogTitle>
-            <AlertDialogDescription>Se congelarán conceptos, descuentos, IVA y totales. Para cambiarla después habrá que crear una nueva versión.</AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancelar</AlertDialogCancel>
-            <AlertDialogAction onClick={() => act(proposalActions.send(p.id), "Propuesta enviada y congelada.")}>Enviar</AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+      <Dialog open={confirmSend} onOpenChange={setConfirmSend}>
+        <DialogContent role="alertdialog">
+          <DialogHeader>
+            <DialogTitle>¿Enviar la propuesta?</DialogTitle>
+            <DialogDescription>Se congelarán conceptos, descuentos, IVA y totales. Para cambiarla después habrá que crear una nueva versión.</DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setConfirmSend(false)}>Cancelar</Button>
+            <Button onClick={() => { setConfirmSend(false); act(proposalActions.send(p.id), "Propuesta enviada y congelada."); }}>Enviar</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </>
   );
 }
