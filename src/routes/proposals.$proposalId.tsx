@@ -84,7 +84,7 @@ function ProposalPage() {
     const t = vat.trim().replace(",", ".");
     const v = t === "" ? undefined : Number(t);
     if (v === p.vatPercent) return;
-    if (v !== undefined && Number.isNaN(v)) return toast.error("IVA inválido.");
+    if (v !== undefined && Number.isNaN(v)) { toast.error("IVA inválido."); return; }
     act(proposalActions.setVatPercent(p.id, v));
   };
   const goVersion = () => {
@@ -104,7 +104,7 @@ function ProposalPage() {
     <>
       <PageHeader
         title={`Propuesta v${p.version}${ref.text ? ` · ${ref.text}` : ""}`}
-        description={company ? `Empresa: ${company.name}` : "Empresa no encontrada"}
+        description={company ? `Empresa: ${company.tradeName}` : "Empresa no encontrada"}
         actions={
           <div className="flex flex-wrap gap-2">
             {company && <Button variant="outline" asChild><Link to="/companies/$companyId" params={{ companyId: company.id }}>Volver a la empresa</Link></Button>}

@@ -42,7 +42,7 @@ function PreviewPage() {
         <header className="border-b border-border pb-4">
           <p className="font-display text-sm font-semibold uppercase tracking-wide text-primary">MarCa Growth</p>
           <h1 className="mt-1 text-2xl font-bold">Propuesta comercial{v.reference ? ` · ${v.reference}` : ""}</h1>
-          <p className="text-sm text-muted-foreground">Para {company?.name ?? "—"} · Versión {v.version} · Válida hasta {v.validUntil ?? "sin fecha"}</p>
+          <p className="text-sm text-muted-foreground">Para {company?.tradeName ?? "—"} · Versión {v.version} · Válida hasta {v.validUntil ?? "sin fecha"}</p>
         </header>
         {v.context && <section><h2 className="font-display font-semibold">Contexto y objetivo</h2><p className="whitespace-pre-line text-sm">{v.context}</p></section>}
         <section className="space-y-3">
