@@ -14,6 +14,8 @@ import { ProposalItemDialog } from "@/proposals/ui/proposal-item-dialog";
 import { DiscountDialog } from "@/proposals/ui/discount-dialog";
 import { TotalsBreakdown } from "@/proposals/ui/totals-breakdown";
 import { displayItems, itemRow, proposalReference } from "@/proposals/ui/proposal-view";
+import { linkedDiagnosis } from "@/proposals/ui/linked-diagnosis";
+import { LinkedDiagnosisPanel } from "@/proposals/ui/linked-diagnosis-panel";
 import { proposalActions, useCompany, useCompanyAssessments, useProposal, useServiceCatalog } from "@/store/app-store";
 
 export const Route = createFileRoute("/proposals/$proposalId")({
@@ -68,6 +70,7 @@ function ProposalPage() {
   const ref = proposalReference(p);
   const assessment = assessments.find((a) => a.id === p.assessmentId);
   const activeCatalog = catalog.filter((c) => !c.archived);
+  const linked = linkedDiagnosis(p, company, assessments);
 
   const act = (r: { ok: boolean; error?: string }, msg?: string) => {
     const e = res(r);
@@ -133,6 +136,7 @@ function ProposalPage() {
 
       <div className="grid gap-4 lg:grid-cols-[1fr_380px]">
         <div className="space-y-4">
+          {linked && <LinkedDiagnosisPanel data={linked} />}
           <section className="panel space-y-3 p-4">
             <h2 className="font-display font-semibold">Textos</h2>
             <div>
