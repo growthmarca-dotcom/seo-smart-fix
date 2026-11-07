@@ -43,8 +43,9 @@ export function CatalogItemDialog({ initial, open, onOpenChange }: { initial: Ca
           <div><Label htmlFor="c-area">Área de trabajo</Label>
             <select id="c-area" className={sel} value={f.workAreaId} onChange={(e) => set("workAreaId", e.target.value)}>
               <option value="">Sin área</option>
-              {WORK_AREAS.map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}
+              {WORK_AREAS.filter((a) => a.active || a.id === f.workAreaId).map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}
             </select>
+            <p className="mt-1 text-xs text-muted-foreground">Permite relacionar este servicio con las prioridades detectadas en las auditorías.</p>
           </div>
           <div><Label htmlFor="c-mod">Modalidad</Label>
             <select id="c-mod" className={sel} value={f.modality} onChange={(e) => set("modality", e.target.value as Modality)}>

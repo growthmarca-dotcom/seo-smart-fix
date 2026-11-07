@@ -59,7 +59,7 @@ function CatalogPage() {
         </select>
         <select aria-label="Área de trabajo" className={sel} value={area} onChange={(e) => setArea(e.target.value)}>
           <option value="">Todas las áreas</option>
-          {WORK_AREAS.map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}
+          {WORK_AREAS.filter((a) => a.active).map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}
           <option value="none">Sin área</option>
         </select>
       </div>
@@ -72,7 +72,8 @@ function CatalogPage() {
               <div className="flex flex-wrap items-start justify-between gap-2">
                 <div>
                   <h2 className="font-display font-semibold">{c.name}</h2>
-                  <p className="text-xs text-muted-foreground">{areaName(c.workAreaId)}</p>
+                  {c.workAreaId ? <p className="text-xs text-muted-foreground">{areaName(c.workAreaId)}</p>
+                    : <Badge variant="destructive" className="mt-1">Sin área asignada</Badge>}
                 </div>
                 {c.archived && <Badge variant="secondary">Archivado</Badge>}
               </div>
