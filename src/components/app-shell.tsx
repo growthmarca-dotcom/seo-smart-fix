@@ -5,6 +5,7 @@ import {
   Briefcase,
   Building2,
   ClipboardCheck,
+  FileText,
   History,
   LayoutDashboard,
   Menu,
@@ -22,6 +23,7 @@ import { useAppState } from "@/store/app-store";
 const NAV = [
   { to: "/", label: "Dashboard", icon: LayoutDashboard },
   { to: "/companies", label: "Empresas", icon: Building2 },
+  { to: "/proposals", label: "Propuestas", icon: FileText },
   { to: "/catalog", label: "Catálogo de servicios", icon: Briefcase },
   { to: "/audits/new", label: "Nueva auditoría", icon: Sparkles },
   { to: "/audits", label: "Auditorías", icon: BarChart3 },
