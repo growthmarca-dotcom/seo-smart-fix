@@ -402,6 +402,8 @@ export interface Audit {
   sitemapFound?: boolean | undefined;
   robotsFound?: boolean | undefined;
   coverage?: CrawlCoverage | undefined;
+  /** Etapa 2: alcance editorial opcional. Ausente en auditorías históricas (no se infiere). */
+  scope?: import("./scope/types").AuditScope | undefined;
 }
 
 export interface HistoryEntry {
