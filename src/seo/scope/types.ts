@@ -85,3 +85,62 @@ export interface ClassifyOptions {
   /** Lista explícita de URLs del sitemap, si se dispone. Habilita "no". */
   sitemapUrls?: readonly string[] | undefined;
 }
+
+// ---------------------------------------------------------------------------
+// Etapa 2 — Modelo de alcance editorial de una auditoría.
+//
+// `evaluableUrls` = URLs con PageSnapshot en `audit.pages` (evaluables). NO es
+// el total descubierto por el crawler (`audit.coverage.discovered`), que queda
+// aparte y sin tocar. Las exclusiones técnicas del crawler
+// (`coverage.excluded` / `ExclusionReason`) son otra cosa: nunca se mezclan
+// con estas exclusiones editoriales humanas.
+// ---------------------------------------------------------------------------
+
+/** Motivo editorial (decisión humana). Nunca derivado automáticamente de señales. */
+export type ScopeExclusionReason =
+  | "manual"
+  | "out-of-commercial-scope"
+  | "confirmed-residual"
+  | "confirmed-duplicate"
+  | "not-applicable"
+  | "other";
+
+export const SCOPE_EXCLUSION_REASONS: readonly ScopeExclusionReason[] = [
+  "manual",
+  "out-of-commercial-scope",
+  "confirmed-residual",
+  "confirmed-duplicate",
+  "not-applicable",
+  "other",
+];
+
+export const SCOPE_EXCLUSION_LABELS: Record<ScopeExclusionReason, string> = {
+  manual: "Exclusión manual",
+  "out-of-commercial-scope": "Fuera del alcance comercial",
+  "confirmed-residual": "Página residual confirmada por revisión humana",
+  "confirmed-duplicate": "Página duplicada confirmada por revisión humana",
+  "not-applicable": "No corresponde evaluar",
+  other: "Otro motivo",
+};
+
+export type ScopeDecisionOrigin = "manual" | "preset";
+
+export interface ExcludedUrlRecord {
+  url: string;
+  reason: ScopeExclusionReason;
+  excludedAt: string;
+  origin: ScopeDecisionOrigin;
+  note?: string | undefined;
+}
+
+export type ScopeSelectionMode = "all" | "custom" | "preset";
+
+export interface AuditScope {
+  /** URLs evaluables (con PageSnapshot). Inmutable tras crear el alcance. */
+  evaluableUrls: string[];
+  includedUrls: string[];
+  excludedUrls: ExcludedUrlRecord[];
+  selectionMode?: ScopeSelectionMode | undefined;
+  createdAt: string;
+  updatedAt: string;
+}
