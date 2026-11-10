@@ -15,6 +15,8 @@ import * as dm from "@/diagnosis/model";
 import type { AssessmentControlState, AssessmentInput, AssessmentMetaPatch, CompanyAssessment } from "@/diagnosis/model";
 import { TOURISM_EQUIVALENCES } from "@/diagnosis/equivalences";
 import * as pm from "@/proposals/model";
+import { validateScope } from "@/seo/scope/model";
+import type { AuditScope } from "@/seo/scope/types";
 import * as catalog from "@/proposals/catalog";
 import type { Company, CompanyInput, Roadmap, TaskPatch, TaskPriority } from "@/companies/model";
 import type { GscConnection, GscRow } from "@/seo/gsc/types";
@@ -350,6 +352,36 @@ export const companyActions = {
 };
 
 export const actions = {
+  /**
+   * Etapa 3 — Guarda SOLO `audit.scope` tras confirmación humana. No recalcula
+   * hallazgos ni score. Rechaza alcances inválidos o ajenos a `audit.pages`.
+   */
+  setAuditScope(auditId: string, scope: AuditScope): string | undefined {
+    const audit = state.audits.find((a) => a.id === auditId);
+    if (!audit) return "La auditoría no existe.";
+    const errs = validateScope(scope);
+    if (errs.length) return errs.join(" ");
+    const pageUrls = audit.pages.map((p) => p.url);
+    if (
+      pageUrls.length !== scope.evaluableUrls.length ||
+      pageUrls.some((u, i) => u !== scope.evaluableUrls[i])
+    ) {
+      return "El alcance no corresponde a las páginas evaluables de esta auditoría.";
+    }
+    set((prev) => ({
+      ...prev,
+      audits: prev.audits.map((a) => (a.id === auditId ? { ...a, scope: structuredClone(scope) } : a)),
+      history: [
+        log({
+          auditId,
+          action: "Alcance editorial guardado",
+          detail: `${scope.includedUrls.length} incluidas · ${scope.excludedUrls.length} excluidas`,
+        }),
+        ...prev.history,
+      ],
+    }));
+    return undefined;
+  },
   addAudit(audit: Audit) {
     set((prev) => ({
       ...prev,

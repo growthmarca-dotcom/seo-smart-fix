@@ -32,6 +32,7 @@ import { Route as AuditsAuditIdEcommerceRouteImport } from './routes/audits.$aud
 import { Route as AuditsAuditIdGscRouteImport } from './routes/audits.$auditId.gsc'
 import { Route as AuditsAuditIdPrioritiesRouteImport } from './routes/audits.$auditId.priorities'
 import { Route as AuditsAuditIdReportRouteImport } from './routes/audits.$auditId.report'
+import { Route as AuditsAuditIdScopeRouteImport } from './routes/audits.$auditId.scope'
 import { Route as CompaniesCompanyIdDiagnosisRouteImport } from './routes/companies.$companyId_.diagnosis'
 import { Route as CompaniesCompanyIdEditRouteImport } from './routes/companies.$companyId_.edit'
 import { Route as CompaniesCompanyIdReportRouteImport } from './routes/companies.$companyId_.report'
@@ -154,6 +155,11 @@ const AuditsAuditIdReportRoute = AuditsAuditIdReportRouteImport.update({
   path: '/report',
   getParentRoute: () => AuditsAuditIdRoute,
 } as any)
+const AuditsAuditIdScopeRoute = AuditsAuditIdScopeRouteImport.update({
+  id: '/scope',
+  path: '/scope',
+  getParentRoute: () => AuditsAuditIdRoute,
+} as any)
 const CompaniesCompanyIdDiagnosisRoute =
   CompaniesCompanyIdDiagnosisRouteImport.update({
     id: '/companies/$companyId_/diagnosis',
@@ -206,6 +212,7 @@ export interface FileRoutesByFullPath {
   '/audits/$auditId/gsc': typeof AuditsAuditIdGscRoute
   '/audits/$auditId/priorities': typeof AuditsAuditIdPrioritiesRoute
   '/audits/$auditId/report': typeof AuditsAuditIdReportRoute
+  '/audits/$auditId/scope': typeof AuditsAuditIdScopeRoute
   '/companies/$companyId/diagnosis': typeof CompaniesCompanyIdDiagnosisRoute
   '/companies/$companyId/edit': typeof CompaniesCompanyIdEditRoute
   '/companies/$companyId/report': typeof CompaniesCompanyIdReportRoute
@@ -235,6 +242,7 @@ export interface FileRoutesByTo {
   '/audits/$auditId/gsc': typeof AuditsAuditIdGscRoute
   '/audits/$auditId/priorities': typeof AuditsAuditIdPrioritiesRoute
   '/audits/$auditId/report': typeof AuditsAuditIdReportRoute
+  '/audits/$auditId/scope': typeof AuditsAuditIdScopeRoute
   '/companies/$companyId/diagnosis': typeof CompaniesCompanyIdDiagnosisRoute
   '/companies/$companyId/edit': typeof CompaniesCompanyIdEditRoute
   '/companies/$companyId/report': typeof CompaniesCompanyIdReportRoute
@@ -266,6 +274,7 @@ export interface FileRoutesById {
   '/audits/$auditId/gsc': typeof AuditsAuditIdGscRoute
   '/audits/$auditId/priorities': typeof AuditsAuditIdPrioritiesRoute
   '/audits/$auditId/report': typeof AuditsAuditIdReportRoute
+  '/audits/$auditId/scope': typeof AuditsAuditIdScopeRoute
   '/companies/$companyId_/diagnosis': typeof CompaniesCompanyIdDiagnosisRoute
   '/companies/$companyId_/edit': typeof CompaniesCompanyIdEditRoute
   '/companies/$companyId_/report': typeof CompaniesCompanyIdReportRoute
@@ -298,6 +307,7 @@ export interface FileRouteTypes {
     | '/audits/$auditId/gsc'
     | '/audits/$auditId/priorities'
     | '/audits/$auditId/report'
+    | '/audits/$auditId/scope'
     | '/companies/$companyId/diagnosis'
     | '/companies/$companyId/edit'
     | '/companies/$companyId/report'
@@ -327,6 +337,7 @@ export interface FileRouteTypes {
     | '/audits/$auditId/gsc'
     | '/audits/$auditId/priorities'
     | '/audits/$auditId/report'
+    | '/audits/$auditId/scope'
     | '/companies/$companyId/diagnosis'
     | '/companies/$companyId/edit'
     | '/companies/$companyId/report'
@@ -357,6 +368,7 @@ export interface FileRouteTypes {
     | '/audits/$auditId/gsc'
     | '/audits/$auditId/priorities'
     | '/audits/$auditId/report'
+    | '/audits/$auditId/scope'
     | '/companies/$companyId_/diagnosis'
     | '/companies/$companyId_/edit'
     | '/companies/$companyId_/report'
@@ -550,6 +562,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuditsAuditIdReportRouteImport
       parentRoute: typeof AuditsAuditIdRoute
     }
+    '/audits/$auditId/scope': {
+      id: '/audits/$auditId/scope'
+      path: '/scope'
+      fullPath: '/audits/$auditId/scope'
+      preLoaderRoute: typeof AuditsAuditIdScopeRouteImport
+      parentRoute: typeof AuditsAuditIdRoute
+    }
     '/companies/$companyId_/diagnosis': {
       id: '/companies/$companyId_/diagnosis'
       path: '/companies/$companyId/diagnosis'
@@ -596,6 +615,7 @@ interface AuditsAuditIdRouteChildren {
   AuditsAuditIdGscRoute: typeof AuditsAuditIdGscRoute
   AuditsAuditIdPrioritiesRoute: typeof AuditsAuditIdPrioritiesRoute
   AuditsAuditIdReportRoute: typeof AuditsAuditIdReportRoute
+  AuditsAuditIdScopeRoute: typeof AuditsAuditIdScopeRoute
   AuditsAuditIdIndexRoute: typeof AuditsAuditIdIndexRoute
   AuditsAuditIdUrlPageIdRoute: typeof AuditsAuditIdUrlPageIdRoute
 }
@@ -608,6 +628,7 @@ const AuditsAuditIdRouteChildren: AuditsAuditIdRouteChildren = {
   AuditsAuditIdGscRoute: AuditsAuditIdGscRoute,
   AuditsAuditIdPrioritiesRoute: AuditsAuditIdPrioritiesRoute,
   AuditsAuditIdReportRoute: AuditsAuditIdReportRoute,
+  AuditsAuditIdScopeRoute: AuditsAuditIdScopeRoute,
   AuditsAuditIdIndexRoute: AuditsAuditIdIndexRoute,
   AuditsAuditIdUrlPageIdRoute: AuditsAuditIdUrlPageIdRoute,
 }
