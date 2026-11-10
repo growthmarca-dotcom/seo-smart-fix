@@ -158,6 +158,11 @@ function AuditResults() {
               </Link>
             </Button>
             <Button variant="outline" asChild>
+              <Link to="/audits/$auditId/scope" params={{ auditId: audit.id }}>
+                Alcance editorial
+              </Link>
+            </Button>
+            <Button variant="outline" asChild>
               <Link to="/changes" search={{ auditId: audit.id }}>
                 Ver cambios pendientes
               </Link>
