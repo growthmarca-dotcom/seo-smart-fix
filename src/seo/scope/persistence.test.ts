@@ -70,7 +70,7 @@ describe("Etapa 3 — persistencia del alcance editorial (aislada)", () => {
     const m = await load(raw);
     m.hydrate();
     const writesBefore = storage.writes;
-    const pages = seed().audits[0].pages as never[];
+    const pages = seed().audits[0]!.pages as never[];
     const draft = createInitialScope(pages);
     suggestForPreset("integral" as never, [...classifyUrls(pages, "https://h.test/").values()]);
     const edited = excludeMany(draft, ["https://h.test/prueba"], "confirmed-residual", { origin: "preset" });
@@ -115,9 +115,9 @@ describe("Etapa 3 — persistencia del alcance editorial (aislada)", () => {
     const writes = storage.writes;
     const foreign = createInitialScope([{ url: "https://otra.test/" }]);
     expect(m.actions.setAuditScope("hist1", foreign)).toMatch(/no corresponde/);
-    const bad = { ...createInitialScope(seed().audits[0].pages), includedUrls: [URLS[0]!] };
+    const bad = { ...createInitialScope(seed().audits[0]!.pages), includedUrls: [URLS[0]!] };
     expect(m.actions.setAuditScope("hist1", bad)).toBeTruthy();
-    expect(m.actions.setAuditScope("inexistente", createInitialScope(seed().audits[0].pages))).toMatch(/no existe/);
+    expect(m.actions.setAuditScope("inexistente", createInitialScope(seed().audits[0]!.pages))).toMatch(/no existe/);
     expect(storage.writes).toBe(writes);
     expect(storage.getItem(STATE)).toBe(raw);
     expect(persisted().history).toEqual([]);
