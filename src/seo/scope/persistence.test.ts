@@ -51,7 +51,7 @@ async function reload() {
 }
 const persisted = () => JSON.parse(storage.getItem(STATE)!);
 const audit = () => persisted().audits.find((a: { id: string }) => a.id === "hist1");
-const URLS = ["https://h.test/", "https://h.test/a", "https://h.test/prueba"];
+const URLS: string[] = ["https://h.test/", "https://h.test/a", "https://h.test/prueba"];
 
 beforeEach(() => vi.unstubAllGlobals());
 afterEach(() => vi.unstubAllGlobals());
@@ -115,7 +115,7 @@ describe("Etapa 3 — persistencia del alcance editorial (aislada)", () => {
     const writes = storage.writes;
     const foreign = createInitialScope([{ url: "https://otra.test/" }]);
     expect(m.actions.setAuditScope("hist1", foreign)).toMatch(/no corresponde/);
-    const bad = { ...createInitialScope(seed().audits[0].pages), includedUrls: [URLS[0]] };
+    const bad = { ...createInitialScope(seed().audits[0].pages), includedUrls: [URLS[0]!] };
     expect(m.actions.setAuditScope("hist1", bad)).toBeTruthy();
     expect(m.actions.setAuditScope("inexistente", createInitialScope(seed().audits[0].pages))).toMatch(/no existe/);
     expect(storage.writes).toBe(writes);
