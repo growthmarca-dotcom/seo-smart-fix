@@ -99,10 +99,15 @@ export function recommendAuditProfile(inputs: ProfileRecommendationInputs): Prof
       alternatives = ["professional"];
       explanation = `Complejidad baja confirmada (${factorText}): se sugiere Esencial. Acordar el alcance con el cliente.`;
       break;
-    default:
+    case "medium":
+      suggested = "professional";
+      alternatives = ["essential"];
+      explanation = `Complejidad media (${factorText}): se sugiere Profesional como base. Esencial si el cliente solo busca destrabar barreras críticas.`;
+      break;
+    case "high":
       suggested = "professional";
       alternatives = ["essential", "integral360"];
-      explanation = `Complejidad ${complexity.level === "high" ? "alta" : "media"} (${factorText}): se sugiere Profesional como base. Esencial si el cliente solo busca destrabar barreras críticas; Integral 360 solo si contrata una auditoría exhaustiva.`;
+      explanation = `Complejidad alta (${factorText}): se sugiere Profesional como base. Esencial si el cliente solo busca destrabar barreras críticas; Integral 360 solo si contrata una auditoría exhaustiva con analítica, integraciones o revisión transversal.`;
   }
   return { status: "exploratory", suggestedProfile: suggested, complexity, alternatives, explanation };
 }

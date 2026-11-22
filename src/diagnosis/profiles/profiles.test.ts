@@ -75,6 +75,12 @@ describe("D1 — recomendación", () => {
     const h = recommendAuditProfile({ complexityInputs: { hasTransactionalPlatform: true, isMultiCurrency: true } });
     expect(h.status).toBe("exploratory");
     expect(h.suggestedProfile).toBe("professional");
+    expect(h.alternatives).toEqual(["essential", "integral360"]);
+    const m = recommendAuditProfile({ complexityInputs: { locationsCount: 2 } });
+    expect(m.complexity.level).toBe("medium");
+    expect(m.suggestedProfile).toBe("professional");
+    expect(m.alternatives).toEqual(["essential"]);
+    expect(m.explanation).not.toContain("Integral 360");
   });
 });
 
@@ -118,6 +124,17 @@ describe("D1 — coberturas", () => {
         const d = diag(Object.fromEntries(criticalControlsFor(ind).map((id) => [id, { status: st }])));
         const missing = globalIndex(ind, dimensionResults(ind, d), d).missingCritical;
         expect(calculateCoverageMetrics("professional", ind, d).criticalCoverage === 1).toBe(missing.length === 0);
+      }
+      for (const notes of ["Justificación válida: el negocio no opera este canal.", ""]) {
+        const d = diag(Object.fromEntries(criticalControlsFor(ind).map((id) => [id, { status: "not-applicable" as const, notes }])));
+        const missing = globalIndex(ind, dimensionResults(ind, d), d).missingCritical;
+        const m = calculateCoverageMetrics("professional", ind, d);
+        expect(m.criticalCoverage === 1).toBe(missing.length === 0);
+        if (notes) expect([m.criticalCoverage, missing.length]).toEqual([1, 0]);
+        else {
+          expect(m.criticalCoverage).toBe(0);
+          expect(missing.length).toBeGreaterThan(0);
+        }
       }
     }
   });
